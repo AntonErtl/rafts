@@ -57,7 +57,7 @@ emacssitelispdir = $(datadir)/emacs/site-lisp
 
 BURG		= burg/burg
 BFEF		= burg/bfef
-BURGFLAGS	= -d -= -I
+BURGFLAGS	= -d -t -I
 
 DIR		= examples
 

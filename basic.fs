@@ -44,7 +44,7 @@ st-size 2/ constant st-size-half
 
 ?trace $0fff [IF]
 : .stack ( -- )
-    dup @ 2 rshift st-size-half - 0 .r ." > "
+    dup @ st-size-half - cell / 0 .r ." > "
     dup st-size 2 cells + dump
     dup 2@ st-size-half - swap st-size-half - swap ?do
 	i over #stack@ hex.
@@ -139,20 +139,26 @@ cs-size 1- cs-tos !
 
        variable basic-block
 
-       variable basic-code-ptr
+$40000 constant basic-code
        variable basic-code-sav
-$20000 constant basic-code
+       variable basic-code-ptr
 here basic-code allot basic-code-ptr !
-       variable basic-data-ptr
+$20000 constant basic-data
        variable basic-data-sav
-$10000 constant basic-data
+       variable basic-data-ptr
 here basic-data allot basic-data-ptr !
 
-?trace $0004 [IF]
+: basic-status ( -- )
     ." BASIC-CODE:" basic-code-ptr hex.
-    ." BASIC-CODE(end):" basic-code-ptr basic-code + hex. cr
+    ." BASIC-CODE(end):" basic-code-ptr basic-code + hex.
+    ." BASIC-CODE(ptr):" basic-code-ptr @ hex.
+    ." BASIC-CODE(size):" basic-code-ptr @ basic-code-ptr - hex. cr
     ." BASIC-DATA:" basic-data-ptr hex.
-    ." BASIC-DATA(end):" basic-data-ptr basic-data + hex. cr
+    ." BASIC-DATA(end):" basic-data-ptr basic-data + hex.
+    ." BASIC-DATA(ptr):" basic-data-ptr @ hex. cr
+;
+?trace $0004 [IF]
+    basic-status
 [THEN]
 
 variable inst-!-list
@@ -212,7 +218,7 @@ data-init
 	dup @ dup il-reset regs-unallocated swap il-reg !
 	cell+
     loop
-    ds-tos cell+ @ st-size-half - 2 rshift tos-#register ?do
+    ds-tos cell+ @ st-size-half - cell / tos-#register ?do
 	dup @ dup il-reset regs-unallocated swap il-reg !
 	cell+
     loop
@@ -243,7 +249,7 @@ data-init
 return-init
 
 : return-reset-stack ( addr -- )
-    rs-tos cell+ @ st-size-half - 2 rshift 0 ?do
+    rs-tos cell+ @ st-size-half - cell / 0 ?do
 	dup @ dup il-reset regs-unallocated swap il-reg !
 	cell+
     loop
@@ -298,9 +304,9 @@ control-init
     \ dump the data stackregisters
     #tos tos-#register + #tos ?do
 	data>
-	dup i #tos - cells ds-init + @ = if
-	    drop
-	else
+	\ dup i #tos - cells ds-init + @ = if
+	    \ drop
+	\ else
 	    dup il-op @ I_MOVE = if
 		i #tos - cells ds-init + @ il-reg @ regs-unallocated <> if
 		    register-move
@@ -312,7 +318,7 @@ control-init
 	    i over il-reg !
 	    dup dup il-depends @ i #tos - cells ds-init + @ inst slist-insert swap il-depends !
 	    inst-ils-insert
-	endif
+	\ endif
     loop ;
 
 : basic-datastackdump-new ( il n -- )
@@ -338,7 +344,7 @@ control-init
     inst-ils-insert ;
 
 : basic-datastackdump ( -- )
-    ds-tos @ st-size-half - 2 rshift >r
+    ds-tos @ st-size-half - cell / >r
 
     \ dump the data stackregisters
     basic-datastackdump-regs
@@ -374,12 +380,12 @@ control-init
     #sp r> basic-stackupdate ds-stackupdate ! ;
 
 : basic-returnstackdump ( -- )
-    rs-tos @ st-size-half - 2 rshift >r
+    rs-tos @ st-size-half - cell / >r
 
     \ dump the return stack
     rs-tos 2@ st-size-half - cell / swap st-size-half - cell / swap ?do
 	?trace $0008 [IF]
-	    ." STACKDUMP (return):" i st-size-half 2 rshift + . hex.s cr
+	    ." STACKDUMP (return):" i st-size-half cell / + . hex.s cr
 	[THEN]
 	return> i cells rs-init + @ over <> if
 	    i cells #rp id!

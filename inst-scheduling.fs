@@ -18,12 +18,15 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+variable inst-cycle
+
 : ml-dec                                        ( addr -- )
     ?dup if
 	-1 over ml-count +!
 	dup ml-count @ if
 	    drop
 	else
+	    inst-cycle @ over ml-let +!
 	    inst-mls-insert
 	endif
     endif ;
@@ -39,20 +42,21 @@
     endif ;
 
 : inst-scheduling-heuristic                     ( addr-new addr-old -- addr )
-    over @ ml-let @ if
-	dup @ ml-let @ if
+    over @ ml-let @ inst-cycle @ < if
+	dup if
 	    over @ ml-pathlength @
 	    over @ ml-pathlength @ < if
 		swap
 	    endif
-	else
-	    swap
 	endif
+    else
+	swap
     endif
     drop ;
 
 : inst-next                                     ( -- addr )
-    0 inst-mls dup cell+
+    NIL
+    0 inst-mls
     begin
 	dup @
     while
@@ -64,6 +68,7 @@
 
 : inst-scheduling                               ( -- )
     0 tos-register !
+    1 inst-cycle !
     ?trace $0004 [IF]
 	." SCHEDULING BB:" basic-block @ . cr
 	mls-pr
@@ -74,18 +79,23 @@
 	    mls-pr
 	    lists-pr
 	[THEN]
-	inst-next dup @                         ( addr addr )
+	inst-next                               ( addr addr )
+	inst-mls-end @
     while
-	dup @                                   ( addr ml )
-	swap inst-mls-delete                    ( ml )
-	dup ml-reg @ regs-unallocated <> if
-	    dup register-allocation
-	    dup inst-lists-insert
+	?dup if
+	    dup @                               ( addr ml )
+	    swap inst-mls-delete                ( ml )
+	    dup ml-reg @ regs-unallocated <> if
+		dup register-allocation
+		dup inst-lists-insert
+
+		dup ml-depends @ ml-depends-dec ( ml )
+		dup ml-left @ ml-dec            ( ml )
+		dup ml-right @ ml-dec           ( ml )
+	    endif
+	    drop
 	endif
-	dup ml-depends @ ml-depends-dec         ( ml )
-	dup ml-left @ ml-dec                    ( ml )
-	dup ml-right @ ml-dec                   ( ml )
-	drop
+	1 inst-cycle +!
     repeat
     drop ;
 

@@ -33,34 +33,27 @@
     ih-regs-out ! ;
 
 : :compile-gforth ( xt b -- xt xt xt )
-    case
-	docon: of
+    docon: over =
+    over dovar: = or
+    over douser: = or if
+	drop
 	['] compile,-constant-gforth
-	['] compile,-nonativext swap rot endof
-	dovar: of
-	['] compile,-variable-gforth
-	['] compile,-nonativext swap rot endof
-	douser: of
-	['] compile,-user-gforth
-	['] compile,-nonativext swap rot endof
-	dofield: of
-	['] compile,-field-gforth
-	['] compile,-nonativext swap rot endof
-	dodefer: of
-	['] compile,-defer-gforth
-	['] compile,-nonativext swap rot endof
-	docol: of
-	['] compile,-interpreter
-	['] compile,-nonativext swap rot endof
-	>r ['] compile,-interpreter
-	['] compile,-nonativext swap rot r>
-    endcase ;
+	['] compile,-nonative-xt swap rot
+    else
+	dofield: = if
+	    ['] compile,-field-gforth
+	    ['] compile,-nonative-xt swap rot
+	else
+	    ['] compile,-interpreter
+	    ['] compile,-interpreter-xt swap rot
+	endif
+    endif ;
 
 : :compile ( xt b -- xt xt xt )
     alias-mask and if
 	dup forthstart < over >does-code or if
 	    ['] compile,-interpreter
-	    ['] compile,-nonativext swap rot
+	    ['] compile,-interpreter-xt swap rot
 	else
 	    dup >code-address case
 		dodata: of
@@ -71,29 +64,27 @@
 		2cells + @
 		dup forthstart < over >does-code or if
 		    ['] compile,-interpreter
-		    ['] compile,-nonativext swap rot
+		    ['] compile,-interpreter-xt swap rot
 		else
 		    dup >code-address case
-			docon: of
+			docon: over =
+			over dovar: = or
+			over douser: = or true of
+			drop
 			['] compile,-constant-gforth
-			['] compile,-nonativext swap rot endof
-			dovar: of
-			['] compile,-variable-gforth
-			['] compile,-nonativext swap rot endof
-			douser: of
-			['] compile,-user-gforth
-			['] compile,-nonativext swap rot endof
+			['] compile,-nonative-xt swap rot endof
+			drop
 			dofield: of
 			['] compile,-field-gforth
-			['] compile,-nonativext swap rot endof
-			dodefer: of
-			['] compile,-defer-gforth
-			['] compile,-nonativext swap rot endof
-			docol: of
+			['] compile,-nonative-xt swap rot endof
+			dodefer: over =
+			over docol: = or true of
+			drop
 			['] compile,-interpreter
-			['] compile,-nonativext swap rot endof
+			['] compile,-interpreter-xt swap rot endof
+			drop
 			>r ['] compile,-native
-			['] compile,-nativext swap rot r>
+			['] compile,-native-xt swap rot r>
 		    endcase
 		endif
 		endof
@@ -202,9 +193,15 @@ previous
 	0 basic-block !
     [THEN]
     basic-init
-    0 @ra I_REG terminal >return ;
+    \ minimise the save of return address !!!
+    \ dup
+    \ dup ih-#xt @
+    \ swap ih-#ixt @ or if
+	0 @ra I_REG terminal >return
+    \ endif
+;
 
-: compile-word-init ( -- )
+: compile-word-init ( cfa -- )
     here basic-code-sav !
     basic-code-ptr @ dup dp !
     swap 2cells + tuck ! cell flush-icache
@@ -212,26 +209,40 @@ previous
 	0 basic-block !
     [THEN]
     basic-init
-    0 @ra I_REG terminal >return ;
+    \ minimise the save of return address !!!
+    drop
+    \ dup ih-#xt @
+    \ swap ih-#ixt @ or if
+	0 @ra I_REG terminal >return
+    \ endif
+;
 
 : word-init ( -- )
-    here
     docode: cfa,
     (word-init)
     word-regs-init
-    xt-init
+    native-xt-init
+    interpreter-xt-init
     docol: cfa,
-    lastih lastcfa !
-    [ also Forth ' lit previous ] literal gforth-compile, ,
-    ['] compile-word-init gforth-compile, ;
+    lastih lastcfa ! ;
 
 : compile-word-exit-does ( -- )
-    check-ra
+    \ minimise the save of return address !!!
+    \ dup
+    \ dup ih-#xt @
+    \ swap ih-#ixt @ or if
+	check-ra
+    \ endif
     basic-exit
     (word-exit) ;
 
-: compile-word-exit ( -- )
-    check-ra
+: compile-word-exit ( cfa -- )
+    \ minimise the save of return address !!!
+    drop
+    \ dup ih-#xt @
+    \ swap ih-#ixt @ or if
+	check-ra
+    \ endif
     basic-exit
     (word-exit)
     basic-code-ptr @ here
@@ -239,12 +250,12 @@ previous
     basic-code-sav @ dp !
     over -
     ?trace $0800 [IF]
+	." code: ( " version @ hex. ." ) " lastnfa .name cr
 	2dup disasm-dump
     [THEN]
     flush-icache ;
 
 : word-exit ( -- )
-    ['] compile-word-exit gforth-compile,
     [ also Forth ' ;s previous ] literal gforth-compile, ;
 
 : (:header:) ( "name" -- xt )
@@ -261,7 +272,7 @@ previous
     \ # in-register, # out-register
     a, a,
     word-good a,
-    ['] compile,-nonativext a,
+    ['] compile,-nonative-xt a,
     ih-size 7cells ?do
         0 a,
     cell +loop
@@ -283,10 +294,13 @@ previous
 	    cell+
 	loop
 	drop
-	?trace $0020 [IF]
+	?trace $0820 [IF]
 	    dup look drop (lastnfa) !
 	[THEN]
+	dup
+	dup compile-word-init
 	dup ih-cfsize + execute
+	dup compile-word-exit
 	true over ih-status !
 	['] compile,-native over ih-compiler !
 	j,-docode: over !
@@ -321,10 +335,14 @@ does>
     postpone [
     word-exit
     lastih word-regs-write
+    \ here lastih - ih-cfsize - lastih ih-thread-size !
+    \ ~~
     ?trace $0020 [IF]
-	.xt cr
+	.native-xt cr
     [THEN]
-    lastih xt-write
+    lastih
+    dup native-xt-write
+    interpreter-xt-write
     ?trace $0020 [IF]
 	\ Dump vom Info Header
 	lastih dup $10 - $20 dump
@@ -351,7 +369,7 @@ does>
     \ regs-in, regs-out
     a, a,
     word-good a,
-    ['] compile,-nonativext a,
+    ['] compile,-nonative-xt a,
     ih-size 7cells ?do
 	0 a,
     cell +loop

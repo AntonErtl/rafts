@@ -350,8 +350,8 @@ ls-size array ls-data
 : +loop ( n -- ) ( C: dest -- ) ( L: 0 destu ... dest0 -- ) ( R: to from -- )
     vtarget
     postpone dup postpone r> postpone dup postpone r@ postpone - postpone swap postpone rot postpone + postpone >r
-    postpone over postpone over postpone swap postpone over postpone + postpone xor postpone 0<=
-    postpone rot postpone rot postpone xor postpone 0<= postpone and postpone until
+    postpone over postpone over postpone swap postpone over postpone + postpone xor
+    postpone rot postpone rot postpone xor postpone and postpone 0< postpone until
     postpone leave-exit
     postpone unloop
     vsource ; immediate compile-only
@@ -426,7 +426,10 @@ create does-addr
     ?word-mode-direct [IF]
 	j,-docode:
     [THEN]
+    \ insert comments !!!
     lastxt tuck !
+    \ check later !!!
+    \ ['] compile,-nonative-xt over ih-compile-xt !
     over swap ih-does-xt !
     here basic-code-sav !
     basic-code-ptr @ dp !
@@ -461,7 +464,8 @@ previous
 
 >source
 : compile-does> ( -- )
-    does-addr @ compile,-literal
+    does-addr @
+    compile,-literal
     vtarget ['] ;dodoes vsource compile,-now
     compile-word-exit-does
     here does-addr dup @ + ! does-addr-inc

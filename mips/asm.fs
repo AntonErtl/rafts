@@ -376,7 +376,7 @@ $08 asm-copz0				tlbl,
 : li, ( rd imm -- )
     dup 0= if
 	drop dup @zero = if
-	    drop
+	    drop nop, assert( false )
 	else
 	    @zero move,
 	endif

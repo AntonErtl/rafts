@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.9 1997/07/25 21:47:23 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.10 1997/08/08 13:30:21 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -461,11 +461,11 @@ void DEFUN_VOID(makeCostArray)
     if (!pVector)
 	makePvector();
     SOURCE(("short %s_cost[][%d] = {\n", prefix, DELTAWIDTH),
-	("%d %d matrix-noallot %s-cost\n", max_erule_num+1, DELTAWIDTH, prefix, prefix));
+	("%d %d cmatrix-noallot %s-cost\n", max_erule_num+1, DELTAWIDTH, prefix, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (i > 0)
-	    SOURCE((",\t/* %d */\n", i - 1),
-		(" ,\t\\ %d\n", i - 1));
+	    SOURCE(("c,\t/* %d */\n", i - 1),
+		(" c,\t\\ %d\n", i - 1));
 	SOURCE(("\t{"),
 	    ("  "));
 #ifdef NOLEX
@@ -481,7 +481,7 @@ void DEFUN_VOID(makeCostArray)
 	for (j = 0; j < DELTAWIDTH; j++) {
 	    if (j > 0)
 		SOURCE((","),
-		    (" ,"));
+		    (" c,"));
 	    if (pVector[i])
 		SOURCE((" %5d", pVector[i]->rule->delta[j]),
 		    (" %5d", pVector[i]->rule->delta[j]));
@@ -495,7 +495,7 @@ void DEFUN_VOID(makeCostArray)
 	    (""));
     }
     SOURCE((" \t/* %d */\n};\n\n", max_erule_num),
-	(" ,\t\\ %d\n\n", max_erule_num));
+	(" c,\t\\ %d\n\n", max_erule_num));
 }
 
 static void DEFUN(printPatternAST, (p), PatternAST p)
@@ -582,6 +582,10 @@ void DEFUN_VOID(makeNts)
     nts = newStrTable();
     if (!pVector)
 	makePvector();
+
+    SOURCE(("int %s_max_rule = %d;\n", prefix, max_erule_num),
+	("%d constant %s-max-rule\n\n", max_erule_num, prefix));
+
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i]) {
 	    doLayout(pVector[i]);
@@ -644,9 +648,6 @@ void DEFUN_VOID(makeStringArray)
     }
     SOURCE(("};\n\n"),
 	(": %s-string ( rule -- )\n  [%s-string] @ execute ;\n\n", prefix, prefix));
-
-    SOURCE(("int %s_max_rule = %d;\n", prefix, max_erule_num),
-	("%d constant %s-max-rule\n\n", max_erule_num, prefix));
 }
 
 void

@@ -51,6 +51,22 @@ include machine/assembling.fs
     il>ml
     NIL swap ml-join ;
 
+: fbin-inst ( left-ml right-ml il nt asm-xt -- ml )
+    il>ml
+    regs-unallocated over ml-reg !
+    ml-join ;
+
+: fun-inst ( left-ml il nt asm-xt -- ml )
+    il>ml
+    regs-unallocated over ml-reg !
+    NIL swap ml-join ;
+
+: fbinrc-inst ( left-ml n il nt asm-xt -- ml )
+    il>ml
+    tuck ml-val !
+    regs-unallocated over ml-reg !
+    NIL swap ml-join ;
+
 : reg-inst ( il nt asm-xt -- ml )
     il>ml
     \\ assert( dup ml-reg @ regs-unallocated <> )
@@ -100,15 +116,6 @@ include machine/assembling.fs
     il>ml
     \\ 0 over ml-latency !
     NIL swap ml-join ;
-
-: mmove-inst ( left-ml il nt asm-xt -- ml )
-    il>ml
-    \\ 0 over ml-latency !
-    NIL swap ml-join
-    dup ml-depends @ inst-node @ ml-reg @
-    over ml-left @ ml-reg @ . .
-    \\ reg:	I_MOVE(I_MOVE(reg))		#1#	mmove-inst		#asm-move
-;
 
 : 0branch-inst ( left-ml il nt asm-xt -- ml )
     il>ml
@@ -182,15 +189,6 @@ include machine/assembling.fs
 
 /* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
    %term I_FFETCH=46  I_FSTORE=47
-reg: negreg#1#..#subu
-
-flag: I_EQUALS(reg,reg)		#1#	...			#xor
-negreg:	flag			#1#	...			#sltu
-
-reg:	I_INVERT(negreg)	#1#	...			#addiu ...,-1
-
-reg:	I_0BRANCH(flag)		#1#	0branch-inst		#asm-0branch
-reg:	I_0BRANCH(I_LESS(I_ZERO, reg))	#1#	0branch-inst		#asm-0branch
 */
 
 /*
@@ -228,6 +226,9 @@ nonterminal of the rule.
 The assembling code is usually called by the assembler and should have
 the stack effect ( ml -- ), where ml is the ml node of the instruction.
 
+check cons !!!
+cons:	I_LSHIFT(cons, cons)		#0#	drop 2drop lshift	#
+
 */
 
 %%
@@ -239,6 +240,7 @@ reg:	I_REG				#0#	reg-inst		#assert( false )
 cons:	I_LITS				#0#	2drop il-val @		#
 con:	I_LIT				#0#	2drop il-val @		#
 cons:	I_ZERO				#0#	2drop il-val @		#
+reg:	I_ZERO				#0#	reg-inst		#assert( false )
 con:	cons				#0#	drop 2drop		#
 reg:	con				#1#	lit-inst		#asm-lit
 
@@ -286,17 +288,20 @@ reg:	I_INVERT(reg)			#1#	un-inst			#asm-not
 con:	I_INVERT(con)			#0#	drop 2drop invert	#
 reg:	I_LSHIFT(reg, reg)		#1#	bin-inst		#asm-lsh
 reg:	I_LSHIFT(reg, cons)		#1#	binrc-inst		#asm-lshi
+con:	I_LSHIFT(con, con)		#0#	drop 2drop lshift	#
 reg:	I_RSHIFT(reg, reg)		#1#	bin-inst		#asm-rshu
 reg:	I_SRSHIFT(reg, reg)		#1#	bin-inst		#asm-rsh
 reg:	I_RSHIFT(reg, cons)		#1#	binrc-inst		#asm-rshui
 reg:	I_SRSHIFT(reg, cons)		#1#	binrc-inst		#asm-rshi
+cons:	I_RSHIFT(cons, cons)		#0#	drop 2drop rshift	#
+con:	I_RSHIFT(con, con)		#0#	drop 2drop rshift	#
 
-zflag:	I_EQUALS(reg, reg)		#1#	bin-inst		#asm-xor
-flag:	zflag				#1#	un-inst			#asm-sltui-one
-flag:	I_LESS(reg, reg)		#1#	bin-inst		#asm-slt
-flag:	I_LESS(reg, cons)		#1#	binrc-inst		#asm-slti
-flag:	I_ULESS(reg, reg)		#1#	bin-inst		#asm-sltu
-flag:	I_ULESS(reg, cons)		#1#	binrc-inst		#asm-sltui
+zflag:	I_EQUALS(reg, reg)		#1#	fbin-inst		#asm-xor
+flag:	zflag				#1#	fun-inst		#asm-sltui-one
+flag:	I_LESS(reg, reg)		#1#	fbin-inst		#asm-slt
+flag:	I_LESS(reg, cons)		#1#	fbinrc-inst		#asm-slti
+flag:	I_ULESS(reg, reg)		#1#	fbin-inst		#asm-sltu
+flag:	I_ULESS(reg, cons)		#1#	fbinrc-inst		#asm-sltui
 reg:	flag				#1#	un-inst			#asm-neg
 reg:	I_INVERT(flag)			#1#	un-inst			#asm-subi-one
 

@@ -44,7 +44,7 @@ constant regs-freeable-set
     ['] compile,-native a,
     0 a, 0 a,
     word-good a,
-    ['] compile,-nativext a,
+    ['] compile,-native-xt a,
     6cells ?do
 	0 a,
     cell +loop ;

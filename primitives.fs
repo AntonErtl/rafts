@@ -65,7 +65,7 @@ previous previous
 : compile-pick					( addr -- ) ( D: xu ... x1 x0 u -- xu ... x1 x0 xu )
     drop
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
-	\ il-val @ #data@ >data
+	il-val @ cells ds-tos #stack@ >data
     else
 	>data vsource ['] pick compile,-now
     endif ;

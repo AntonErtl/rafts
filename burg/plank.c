@@ -1,4 +1,4 @@
-#ident "@(#)$Id: plank.c,v 1.4 1997/06/17 19:21:08 pirky Exp $";
+#ident "@(#)$Id: plank.c,v 1.5 1997/08/08 13:30:22 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -478,7 +478,7 @@ static void DEFUN(outPlank, (p), Plank p)
 	    ("%d constant %s-%s\n", i, prefix, sm->fieldname));
     }
     SOURCE(("} %s[] = {\n", p->name),
-	("%d %d matrix-noallot %s\n", globalMap->count-(safely?0:1), i, p->name));
+	("%d %d cmatrix-noallot %s\n", globalMap->count-(safely?0:1), i, p->name));
 
     for (i = 0; i < globalMap->count-(safely?0:1); i++) {
 	SOURCE(("\t{"),
@@ -486,13 +486,13 @@ static void DEFUN(outPlank, (p), Plank p)
 	for (f = p->fields; f; f = f->next) {
 	    StateMap sm = (StateMap) f->x;
 	    SOURCE((" %4d ,", sm->value[i] == -1 ? ERROR_VAL : sm->value[i]),
-		(" %4d ,", sm->value[i] == -1 ? ERROR_VAL : sm->value[i]));
+		(" %4d c,", sm->value[i] == -1 ? ERROR_VAL : sm->value[i]));
 	}
 	SOURCE(("},\t/* row %d */\n", i),
 	    ("\t\\ row %d\n", i));
     }
     SOURCE(("};\n\n"),
-	(": %s@ ( i j -- x )\n  %s @ ;\n\n", p->name, p->name));
+	(": %s@ ( i j -- x )\n  %s c@ ;\n\n", p->name, p->name));
 }
 
 static void DEFUN(purgePlanks, (planks), List planks)

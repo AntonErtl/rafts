@@ -33,7 +33,7 @@ voc-source also definitions
 vocabulary voc-target
 \ all words compiled by the target, and a few more
 
-include options.fs
+include options1.fs
 
 $0000 constant word-good
 $0001 constant word-bad

@@ -22,10 +22,6 @@
 \ allocate an array
     , , ;
 
-: 2lims ( u u a-addr1 -- a-addr2 )
-\ limit check for an array (cells)
-    2dup @ >= abort" matrix: dimension error (index size)" ;
-
 : matrix-does ( u u a-addr1 -- a-addr2 )
 \ use an array (cells)
     rot over @ * rot + 2 + cells + ;
@@ -33,7 +29,6 @@
 : matrix-noallot ( u u "name" -- )
     create matrix-create
 does>
-    \ 2lims
     matrix-does ;
 
 : matrix ( u u "name" -- )
@@ -47,7 +42,6 @@ does>
 : cmatrix-noallot ( u u "name" -- )
     create matrix-create
 does>
-    \ 2lims
     cmatrix-does ;
 
 : cmatrix ( u u "name" -- )
