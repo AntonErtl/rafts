@@ -319,7 +319,7 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
     NIL inst inst-@-list !
     inst-btrees-insert ;
 >target
-    
+
 1 -1 ' compile,-@	:: @			( addr -- x )
 0 -2 ' compile,-!	:: !			( x addr -- )
 2 -1 ' compile,-2@	:: 2@			( addr -- x1 x2 )

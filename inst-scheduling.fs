@@ -44,7 +44,7 @@
 	2drop NIL				\ no node found
     endif ;
 
-: inst-depends-done-func ( inst-addr -- )
+: inst-depends-done-func ( flag inst-addr -- flag )
     inst-node @ ?inst-done and ;
 
 : ?inst-depends-done ( ml -- flag )

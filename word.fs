@@ -122,6 +122,8 @@
     ?trace $0002 [IF]
 	dup >name hex. ." word-interpreter:" dup name. cr
     [THEN]
+    #tos $0000 #sp sw,
+    #sos $0004 #sp sw,
     #cfa swap li,
     ?word-mode-direct [IF]
 	#ip here 4cells + li,
@@ -135,7 +137,11 @@
     here cell+ a,
     ?word-mode-indirect [IF]
 	here cell+ a,
-    [THEN] ;
+    [THEN]
+    #tos $0000 #sp lw,
+    #sos $0004 #sp lw,
+    nop,
+;
 
 : check-ra ( -- )
     return>

@@ -186,7 +186,6 @@ include regs.fs
     ." reg:" dup il-reg ?
     \ ." done:" dup il-done ?
     \ ." count:" dup il-count ?
-    \ ." cost:" dup il-cost ?
     \ ." delay:" dup il-delay ?
     ." depends:" dup il-depends @ inst-print-depends
     ." mls:" MAX-NT 1 ?DO dup il-nt-insts i th hex? LOOP
@@ -228,6 +227,13 @@ include regs.fs
     assert( dup burm-arity c@ 0= ) \ !! assert funktioniert nicht
     make-il
     r> over il-slabel ! ;
+
+: register-move ( il-addr register -- il-addr )
+    I_MOVE uop ;
+
+: register-terminal ( reg -- il-addr )
+    NULL swap I_REG terminal
+    register-move ;
 
 : lit ( n -- il-addr )
     dup 0= if
@@ -338,7 +344,6 @@ include regs.fs
     ['] inst-selection-func 0 inst-btrees inst-sequence ;
 
 : assemble-func ( ml -- )
-    \ dup print-ml
     dup dup ml-asm @ execute			\ assemble the instruction
     ?inst-delay if				\ fill delay slot ?
 	NIL asm-nop

@@ -138,6 +138,13 @@ here basic-code allot basic-code-ptr !
 $10000 constant basic-head
 here basic-head allot basic-head-ptr !
 
+?trace $0020 [IF]
+    ." BASIC-CODE:" basic-code-ptr hex.
+    ." BASIC-CODE(end):" basic-code-ptr basic-code + hex. cr
+    ." BASIC-HEAD:" basic-head-ptr hex.
+    ." BASIC-HEAD(end):" basic-head-ptr basic-head + hex. cr
+[THEN]
+
 variable inst-!-list
 \ contains the last !
 variable inst-@-list
@@ -149,8 +156,17 @@ include inst-selection.fs
 include inst-scheduling.fs
 include register.fs
 
-: init-stack ( register addr n -- )
-    0 ?do ( register addr )
+: data-init-stack ( register addr n -- )
+    swap
+    \ assign the top and second of stack element
+    \ to a register
+    #tos register-terminal 2dup swap !
+    inst inst-s!-list @ slist-insert drop
+    cell+
+    #sos register-terminal 2dup swap !
+    inst inst-s!-list @ slist-insert drop
+    cell+ swap
+    2 ?do ( register addr )
 	i cells 2 pick id@ ( register addr node )
 	dup inst inst-s!-list @ slist-insert drop
 	over !
@@ -161,12 +177,21 @@ include register.fs
 : data-init ( -- )
     ds-tosstart ds-tos !
     NIL inst inst-s!-list !
-    #sp 0 ds-init ds-size 2/ init-stack
+    #sp 0 ds-init ds-size 2/ data-init-stack
     0 ds-init ds-size 2/ dup ds-data swap cells move ;
+
+: return-init-stack ( register addr n -- )
+    0 ?do ( register addr )
+	i cells 2 pick id@ ( register addr node )
+	dup inst inst-s!-list @ slist-insert drop
+	over !
+	cell+
+    loop
+    2drop ;
 
 : return-init ( -- )
     rs-tosstart rs-tos !
-    #rp 0 rs-init rs-size 2/ init-stack
+    #rp 0 rs-init rs-size 2/ return-init-stack
     0 rs-init rs-size 2/ dup rs-data swap cells move ;
 
 : control-init ( -- )
@@ -244,26 +269,71 @@ control-init
 
 : basic-datastackdump ( -- )
     ds-tos @ ds-tosstart - >r
-
     ?trace $0100 [IF]
 	basic-datastackdump-print
     [THEN]
-
+    data>
+    dup 0 ds-init @ = over 1 ds-init @ = or
+    \ over il-op @ I_LIT over = swap I_LITS = or or
+    over il-reg @ regs-unused <> or if
+	register-move
+    endif
+    #tos over il-reg !
+    dup inst inst-s!-list @ slist-insert drop
+    0 ds-init @ inst
+    over il-depends
+    dup @ dup il-depends-init = if
+	drop >r
+	NULL inst tuck slist-insert drop
+	r> !
+    else
+	nip
+	slist-insert drop
+    endif
+    inst-btrees-insert
+    data>
+    dup 0 ds-init @ = over 1 ds-init @ = or
+    \ over il-op @ I_LIT over = swap I_LITS = or or
+    over il-reg @ regs-unused <> or if
+	register-move
+    endif
+    #sos over il-reg !
+    dup inst inst-s!-list @ slist-insert drop
+    1 ds-init @ inst
+    over il-depends
+    dup @ dup il-depends-init = if
+	drop >r
+	NULL inst tuck slist-insert drop
+	r> !
+    else
+	nip
+	slist-insert drop
+    endif
+    inst-btrees-insert
     \ dump the data stack
-    ds-size ds-tos @ ?do
+    ds-size ds-tos @
+    ?do
 	?trace $0100 [IF]
 	    ." STACKDUMP (data):" i . hex.s cr
 	[THEN]
-	data> i ds-tosstart - dup 0< if			\ new stackelements
+	data>
+	i ds-tosstart - dup 0< if
+	    \ new stackelements
 	    basic-datastackdump-new
 	else
-	    2dup ds-init @ <> if			\ old stackelements (changed)
+	    2dup ds-init @ <> if
+		\ old stackelements (changed)
 		basic-datastackdump-old
 	    else
-		?trace $0100 [IF]
-		    ." STACKDUMP (nothing):" hex.s cr
-		[THEN]
-		2drop
+		0 over = over 1 = or if
+		    \ tos and sos stackelements (changed)
+		    basic-datastackdump-old
+		else
+		    ?trace $0100 [IF]
+			." STACKDUMP (nothing):" hex.s cr
+		    [THEN]
+		    2drop
+		endif
 	    endif
 	endif
     loop
@@ -330,7 +400,7 @@ constant nop-ml \ nop instruction, usable only after scheduling
     inst-selection
 
     translate-all-dependences
-
+    
     ?trace $0200 [IF]
 	basic-print
 	." INST SCHEDULING" hex.s cr

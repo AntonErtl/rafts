@@ -62,7 +62,6 @@ variable word-regs-flag
 
 : word-regs-print ( -- )
     ." word-regs: "
-    word-regs-current .
     word-regs-get . . . cr ;
 
 : word-regs-adjust ( regs-out reg-in regs-flag -- )
