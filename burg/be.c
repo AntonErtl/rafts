@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.8 1997/06/17 19:21:07 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.9 1997/07/25 21:47:23 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -112,7 +112,7 @@ int DEFUN(opsOfArity, (arity), int arity)
 void DEFUN_VOID(makeLabelinternals)
 {
     SOURCE(("int DEFUN(%s_label, (n), %s_NODEPTR_TYPE n) {\n", prefix, prefix),
-	(": %s-label ( il-addr -- state )\n", prefix));
+	(": %s-label ( il -- state )\n", prefix));
     SOURCE(("\t%s_assert(n, %s_PANIC(\"NULL pointer passed to %s_label\\n\"));\n",
 	prefix, prefix, prefix),
 	("  dup 0= %s-assert\" NULL pointer passed to %s-label\"\n",
@@ -158,7 +158,7 @@ void DEFUN_VOID(makeLabel)
     int flag = 0;
 
     SOURCE(("int DEFUN(%s_label, (n), %s_NODEPTR_TYPE n) {\n", prefix, prefix),
-	(": %s-label ( il-addr -- state )\n", prefix));
+	(": %s-label ( il -- state )\n", prefix));
     SOURCE(("\t%s_assert(n, %s_PANIC(\"NULL pointer passed to %s_label\\n\"));\n",
 	prefix, prefix, prefix),
 	("  dup 0= %s-assert\" NULL pointer passed to %s-label\"\n",
@@ -735,7 +735,7 @@ void DEFUN_VOID(makeKids)
     SOURCE(("\t}\n"),
 	(""));
     SOURCE((""),
-	(": %s-kids ( il-addr rule -- il-addr ... il-addr )\n", prefix));
+	(": %s-kids ( il rule -- il ... il )\n", prefix));
     SOURCE((""),
 	("  over 0= %s-assert\" NULL pointer passed to %s-kids\"\n",
 	prefix, prefix, prefix));
@@ -751,7 +751,7 @@ void DEFUN_VOID(makeKids)
 void DEFUN_VOID(makeOpLabel)
 {
     SOURCE(("int DEFUN(%s_op_label, (p), %s_NODEPTR_TYPE p) {\n", prefix, prefix),
-	(": %s-op-label ( il-addr -- op )\n", prefix));
+	(": %s-op-label ( il -- op )\n", prefix));
     SOURCE(("\t%s_assert(p, %s_PANIC(\"NULL pointer passed to %s_op_label\\n\"));\n",
 	prefix, prefix, prefix),
 	("  over 0= %s-assert\" NULL pointer passed to %s-op-label\"\n",
@@ -765,7 +765,7 @@ void DEFUN_VOID(makeOpLabel)
 void DEFUN_VOID(makeStateLabel)
 {
     SOURCE(("int DEFUN(%s_state_label, (p), %s_NODEPTR_TYPE p) {\n", prefix, prefix),
-	(": %s-state-label ( il-addr -- state )\n", prefix));
+	(": %s-state-label ( il -- state )\n", prefix));
     SOURCE(("\t%s_assert(p, %s_PANIC(\"NULL pointer passed to %s_state_label\\n\"));\n",
 	prefix, prefix, prefix),
 	("  over 0= %s-assert\" NULL pointer passed to %s-state-label\"\n",
@@ -780,7 +780,7 @@ void DEFUN_VOID(makeChild)
 {
     SOURCE(("%s_NODEPTR_TYPE DEFUN(%s_child, (p, index), %s_NODEPTR_TYPE p AND int index) {\n",
 	prefix, prefix, prefix),
-	(": %s-child ( il-addr index -- il-addr )\n", prefix));
+	(": %s-child ( il index -- il )\n", prefix));
     SOURCE(("\t%s_assert(p, %s_PANIC(\"NULL pointer passed to %s_child\\n\"));\n",
 	prefix, prefix, prefix),
 	("  over 0= %s-assert\" NULL pointer passed to %s-child\"\n",

@@ -1,6 +1,6 @@
 \ asm.fs	assembler file (for MIPS R3000)
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -21,50 +21,61 @@
 $20 constant asm-registers
 
 : asm-register ( n n "name" ... "name" -- )
-    swap do
+    ?do
 	i constant
     loop ;
 
-$00 $08 asm-register @zero @at @v0 @v1 @a0 @a1 @a2 @a3
-$08 $10 asm-register @t0 @t1 @t2 @t3 @t4 @t5 @t6 @t7
-$10 $18 asm-register @s0 @s1 @s2 @s3 @s4 @s5 @s6 @s7
-$18 $20 asm-register @t8 @t9 @k0 @k1 @gp @sp @s8 @ra
+$08 $00 asm-register @zero @at @v0 @v1 @a0 @a1 @a2 @a3
+$10 $08 asm-register @t0 @t1 @t2 @t3 @t4 @t5 @t6 @t7
+$18 $10 asm-register @s0 @s1 @s2 @s3 @s4 @s5 @s6 @s7
+$20 $18 asm-register @t8 @t9 @k0 @k1 @gp @sp @s8 @ra
 
 $00 constant asm-init-code
 
 : asm-bitmask ( n -- code )
     $1 swap lshift 1- ;
 
+: asm-bmask ( n n "name" ... "name" -- )
+    ?do
+	i asm-bitmask constant
+    loop ;
+
+$09 $01 asm-bmask asm-bm01 asm-bm02 asm-bm03 asm-bm04 asm-bm05 asm-bm06 asm-bm07 asm-bm08
+$11 $09 asm-bmask asm-bm09 asm-bm0A asm-bm0B asm-bm0C asm-bm0D asm-bm0E asm-bm0F asm-bm10
+$19 $11 asm-bmask asm-bm11 asm-bm12 asm-bm13 asm-bm14 asm-bm15 asm-bm16 asm-bm17 asm-bm18
+$20 $19 asm-bmask asm-bm19 asm-bm1A asm-bm1B asm-bm1C asm-bm1D asm-bm1E asm-bm1F
+$FFFFFFFF constant asm-bm20
+
 : asm-expand ( x -- x )
     dup $0000ffff > if
 	$ffff0000 or
     endif ;
 
-: asm-op ( n code -- code )
-    $6 asm-bitmask and $1a lshift ;
+: asm-op ( n -- code )
+    asm-bm06 and $1a lshift ;
 
 : asm-rs ( n code -- code )
-    swap $5 asm-bitmask and $15 lshift or ;
+    swap asm-bm05 and $15 lshift or ;
 
 : asm-rt ( n code -- code )
-    swap $5 asm-bitmask and $10 lshift or ;
+    swap asm-bm05 and $10 lshift or ;
 
 : asm-imm ( n code -- code )
-    swap $10 asm-bitmask and or ;
+    swap asm-bm10 and or ;
 ' asm-imm alias asm-offset
 
-: asm-target ( n -- code )
-    swap 2 rshift $1a asm-bitmask and or ;
+: asm-target ( n code -- code )
+    swap 2 rshift asm-bm1A and or ;
 
-: asm-rd ( n -- code )
-    swap $5 asm-bitmask and $b lshift or ;
+: asm-rd ( n code -- code )
+    swap asm-bm05 and $b lshift or ;
 
-: asm-shamt ( n -- code )
-    swap $5 asm-bitmask and $6 lshift or ;
+: asm-shamt ( n code -- code )
+    swap asm-bm05 and $6 lshift or ;
 ' asm-shamt alias asm-sa
 
 : asm-funct ( n code -- code )
-    swap $6 asm-bitmask and or ;
+    swap asm-bm06 and or ;
 
 \ ***** I-types
 : asm-I-type ( code -- )
@@ -422,7 +433,7 @@ $08 asm-copz0				tlbl,
     >r @at rot rot sltu,
     @at @zero r> beq, ;
 
-?test $0080 [IF]
+?test $0800 [IF]
 cr ." Test for asm.fs" cr
 
 : exec ( ... xt u -- ... w1 ... wu )

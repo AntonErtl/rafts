@@ -1,7 +1,7 @@
 %{
 \\ grammar.burg	mips BURG grammar
 \\
-\\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \\
 \\ This file is part of RAFTS.
 \\
@@ -33,76 +33,111 @@ include machine/assembling.fs
 1 constant unary
 2 constant binary
 
-: bin-inst ( left-ml right-ml il-addr nt asm-xt -- ml )
-    inst-ok
-    tuck ml-right !
-    tuck ml-left ! ;
+: bin-inst ( left-ml right-ml il nt asm-xt -- ml )
+    il>ml
+    ml-join ;
 
-: binrc-inst ( left-ml n il-addr nt asm-xt -- ml )
-    inst-ok
+: binrc-inst ( left-ml n il nt asm-xt -- ml )
+    il>ml
     tuck ml-val !
-    tuck ml-left !
-    NIL over ml-right ! ;
+    NIL swap ml-join ;
 
-: un-inst ( left-ml il-addr nt asm-xt -- ml )
-    inst-ok
-    tuck ml-left !
-    NIL over ml-right ! ;
+: bincr-inst ( n left-ml il nt asm-xt -- ml )
+    il>ml
+    rot over ml-val !
+    NIL swap ml-join ;
 
-: 0branch-inst ( left-ml il-addr nt asm-xt -- ml )
-    un-inst
-    dup ml-delay on
-    0 over ml-cost ! ;
+: un-inst ( left-ml il nt asm-xt -- ml )
+    il>ml
+    NIL swap ml-join ;
 
-: term-inst ( il-addr nt asm-xt -- ml )
-    inst-ok
-    NIL over ml-left !
-    NIL over ml-right ! ;
+: reg-inst ( il nt asm-xt -- ml )
+    il>ml
+    \\ assert( dup ml-reg @ regs-unallocated <> )
+    0 over ml-latency !
+    2 over ml-count !
+    NIL dup rot ml-join ;
 
-: branch-inst ( il-addr nt asm-xt -- ml )
-    term-inst
-    dup ml-delay on
-    0 over ml-cost ! ;
+: lit-inst ( n il nt asm-xt -- ml )
+    il>ml
+    tuck ml-val !
+    NIL dup rot ml-join ;
 
-: lit-inst ( n il-addr nt asm-xt -- ml )
-    term-inst
-    tuck over if
-	ml-val !
-    else
-	ml-reg !
+: basic-datastack-check ( ml -- ml )
+    ds-stackupdate @ if
+	over ml-reg @ #sp = if
+	    inst-ds!-list @ over inst slist-insert inst-ds!-list !
+	    1 over ml-count +!
+	endif
     endif ;
 
-: store-inst ( left-ml right-ml n il-addr nt asm-xt -- ml )
-    inst-ok
+: basic-returnstack-check ( ml -- ml )
+    rs-stackupdate @ if
+	over ml-reg @ #rp = if
+	    inst-rs!-list @ over inst slist-insert inst-rs!-list !
+	    1 over ml-count +!
+	endif
+    endif ;
+
+: store-inst ( left-ml right-ml n il nt asm-xt -- ml )
+    il>ml
     tuck ml-val !
-    tuck ml-right !
-    tuck ml-left !
     \\ store does not produce a result
-    0 over ml-reg ! ;
+    0 over ml-reg !
+    basic-datastack-check
+    basic-returnstack-check
+    ml-join ;
 
-: load-inst ( ml n il-addr nt asm-xt -- ml )
-    inst-ok
+: load-inst ( ml-left n il nt asm-xt -- ml )
+    il>ml
     tuck ml-val !
-    tuck ml-left !
-    NIL over ml-right !
-    dup ml-delay on ;
+    2 over ml-latency !
+    basic-datastack-check
+    basic-returnstack-check
+    NIL swap ml-join ;
 
-: move-inst ( left-ml il-addr nt asm-xt -- ml )
-    inst-ok
-    tuck ml-left !
-    NIL over ml-right ! ;
+: move-inst ( left-ml il nt asm-xt -- ml )
+    il>ml
+    \\ 0 over ml-latency !
+    NIL swap ml-join ;
 
-: call-inst ( il-addr nt asm-xt -- ml )
-    term-inst
+: mmove-inst ( left-ml il nt asm-xt -- ml )
+    il>ml
+    \\ 0 over ml-latency !
+    NIL swap ml-join
+    dup ml-depends @ inst-node @ ml-reg @
+    over ml-left @ ml-reg @ . .
+    \\ reg:	I_MOVE(I_MOVE(reg))		#1#	mmove-inst		#asm-move
+;
+
+: 0branch-inst ( left-ml il nt asm-xt -- ml )
+    il>ml
     dup ml-delay on
-    0 over ml-cost ! ;
+    0 over ml-pathlength !
+    0 over ml-let !
+    NIL swap ml-join ;
 
-: execute-inst ( left-ml il-addr nt asm-xt -- ml )
-    inst-ok
-    tuck ml-left !
-    NIL over ml-right !
+: 0brancho-inst ( left-ml right-ml il nt asm-xt -- ml )
+    il>ml
     dup ml-delay on
-    0 over ml-cost ! ;
+    0 over ml-pathlength !
+    0 over ml-let !
+    ml-join ;
+
+: branch-inst ( il nt asm-xt -- ml )
+    il>ml
+    dup ml-delay on
+    2 over ml-latency !
+    0 over ml-pathlength !
+    0 over ml-let !
+    NIL dup rot ml-join ;
+
+: call-inst ( il nt asm-xt -- ml )
+    il>ml
+    dup ml-delay on
+    2 over ml-latency !
+    0 over ml-let !
+    NIL dup rot ml-join ;
 
 %}
 
@@ -129,7 +164,7 @@ include machine/assembling.fs
 %term I_CSTORE
 %term I_STORE
 /* compare		*/
-/* %term I_EQUALS */
+%term I_EQUALS
 %term I_LESS
 %term I_ULESS
 
@@ -137,16 +172,25 @@ include machine/assembling.fs
 %term I_BRANCH
 %term I_MOVE
 %term I_CALL
-%term I_EXECUTE
 
 /* general		*/
 %term I_REG
 %term I_LIT
 %term I_LITS
+%term I_ZERO
 %term NOP
 
 /* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
    %term I_FFETCH=46  I_FSTORE=47
+reg: negreg#1#..#subu
+
+flag: I_EQUALS(reg,reg)		#1#	...			#xor
+negreg:	flag			#1#	...			#sltu
+
+reg:	I_INVERT(negreg)	#1#	...			#addiu ...,-1
+
+reg:	I_0BRANCH(flag)		#1#	0branch-inst		#asm-0branch
+reg:	I_0BRANCH(I_LESS(I_ZERO, reg))	#1#	0branch-inst		#asm-0branch
 */
 
 /*
@@ -188,54 +232,84 @@ the stack effect ( ml -- ), where ml is the ml node of the instruction.
 
 %%
 
-addr:	I_PLUS(reg, cons)	#0#	drop 2drop		#
-addr:	reg			#0#	drop 2drop 0		#
+addr:	I_PLUS(reg, cons)		#0#	drop 2drop		#
+addr:	reg				#0#	drop 2drop 0		#
 
-reg:	I_REG			#0#	term-inst		#drop
-cons:	I_LITS			#0#	drop drop il-val @	#
-con:	I_LIT			#0#	drop drop il-val @	#
-con:	cons			#0#	drop drop drop		#
-reg:	con			#1#	lit-inst		#asm-lit
+reg:	I_REG				#0#	reg-inst		#assert( false )
+cons:	I_LITS				#0#	2drop il-val @		#
+con:	I_LIT				#0#	2drop il-val @		#
+cons:	I_ZERO				#0#	2drop il-val @		#
+con:	cons				#0#	drop 2drop		#
+reg:	con				#1#	lit-inst		#asm-lit
 
-reg:	I_MOVE(reg)		#0#	move-inst		#asm-move
+reg:	I_MOVE(reg)			#1#	move-inst		#asm-move
 
-reg:	I_CFETCH(addr)		#1#	load-inst		#asm-fetchc
-reg:	I_FETCH(addr)		#1#	load-inst		#asm-fetchi
+reg:	I_CSTORE(reg, addr)		#1#	store-inst		#asm-storec
+reg:	I_STORE(reg, addr)		#1#	store-inst		#asm-storei
+reg:	I_CFETCH(addr)			#1#	load-inst		#asm-fetchc
+reg:	I_FETCH(addr)			#1#	load-inst		#asm-fetchi
 
-reg:	I_PLUS(reg, reg)	#1#	bin-inst		#asm-add
-reg:	I_PLUS(reg, cons)	#1#	binrc-inst		#asm-addi
-con:	I_PLUS(con, con)	#0#	drop drop drop +	#
-reg:	I_MINUS(reg, reg)	#1#	bin-inst		#asm-sub
-reg:	I_MINUS(reg, cons)	#1#	binrc-inst		#asm-subi
-con:	I_MINUS(con, con)	#0#	drop drop drop -	#
-reg:	I_TIMES(reg, reg)	#1#	bin-inst		#asm-mul
-reg:	I_SLASH(reg, reg)	#1#	bin-inst		#asm-div
-reg:	I_MOD(reg, reg)		#1#	bin-inst		#asm-mod
-reg:	I_NEGATE(reg)		#1#	un-inst			#asm-neg
+reg:	I_PLUS(reg, reg)		#1#	bin-inst		#asm-add
+reg:	I_PLUS(reg, cons)		#1#	binrc-inst		#asm-addi
+reg:	I_PLUS(cons, reg)		#1#	bincr-inst		#asm-addi
+reg:	I_PLUS(I_ZERO, reg)		#0#	drop 2drop		#
+reg:	I_PLUS(reg, I_ZERO)		#0#	drop 2drop		#
+con:	I_PLUS(con, con)		#0#	drop 2drop +		#
+reg:	I_MINUS(reg, reg)		#1#	bin-inst		#asm-sub
+reg:	I_MINUS(reg, cons)		#1#	binrc-inst		#asm-subi
+reg:	I_MINUS(reg, I_ZERO)		#0#	drop 2drop		#
+con:	I_MINUS(con, con)		#0#	drop 2drop -		#
+reg:	I_TIMES(reg, reg)		#1#	bin-inst		#asm-mul
+con:	I_TIMES(con, con)		#0#	drop 2drop *		#
+reg:	I_SLASH(reg, reg)		#1#	bin-inst		#asm-div
+con:	I_SLASH(con, con)		#0#	drop 2drop /		#
+reg:	I_MOD(reg, reg)			#1#	bin-inst		#asm-mod
+reg:	I_NEGATE(reg)			#1#	un-inst			#asm-neg
+con:	I_NEGATE(con)			#0#	drop 2drop negate	#
 
-reg:	I_AND(reg, reg)		#1#	bin-inst		#asm-and
-reg:	I_AND(reg, cons)	#1#	binrc-inst		#asm-andi
-reg:	I_OR(reg, reg)		#1#	bin-inst		#asm-or
-reg:	I_OR(reg, cons)		#1#	binrc-inst		#asm-ori
-reg:	I_XOR(reg, reg)		#1#	bin-inst		#asm-xor
-reg:	I_XOR(reg, cons)	#1#	binrc-inst		#asm-xori
-reg:	I_INVERT(reg)		#1#	un-inst			#asm-not
-reg:	I_LSHIFT(reg, reg)	#1#	bin-inst		#asm-lsh
-reg:	I_LSHIFT(reg, cons)	#1#	binrc-inst		#asm-lshi
-reg:	I_RSHIFT(reg, reg)	#1#	bin-inst		#asm-rshu
-reg:	I_SRSHIFT(reg, reg)	#1#	bin-inst		#asm-rsh
-reg:	I_RSHIFT(reg, cons)	#1#	binrc-inst		#asm-rshui
-reg:	I_SRSHIFT(reg, cons)	#1#	binrc-inst		#asm-rshi
+reg:	I_AND(reg, reg)			#1#	bin-inst		#asm-and
+reg:	I_AND(reg, cons)		#1#	binrc-inst		#asm-andi
+reg:	I_AND(cons, reg)		#1#	bincr-inst		#asm-andi
+cons:	I_AND(cons, cons)		#0#	drop 2drop and		#
+con:	I_AND(con, con)			#0#	drop 2drop and		#
+reg:	I_OR(reg, reg)			#1#	bin-inst		#asm-or
+reg:	I_OR(reg, cons)			#1#	binrc-inst		#asm-ori
+reg:	I_OR(cons, reg)			#1#	bincr-inst		#asm-ori
+cons:	I_OR(cons, cons)		#0#	drop 2drop or		#
+con:	I_OR(con, con)			#0#	drop 2drop or		#
+reg:	I_XOR(reg, reg)			#1#	bin-inst		#asm-xor
+reg:	I_XOR(reg, cons)		#1#	binrc-inst		#asm-xori
+reg:	I_XOR(cons, reg)		#1#	bincr-inst		#asm-xori
+cons:	I_XOR(cons, cons)		#0#	drop 2drop xor		#
+con:	I_XOR(con, con)			#0#	drop 2drop xor		#
+reg:	I_INVERT(reg)			#1#	un-inst			#asm-not
+con:	I_INVERT(con)			#0#	drop 2drop invert	#
+reg:	I_LSHIFT(reg, reg)		#1#	bin-inst		#asm-lsh
+reg:	I_LSHIFT(reg, cons)		#1#	binrc-inst		#asm-lshi
+reg:	I_RSHIFT(reg, reg)		#1#	bin-inst		#asm-rshu
+reg:	I_SRSHIFT(reg, reg)		#1#	bin-inst		#asm-rsh
+reg:	I_RSHIFT(reg, cons)		#1#	binrc-inst		#asm-rshui
+reg:	I_SRSHIFT(reg, cons)		#1#	binrc-inst		#asm-rshi
 
-reg:	I_LESS(reg, reg)	#1#	bin-inst		#asm-slt
-reg:	I_LESS(reg, cons)	#1#	binrc-inst		#asm-slti
-reg:	I_ULESS(reg, reg)	#1#	bin-inst		#asm-sltu
-reg:	I_ULESS(reg, cons)	#1#	binrc-inst		#asm-sltui
+zflag:	I_EQUALS(reg, reg)		#1#	bin-inst		#asm-xor
+flag:	zflag				#1#	un-inst			#asm-sltui-one
+flag:	I_LESS(reg, reg)		#1#	bin-inst		#asm-slt
+flag:	I_LESS(reg, cons)		#1#	binrc-inst		#asm-slti
+flag:	I_ULESS(reg, reg)		#1#	bin-inst		#asm-sltu
+flag:	I_ULESS(reg, cons)		#1#	binrc-inst		#asm-sltui
+reg:	flag				#1#	un-inst			#asm-neg
+reg:	I_INVERT(flag)			#1#	un-inst			#asm-subi-one
 
-reg:	I_CSTORE(reg, addr)	#1#	store-inst		#asm-storec
-reg:	I_STORE(reg, addr)	#1#	store-inst		#asm-storei
-reg:	I_0BRANCH(reg)		#1#	0branch-inst		#asm-0branch
-reg:	I_BRANCH		#1#	branch-inst		#asm-branch
-reg:	I_CALL			#1#	call-inst		#asm-call
-reg:	I_EXECUTE(reg)		#1#	execute-inst		#asm-execute
+reg:	I_0BRANCH(I_EQUALS(reg, reg))			#1#	0brancho-inst	#asm-0branch-bne
+reg:	I_0BRANCH(I_INVERT(I_EQUALS(reg, reg)))		#1#	0brancho-inst	#asm-0branch-beq
+reg:	I_0BRANCH(I_LESS(reg, I_ZERO))			#1#	0branch-inst	#asm-0branch-bgez
+reg:	I_0BRANCH(I_INVERT(I_LESS(reg, I_ZERO)))	#1#	0branch-inst	#asm-0branch-bltz
+reg:	I_0BRANCH(I_INVERT(I_LESS(I_ZERO, reg)))	#1#	0branch-inst	#asm-0branch-bgtz
+reg:	I_0BRANCH(I_LESS(I_ZERO, reg))			#1#	0branch-inst	#asm-0branch-blez
+
+reg:	I_0BRANCH(flag)			#1#	0branch-inst	#asm-0branch
+reg:	I_0BRANCH(reg)			#1#	0branch-inst	#asm-0branch
+reg:	I_BRANCH			#1#	branch-inst	#asm-branch
+
+reg:	I_CALL				#1#	call-inst	#asm-call
 %%

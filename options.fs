@@ -1,6 +1,6 @@
 \ option.fs	optional option words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -27,42 +27,57 @@
 : ?word-mode-indirect ( -- flag )
     threading-method ; immediate
 
+\ $0    0    0    0
+\  1234 5678 1234 5678
+\  |||| |||| |||| ||||
+\  |||| |||| |||| |||\-> compiler
+\  |||| |||| |||| ||\--> compiler (more)
+\  |||| |||| |||| |\---> basic 
+\  |||| |||| |||| \----> basic (more)
+\  |||| |||| |||\------> control
+\  |||| |||| ||\-------> word
+\  |||| |||| |\--------> unused
+\  |||| |||| \---------> wordlists
+\  |||| ||||          
+\  |||| |||\-----------> inst-selection
+\  |||| ||\------------> inst-scheduling
+\  |||| |\-------------> register-alloction
+\  |||| \--------------> code-generation (assembler, disassembler)
+\  |||\----------------> stdlib functions
+\  ||\-----------------> slist functions
+\  |\------------------> array functions
+\  \-------------------> btree functions
 $0000 constant trace-const	\ no trace
 \ $0a71 constant trace-const	\ trace what you want
-\ $0813 constant trace-const	\ trace what you want
 \ $0001 constant trace-const	\ trace compiler
-\ $0002 constant trace-const	\ trace compiler
-\ $0003 constant trace-const	\ trace compiler (more)
+\ $0002 constant trace-const	\ trace compiler (more)
+\ $0003 constant trace-const	\ trace compiler (all)
+\ $0004 constant trace-const	\ trace basics
+\ $0008 constant trace-const	\ trace basics (more)
+\ $000c constant trace-const	\ trace basics (all)
 \ $0010 constant trace-const	\ trace controll
-\ $0020 constant trace-const	\ trace inst-selection
-\ $0040 constant trace-const	\ trace inst-scheduling
-\ $0500 constant trace-const	\ trace basics
-\ $0810 constant trace-const	\ trace disassembler
-\ $c000 constant trace-const	\ trace wordlists
+\ $0100 constant trace-const	\ trace inst-selection
+\ $0200 constant trace-const	\ trace inst-scheduling
+\ $0400 constant trace-const	\ trace register-allocatiopn
+\ $0800 constant trace-const	\ trace code-generation (assembler, disassembler)
 \ $ffff constant trace-const	\ trace all
 
 $0000 constant test-const	\ no test
-\ $00ff constant test-const	\ test what you want
-\ $0080 constant test-const	\ test assembler and disassembler
-\ $1f00 constant test-const	\ test stdlib
+\ $f800 constant test-const	\ test what you want
+\ $0800 constant test-const	\ test assembler and disassembler
+\ $f000 constant test-const	\ test stdlib
 \ $ffff constant test-const	\ test all
 
 \ function to enable trace during execution
-: trace ( n -- flag )
-    trace-const and ;
-
 : ?trace ( "n" -- flag )
     name snumber? dup if
-	drop trace
+	drop trace-const and
     endif ; immediate
 
 \ function to enable tests on compiler-files
-: test ( n -- flag )
-    test-const and ;
-
 : ?test ( "n" -- flag )
     name snumber? dup if
-	drop test
+	drop test-const and
     endif ; immediate
 
 ?test $0001 [IF]

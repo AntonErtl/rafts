@@ -1,6 +1,6 @@
 \ header.fs
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -29,12 +29,12 @@
 \ @s5 constant #tos
 \ @s8 constant #ftos
 
-$2 constant tos-#register
+\ $2 constant tos-#register
 
 \ initialize freeable registers
 \ $0300FFF8 constant regs-freeable-set
 $0300FFFC
-tos-#register 0 > [IF]
+tos-#register 0> [IF]
     tos-#register asm-bitmask #tos lshift invert and
 [THEN]
 constant regs-freeable-set
@@ -56,13 +56,13 @@ constant regs-freeable-set
 : (word-lwexit) ( -- )
     @ra 0 #rp lw, ;
 
-: tos-load ( n to from -- )
+: tos-load ( n1 to from -- n2 )
     ?do
 	i over #sp lw,
 	cell+
     loop ;
 
-: tos-store ( n to from -- )
+: tos-store ( n1 to from -- n2 )
     ?do
 	i over #sp sw,
 	cell+
@@ -72,7 +72,7 @@ constant regs-freeable-set
 
 create docode:
     \ load top of stack elements
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	$0000 #tos tos-#register + #tos tos-load drop
     [THEN]
     #cfa 2cells over lw,
@@ -81,7 +81,7 @@ create docode:
     #rp dup -1cells addiu,
 
     \ save top of stack elements (without tos)
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	$0000 #tos tos-#register + 1- #tos tos-store
     [THEN]
     #ip 0 #rp lw,
@@ -96,7 +96,7 @@ create docode:
 	@t0 jr,
     [THEN]
     \ save tos element
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	#tos tos-#register + 1- swap #sp sw,
     [ELSE]
 	nop,
@@ -123,14 +123,14 @@ create dodoes:
 	nop,
 	@ra dup 2cells addiu,
     [THEN]
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	#tos #cfa ih-cfsize addiu,
     [ELSE]
-	#cfa dup ih-cfsize addiu,
-	#cfa -1cells #sp sw,
+	@t0 #cfa ih-cfsize addiu,
+	@t0 -1cells #sp sw,
     [THEN]
     \ load top of stack elements
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	$0000 #tos tos-#register + #tos 1+ tos-load drop
     [THEN]
     #sp dup -1cells addiu,
@@ -140,7 +140,7 @@ create dodoes:
     #rp dup -1cells addiu,
 
     \ save top of stack elements (without tos)
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	$0000 #tos tos-#register + 1- #tos tos-store
     [THEN]
     #ip 0 #rp lw,
@@ -155,7 +155,7 @@ create dodoes:
 	@t0 jr,
     [THEN]
     \ save tos element
-    tos-#register 0 > [IF]
+    tos-#register 0> [IF]
 	#tos tos-#register + 1- swap #sp sw,
     [ELSE]
 	nop,
@@ -177,7 +177,7 @@ constant j,-docode:
     ." DODOES:" dodoes: hex. cr
 [THEN]
 
-?test $0002 [IF]
+?test $0800 [IF]
 cr ." Test for header.fs" cr
 
 finish

@@ -1,6 +1,6 @@
 \ inst-scheduling.fs	instruction scheduling words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -18,89 +18,78 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: inst-next ( -- ml )
-    \ find the best possible in inst-pnodes
-    0 inst-pnodes
-    -1
-    over inst-size 1- inst-pnodes swap
-    begin
-	2dup >=
-    while
-	dup @ if
-	    tuck 2>r
-	    2dup @ ml-cost @ tuck < if
-		rot drop rot drop
-	    else
-		2drop
-	    endif
-	    2r>
-	endif
-	cell+
-    repeat
-    2drop drop
-    dup @ dup if
-	NIL rot !
-    else					\ remove fetched node
-	2drop NIL				\ no node found
-    endif ;
-
-: inst-depends-done-func ( flag inst-addr -- flag )
-    inst-node @ ?inst-done and ;
-
-: ?inst-depends-done ( ml -- flag )
-    true swap
-    ml-depends @ ['] inst-depends-done-func maplist ;
-
-: ml-done? ( parent-ml ml -- parent-ml flag )
+: ml-dec                                        ( addr -- )
     ?dup if
-	2dup <> if
-	    ?inst-done
+	-1 over ml-count +!
+	dup ml-count @ if
+	    drop
 	else
-	    ." parent is child" cr
-	    drop true
+	    inst-mls-insert
 	endif
-    else
-	true
     endif ;
 
-: ?inst-kids-done ( ml -- flag )
-    dup ?inst-depends-done if
-	dup ml-left @ ml-done? if
-	    ml-right @ ml-done?
-	else
-	    drop false
-	endif
-    else
-	drop false
+: ml-depends-dec                                ( addr -- )
+    ?dup if
+	begin
+	    dup inst-node @ ml-dec
+	    slist-next @
+	    dup 0=
+	until
+	drop
     endif ;
 
-: inst-join ( -- )
-    inst-size 1- inst-nodes
-    0 inst-nodes
-    begin
-	2dup >=
-    while
-	dup @ ?dup if
-	    dup ?inst-kids-done if		\ check done kids
-		inst-pnodes-insert		\ add to pnodes
-		NULL over !			\ del from nodes
-	    else
-		drop
+: inst-scheduling-heuristic                     ( addr-new addr-old -- addr )
+    over @ ml-let @ if
+	dup @ ml-let @ if
+	    over @ ml-pathlength @
+	    over @ ml-pathlength @ < if
+		swap
 	    endif
+	else
+	    swap
 	endif
-	cell+
-    repeat
-    2drop ;
+    endif
+    drop ;
 
-: inst-scheduling ( -- )
+: inst-next                                     ( -- addr )
+    0 inst-mls dup cell+
     begin
-	inst-join inst-next dup
+	dup @
     while
-	dup inst-done inst-lists-insert
+	dup rot inst-scheduling-heuristic
+	swap
+	cell+
     repeat
     drop ;
 
-?test $0040 [IF]
+: inst-scheduling                               ( -- )
+    0 tos-register !
+    ?trace $0004 [IF]
+	." SCHEDULING BB:" basic-block @ . cr
+	mls-pr
+	lists-pr
+    [THEN]
+    begin
+	?trace $0004 [IF]
+	    mls-pr
+	    lists-pr
+	[THEN]
+	inst-next dup @                         ( addr addr )
+    while
+	dup @                                   ( addr ml )
+	swap inst-mls-delete                    ( ml )
+	dup ml-reg @ regs-unallocated <> if
+	    dup register-allocation
+	    dup inst-lists-insert
+	endif
+	dup ml-depends @ ml-depends-dec         ( ml )
+	dup ml-left @ ml-dec                    ( ml )
+	dup ml-right @ ml-dec                   ( ml )
+	drop
+    repeat
+    drop ;
+
+?test $0020 [IF]
 cr ." Test for inst-scheduling.fs" cr
 
 finish

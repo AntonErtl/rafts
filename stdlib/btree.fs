@@ -1,6 +1,6 @@
 \ btree.fs	binary tree words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -66,7 +66,7 @@ end-struct btree-struct
 : btree-print-postorder ( addr -- )
     ['] btree-print-func swap btree-postorder ;
 
-?test $1000 [IF]
+?test $8000 [IF]
 cr ." Test for btree.fs" cr
 
 btree-struct
@@ -125,7 +125,7 @@ variable bdata-root
 	drop
     endif ;
 : bdata-foo2 ( addr -- addr )
-    NIL [char] r rot ['] bdata-foo2-func swap btree-postorder drop ;
+    NIL 'r rot ['] bdata-foo2-func swap btree-postorder drop ;
 : bdata-foo02 ( -- )
     ." btree-postorder: " bdata-root @ bdata-foo2 dup NIL <> if
 	bdata-print-func
@@ -136,7 +136,7 @@ variable bdata-root
 bdata-foo02
 
 : bdata-foo3 ( addr -- addr )
-    NIL [char] 1 rot ['] bdata-foo2-func swap btree-preorder drop ;
+    NIL '1 rot ['] bdata-foo2-func swap btree-preorder drop ;
 : bdata-foo03 ( -- )
     ." btree-preorder: " bdata-root @ bdata-foo3 dup NIL <> if
 	bdata-print-func

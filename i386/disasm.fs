@@ -1,6 +1,6 @@
 \ disasm.fs
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -1183,7 +1183,7 @@ ops  lok ??? rpz rep  hlt cmc F6. F6.  clc stc cli sti  cld std FE. FF.
 
 \ only forth also definitions
 
-?test $0002 [if]
+?test $0800 [if]
 cr ." Test for disasm.fs" cr
 
 finish

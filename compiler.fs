@@ -1,10 +1,13 @@
 base @ hex
-." START: " here . cr
+." START: " here dup . cr
 decimal
+
+variable version
+version !
 
 \ compiler.fs	compiler main load file
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -145,6 +148,8 @@ defer compile,-field
 defer compile,-native
 defer compile,-does
 
+variable last-load
+variable last-interpreter
 variable noname-state
 noname-state off
 
@@ -152,6 +157,8 @@ noname-state off
 		\ and the method ( target-addr branch-addr -- ) for patching it
 		\ so, for patching the last branch to jump to x one would do:
 		\ x branch-info 2@ execute
+
+-1 constant regs-unallocated
 
 variable (lastih)
 : lastih ( -- addr )
@@ -196,7 +203,7 @@ xt-size array xt-data
 
 : xt-init ( -- )
     0 xt-tos !
-    0 xt-data xt-size cells NULL fill ;
+    0 xt-data xt-size cells erase ;
 
 : xt-write ( cfa -- )
     here over ih-xt-addr !
@@ -217,14 +224,15 @@ xt-size array xt-data
     ;
 
 include machine/asm.fs
+?trace $0fff [IF]    
 include machine/disasm.fs
+[THEN]
 include basic.fs
 
 : compile,-now ( xt -- )
-    ?trace $0001 [IF]
-	\ ~~
-	\ dup >name .name
-	\ dup $10 - $40 dump
+    ?trace $0002 [IF]
+	dup >name .name
+	dup $10 - $40 dump
     [THEN]
     dup ih-compiler @ execute ;
 
@@ -322,7 +330,7 @@ is compile,-field
     ?trace $0001 [IF]
 	." compile,-native: " dup name. hex.s cr
     [THEN]
-    NIL I_CALL terminal inst-btrees-insert-end
+    2cells + @ NIL I_CALL terminal inst-ils-insert
     basic-exit
     basic-init ;
 is compile,-native
@@ -332,24 +340,20 @@ is compile,-native
 	." compile,-native (does>): " hex.s cr
     [THEN]
     dup ih-cfsize + compile,-literal
-    ih-does-xt @ NIL I_CALL terminal inst-btrees-insert-end
+    ih-does-xt @ 2cells + @ NIL I_CALL terminal inst-ils-insert
     basic-exit
-    \ dup @ 2 lshift $1a asm-bitmask and swap $1a asm-bitmask invert and or
-    \ ih-cfsize + word-call
     basic-init ;
 is compile,-does
 
 : compile, ( xt -- )
-    ?trace $0001 [IF]
-	\ ~~
+    ?trace $0002 [IF]
 	dup hex.
 	dup >name .name
-	\ dup $10 - $40 dump
     [THEN]
     dup ih-compile-xt @ execute
     dup word-regs-read
-    ?trace $0001 [IF]
-	\ word-regs-print
+    ?trace $0002 [IF]
+	word-regs-print
     [THEN]
     [ also Forth ' lit previous ] literal gforth-compile, ,
     ['] compile,-now gforth-compile, ;
@@ -552,6 +556,7 @@ word-good 0 0 :word assert-level
 word-good 0 0 :word cells:
 word-good 0 0 :word char
 word-good 0 0 :word cfa,
+ word-good 0 -3 :word cmove
 word-good 0 0 :word code-address!
 word-good 0 0 :word comp'
 word-good 0 0 :word compile-only
@@ -600,14 +605,13 @@ word-good 0 0 :word loadfilename#
  word-good 1 -2 :word max
  word-good 1 0 :word maxdepth-.s
  word-good 1 -2 :word min
-word-good 0 0 :word move
+ word-good 0 -3 :word move
 word-good 0 0 :word m*
 word-good 0 0 :word nalign
  word-good 2 0 :word name
 word-good 0 0 :word name>comp
 word-good 0 0 :word name>int
  word-good 0 0 :word noop
-word-good 0 0 :word nothing
 word-good 0 0 :word order
 word-good 0 0 :word parse
 word-good 0 0 :word place
@@ -635,6 +639,7 @@ word-good 0 0 :word sm/rem
 word-good 0 0 :word source
 word-good 0 0 :word threading-method
 word-good 0 0 :word throw
+ word-good 6 0 :word time&date
  word-good 0 -1 :word u.
 word-good 0 0 :word um/mod
 word-good 0 0 :word um*
@@ -647,6 +652,8 @@ word-good 0 0 :word [ENDIF]
 word-good 0 0 :word [THEN]
 
  word-bad 1 -1 :word ?dup
+ word-bad 0 -1 :word .
+ word-bad 0 0 :word cr
 
 previous
 
@@ -662,10 +669,10 @@ previous
  word-good 0 0 :word ?trace
  word-good 0 -1 :word constant
  word-good 0 0 :word create
- word-good 0 -2 :word disasm-dump
  word-good 1 -1 :word field
  word-good 0 0 :word finish
  word-good 0 -1 :word hex.
+ word-good 0 -1 :word hexnum.
  word-good 0 0 :word hex.s
  word-good 0 0 :word hex.rs
  word-good 0 0 :word text-print
@@ -676,12 +683,6 @@ previous
  word-good 0 -3 :word wword-regs-adjust
 
 previous
-
-: . ( n -- )
-    s>d d. ;
-
-: cr ( -- )
-    #lf emit ;
 
 : vocabulary ( "name" -- )
     create wordlist drop
@@ -698,12 +699,12 @@ does>
 
 : bye ( -- )
     finish
-    ?trace $4000 [IF]
+    ?trace $0080 [IF]
 	depth 0 ?do
 	    . loop
 	cr
     [THEN]
-    ?trace $4000 [IF]
+    ?trace $0080 [IF]
 	\ vsource ['] voc-target vtarget >body vlist
 	\ vsource ['] vvv vtarget >body vlist
     [THEN]

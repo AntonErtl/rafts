@@ -1,6 +1,6 @@
 \ matrix.fs	two dimension array words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -54,7 +54,7 @@ does>
     2dup cmatrix-noallot
     * chars allot ;
 
-?test $0400 [IF]
+?test $4000 [IF]
 cr ." Test for matrix.fs" cr
 
 3 6 matrix amatrix

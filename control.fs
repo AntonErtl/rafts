@@ -1,6 +1,6 @@
 \ control.fs	control structur words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -30,7 +30,7 @@ dead-code off
 : compile-forward-branch ( il -- )
     0 over il-reg !
     NULL over il-val !
-    inst-btrees-insert-end
+    inst-ils-insert
     basic-exit
     branch-info 2@ drop 0 0 >control
     ?trace $0010 [IF]
@@ -146,7 +146,7 @@ dead-code off
 	." again " .cs cr
     [THEN]
     0 0 I_BRANCH terminal 0 over il-reg !
-    control> 2drop over il-val ! inst-btrees-insert-end
+    control> 2drop over il-val ! inst-ils-insert
     basic-exit
     basic-init ;
 
@@ -185,7 +185,7 @@ dead-code off
 	." until " .cs cr
     [THEN]
     data> I_0BRANCH uop 0 over il-reg !
-    control> 2drop over il-val ! inst-btrees-insert-end
+    control> 2drop over il-val ! inst-ils-insert
     basic-exit
     basic-init ;
 
@@ -403,9 +403,10 @@ ls-size array ls-data
 
 >source
 : compile-recurse ( -- )
+    basic-code-ptr @ NIL I_CALL terminal inst-ils-insert
     basic-exit
-    basic-code-ptr @ word-call
-    basic-init ;
+    basic-init
+;
 >target
 
 : recurse ( -- )
@@ -431,7 +432,7 @@ create does-addr
     basic-code-ptr @ dp !
     basic-init
     lastxt ih-cfsize + compile,-literal
-    ih-cfsize + 0 I_BRANCH terminal inst-btrees-insert-end
+    ih-cfsize + 0 I_BRANCH terminal inst-ils-insert
     basic-exit
     basic-code-ptr @ dup here over - flush-icache
     here basic-code-ptr !
@@ -462,11 +463,11 @@ previous
 : compile-does> ( -- )
     does-addr @ compile,-literal
     vtarget ['] ;dodoes vsource compile,-now
-    compile-word-exit-check
+    compile-word-exit-does
     here does-addr dup @ + ! does-addr-inc
     lastih-init
     dodoes,
-    compile-word-init-check ;
+    compile-word-init-does ;
 >target
 
 : does> ( -- )

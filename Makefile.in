@@ -1,6 +1,6 @@
 # Makefile.in
 #
-# Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+# Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 #
 # This file is part of RAFTS.
 #
@@ -68,11 +68,10 @@ TIME		= time
 DIFF		= diff
 
 COMPILER	= compiler.fs options.fs \
-		  mips/r3000.asm.fs mips/r3000.asm.opc.fs regs.fs \
-		  mips/r3000.disasm.fs mips/r3000.disasm.opc.fs \
-		  node.fs dataflow.fs basic.fs func.fs \
-		  primitives.fs control.fs primitives_ext.fs \
-		  inst-selection.fs inst-scheduling.fs \
+		  machine/asm.fs machine/disasm.fs machine/header.fs \
+		  node.fs dataflow.fs basic.fs word.fs \
+		  primitives.fs control.fs primitives.fs \
+		  inst-selection.fs inst-scheduling.fs regs.fs register.fs \
 		  stdlib/stdlib.fs stdlib/marray.fs stdlib/array.fs \
 		  stdlib/slist.fs stdlib/dlist.fs stdlib/queue.fs \
 		  stdlib/stack.fs stdlib/btree.fs stdlib/string.fs

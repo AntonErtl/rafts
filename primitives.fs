@@ -1,6 +1,6 @@
 \ primitives.fs	primitive words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -65,15 +65,15 @@ previous previous
 : compile-pick					( addr -- ) ( D: xu ... x1 x0 u -- xu ... x1 x0 xu )
     drop
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
-	il-val @ #data@ >data
+	\ il-val @ #data@ >data
     else
 	>data vsource ['] pick compile,-now
     endif ;
 : compile-roll					( addr -- ) ( D: xu xu-1 ... x0 u -- xu-1 ... x0 xu )
     drop
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
-	il-val @ dup #data@
-	ds-tos @ rot ds-data dup cell+ rot cells move
+	il-val @ dup cells ds-tos #stack@
+	ds-tos @ rot cells ds-data + dup cell+ rot move
 	data> drop >data
     else
 	>data vsource ['] roll compile,-now
@@ -162,52 +162,52 @@ I_INVERT	unop-prim  compile-invert	( addr -- ) ( D: x1 -- x2 )
 >source
 : compile-=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> I_XOR op 1 lit swap I_ULESS op 0 lit I_MINUS op >data ;
+    data> data> I_EQUALS op >data ;
 : compile-<>					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> I_XOR op 0 lit I_ULESS op 0 lit I_MINUS op >data ;
+    data> data> I_EQUALS op I_INVERT uop >data ;
 : compile-<					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> I_LESS op 0 lit I_MINUS op >data ;
+    data> data> I_LESS op >data ;
 : compile-<=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> swap I_LESS op -1 lit I_PLUS op >data ;
+    data> data> swap I_LESS op I_INVERT uop >data ;
 : compile->					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> swap I_LESS op 0 lit I_MINUS op >data ;
+    data> data> swap I_LESS op >data ;
 : compile->=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> I_LESS op -1 lit I_PLUS op >data ;
+    data> data> I_LESS op I_INVERT uop >data ;
 : compile-0=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> 1 lit swap I_ULESS op 0 lit I_MINUS op >data ;
+    data> 0 lit I_EQUALS op >data ;
 : compile-0<>					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> 0 lit I_ULESS op 0 lit I_MINUS op >data ;
+    data> 0 lit I_EQUALS op I_INVERT uop >data ;
 : compile-0<					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> 0 lit swap I_LESS op 0 lit I_MINUS op >data ;
+    data> 0 lit swap I_LESS op >data ;
 : compile-0<=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> 0 lit I_LESS op -1 lit I_PLUS op >data ;
+    data> 0 lit I_LESS op I_INVERT uop >data ;
 : compile-0>					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> 0 lit I_LESS op 0 lit I_MINUS op >data ;
+    data> 0 lit I_LESS op >data ;
 : compile-0>=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> 0 lit swap I_LESS op -1 lit I_PLUS op >data ;
+    data> 0 lit swap I_LESS op I_INVERT uop >data ;
 : compile-u<					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> I_ULESS op 0 lit I_MINUS op >data ;
+    data> data> I_ULESS op >data ;
 : compile-u<=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> swap I_ULESS op -1 lit I_PLUS op >data ;
+    data> data> swap I_ULESS op I_INVERT uop >data ;
 : compile-u>					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> swap I_ULESS op 0 lit I_MINUS op >data ;
+    data> data> swap I_ULESS op >data ;
 : compile-u>=					( addr -- ) ( D: x1 x2 -- x3 )
     drop
-    data> data> I_ULESS op -1 lit I_PLUS op >data ;
+    data> data> I_ULESS op I_INVERT uop >data ;
 >target
 
 1 -2 ' compile-=	:: =			( x1 x2 -- flag )
@@ -279,17 +279,15 @@ I_INVERT	unop-prim  compile-invert	( addr -- ) ( D: x1 -- x2 )
     drop
     data> I_FETCH uop
     inst-!-list @ over il-depends !
-    dup inst inst-@-list @ slist-insert drop
+    inst-@-list @ over inst slist-insert inst-@-list !
     >data ;
 : compile-!					( addr -- ) ( D: x1 x2 -- )
     drop
     data> data> I_STORE op
     inst-@-list @ over il-depends !
-    NIL inst inst-!-list !
-    dup inst inst-!-list @ slist-insert drop
-    NIL inst inst-@-list !
-    dup inst inst-@-list @ slist-insert drop
-    inst-btrees-insert ;
+    dup inst inst-!-list !
+    dup inst inst-@-list !
+    inst-ils-insert ;
 : compile-2@					( addr -- ) ( D: x1 -- x2 x3 )
     drop
     0 compile-dup 0 compile-cell+ 0 compile-@ 0 compile-swap 0 compile-@ ;
@@ -308,16 +306,15 @@ I_INVERT	unop-prim  compile-invert	( addr -- ) ( D: x1 -- x2 )
     drop
     data> I_CFETCH uop
     inst-!-list @ over il-depends !
-    dup inst inst-@-list @ slist-insert drop
+    inst-@-list @ over inst slist-insert inst-@-list !
     >data ;
 : compile-c!					( addr -- ) ( D: x1 x2 -- )
     drop
     data> data> I_CSTORE op
     inst-@-list @ over il-depends !
-    NIL inst inst-!-list !
-    dup inst inst-!-list @ slist-insert drop
-    NIL inst inst-@-list !
-    inst-btrees-insert ;
+    dup inst inst-!-list !
+    dup inst inst-@-list !
+    inst-ils-insert ;
 >target
 
 1 -1 ' compile-@	:: @			( addr -- x )
@@ -335,7 +332,7 @@ I_INVERT	unop-prim  compile-invert	( addr -- ) ( D: x1 -- x2 )
     data> >return ;
 : compile-r@					( addr -- ) ( D: -- x ) ( R: x -- x )
     drop
-    0 #return@ >data ;
+    0 rs-tos #stack@ >data ;
 : compile-r>					( addr -- ) ( D: -- x ) ( R: x -- )
     drop
     return> >data ;
@@ -426,7 +423,7 @@ create text-data
 
 : ," ( "string"<"> -- addr )
     text-data @ dup
-    [char] " parse
+    '" parse
     rot 2dup + char+ dup aligned swap over swap ?do
 	bl i c!
     loop
@@ -441,7 +438,7 @@ previous previous
 
 >source
 : gforth-s" ( "string"<"> -- )
-    [char] " parse ;
+    '" parse ;
 
 : gforth-." ( "string"<"> -- )
     gforth-s" type ;
@@ -491,12 +488,11 @@ previous
     ['] compile,-abort" gforth-compile, ; immediate compile-only
 
 >source
-: nothing ( -- ) ;		\ a unknown bugfix
 : sourcepos, ( -- )
     sourceline# postpone literal
     loadfilename# @ postpone literal ;
 : print-sourcepos ( n n -- )
-    2* cells included-files nothing 2@ drop + 2@ type
+    2* cells included-files 2@ drop + 2@ type
     ." :" 0 .r ;
 : (~~) ( n n -- )
     cr print-sourcepos ." :"

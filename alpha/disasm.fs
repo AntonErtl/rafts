@@ -1,6 +1,6 @@
 \ disasm.fs
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -18,7 +18,7 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-?test $0002 [IF]
+?test $0800 [IF]
 cr ." Test for disasm.fs" cr
 
 finish

@@ -1,6 +1,6 @@
 \ node.fs	node structur and words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -38,17 +38,17 @@ btree-struct \ !! machine dep: is it really a *binary* tree?
     1 cells: field ml-count	\ use count (# of parents)
     1 cells: field ml-val	\ literal value
     1 cells: field ml-reg	\ used register
-    1 cells: field ml-done	\ scheduling done flag
-    1 cells: field ml-node-dependences \ dependences of ml's node
     1 cells: field ml-depends	\ list of dependencies
     1 cells: field ml-delay	\ true: create a delay slot nop for the instruction
-    1 cells: field ml-cost	\ path length to end of bb
+    1 cells: field ml-latency	\ latency of node
+    1 cells: field ml-pathlength \ path length to start of bb
+    1 cells: field ml-let	\ path length to end of bb
 end-struct ml-struct
 
 ' btree-left alias ml-left
 ' btree-right alias ml-right
 
-?test $0002 [IF]
+?test $0004 [IF]
 cr ." Test for node.fs" cr
 
 finish

@@ -1,6 +1,6 @@
 \ disasm.fs	disassembler file (for MIPS R3000)
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -18,7 +18,6 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-\ ?trace $0800 [IF]
 : (disasm-op) ( code -- n )
     $1a rshift $6 asm-bitmask and ;
 
@@ -323,7 +322,7 @@ NIL ' disasm-print-copzrt asm-copz-BC disasm-gen-copzrs
 ' tlbwr,	' disasm-cop0 $06 disasm-gen-cop0
 ' tlbl,		' disasm-cop0 $08 disasm-gen-cop0
 
-?test $0080 [IF]
+?test $0800 [IF]
 cr ." Test for disasm..fs" cr
 
 : gen ( coden ... code0 n -- )
@@ -423,4 +422,3 @@ here over - disasm-dump
 
 finish
 [THEN]
-\ [THEN]

@@ -1,6 +1,6 @@
 \ basic.fs	basic words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -18,80 +18,73 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-\ variables for compile-time data stack
-$40 constant ds-size
-ds-size 2/ constant ds-tos-start
-variable ds-tos
-variable ds-tos-bottom
-\ compile-time data stack pointer
-ds-size array ds-data
-ds-size 2/ array ds-init
+\ variables for compile-time data stacks
+$20 cells constant st-size
+st-size 2/ constant st-size-half
 
-\ functions for handling the compile-time data stack
-: #data@ ( n -- x )
-    ds-tos-bottom @
-    ds-tos @ rot + tuck <= if
-	dup 1+ ds-tos-bottom !
+\ functions for handling the compile-time data stacks
+: #stack@ ( n st -- x )
+    dup >r 2@
+    rot + tuck <= if
+	dup cell+ r@ cell+ !
     endif
-    ds-data @ ;
+    r> 2cells + + @ ;
 
-: #data! ( x n -- )
-    ds-tos @ + ds-data ! ;
+: #stack! ( x n st -- )
+    dup @ + + 2cells + ! ;
 
+: >stack ( x st -- ) ( ST: -- x )
+    -1cells over +!
+    0 swap #stack! ;
+
+: stack> ( st -- x ) ( ST: x -- )
+    0 over #stack@
+    over 0 0 rot #stack!
+    1cells rot +! ;
+
+?trace $0fff [IF]
+: .stack ( -- )
+    dup @ 2 rshift st-size-half - 0 .r ." > "
+    dup st-size 2 cells + dump
+    dup 2@ st-size-half - swap st-size-half - swap ?do
+	i over #stack@ hex.
+    cell +loop
+    drop ;
+[THEN]
+
+\ variables for compile-time data stacks
+create ds-tos 0 , 0 ,
+here st-size allot constant ds-data
+create ds-init st-size-half allot
+
+\ functions for handling the compile-time data stacks
 : >data ( x -- ) ( D: -- x )
-    -1 ds-tos +!
-    0 #data! ;
+    ds-tos >stack ;
 
 : data> ( -- x ) ( D: x -- )
-    0 #data@
-    0 0 #data!
-    1 ds-tos +! ;
+    ds-tos stack> ;
 
+?trace $0fff [IF]
 : .ds ( -- )
-    ." <D:" ds-tos @ 0 .r ." > "
-    ds-tos @ dup 0 ?do
-	dup i - #data@ hex.
-    loop
-    drop ;
+    ." <D:" ds-tos .stack ;
+[THEN]
 
 \ variables for compile-time return stack
-$20 constant rs-size
-rs-size 2/ constant rs-tos-start
-variable rs-tos
-variable rs-tos-bottom
-\ compile-time return stack pointer
-rs-size array rs-data
-rs-size 2/ array rs-init
+create rs-tos 0 , 0 ,
+here st-size allot constant rs-data
+create rs-init st-size-half allot
 
 \ functions for handling the compile-time return stack
-: #return@ ( n -- x )
-    rs-tos-bottom @
-    rs-tos @ rot + tuck <= if
-	dup 1+ rs-tos-bottom !
-    endif
-    rs-data @
-
-    \ rs-tos @ + rs-data @
-;
-
-: #return! ( x n -- )
-    rs-tos @ + rs-data ! ;
-
 : >return ( x -- ) ( R: -- x )
-    -1 rs-tos +!
-    0 #return! ;
+    rs-tos >stack ;
 
 : return> ( -- x ) ( R: x -- )
-    0 #return@
-    0 0 #return!
-    1 rs-tos +! ;
+    rs-tos stack> ;
 
+?trace $0fff [IF]
 : .rs ( -- )
-    ." <R:" rs-tos @ 0 .r ." > "
-    rs-tos @ dup 0 ?do
-	dup i - #return@ hex.
-    loop
-    drop ;
+    ." <R:" rs-tos .stack ;
+[THEN]
 
 \ variables for local controll stack
 : cs-dsize ( n -- n )
@@ -106,17 +99,18 @@ rs-size 2/ array rs-init
     ! ;
 $20 constant cs-size
 variable cs-tos
-cs-size cs-dsize array cs-data
+cs-size cs-dsize create cs-data cells allot
+\ cs-size cs-dsize array cs-data
 
 cs-size 1- cs-tos !
 
 \ functions for handling the local control stack
 : #control@ ( n -- x x x )
-    cs-tos @ + cs-dsize cs-data
+    cs-tos @ + cs-dsize cells cs-data +
     cs-dget ;
 
 : #control! ( x x x n -- )
-    cs-tos @ + cs-dsize cs-data
+    cs-tos @ + cs-dsize cells cs-data +
     cs-dput ;
 
 : >control ( x x x -- ) ( C: -- x x x )
@@ -134,12 +128,14 @@ cs-size 1- cs-tos !
 : cs-depth ( -- n )
     cs-size cs-tos @ - 1- ;
 
+?trace $0fff [IF]
 : .cs ( -- )
     ." <C:" cs-depth 0 .r ." > "
     cs-depth dup 0 ?do
 	dup i - #control@ hex. hex. hex.
     loop
     drop ;
+[THEN]
 
        variable basic-block
 
@@ -147,16 +143,16 @@ cs-size 1- cs-tos !
        variable basic-code-sav
 $20000 constant basic-code
 here basic-code allot basic-code-ptr !
-       variable basic-head-ptr
-       variable basic-head-sav
-$10000 constant basic-head
-here basic-head allot basic-head-ptr !
+       variable basic-data-ptr
+       variable basic-data-sav
+$10000 constant basic-data
+here basic-data allot basic-data-ptr !
 
-?trace $0020 [IF]
+?trace $0004 [IF]
     ." BASIC-CODE:" basic-code-ptr hex.
     ." BASIC-CODE(end):" basic-code-ptr basic-code + hex. cr
-    ." BASIC-HEAD:" basic-head-ptr hex.
-    ." BASIC-HEAD(end):" basic-head-ptr basic-head + hex. cr
+    ." BASIC-DATA:" basic-data-ptr hex.
+    ." BASIC-DATA(end):" basic-data-ptr basic-data + hex. cr
 [THEN]
 
 variable inst-!-list
@@ -168,169 +164,196 @@ variable inst-ds!-list
 variable inst-rs!-list
 \ contains all stores to the return stack (and all loads)
 
-include inst-selection.fs
-include inst-scheduling.fs
-include register.fs
+variable ds-stackupdate
+variable rs-stackupdate
 
-: data-init-stack ( register addr -- )
+include inst-selection.fs
+include register.fs
+include inst-scheduling.fs
+
+: (il-reset) ( il -- )
+    NIL over il-depends !
+    il-nt-insts cell+ max-NT 1- cells erase ;
+
+: il-reset ( il -- )
+    dup il-left @ ?dup if
+	recurse
+    endif
+    dup il-right @ ?dup if
+	recurse
+    endif
+    (il-reset) ;
+
+: data-init-stack ( addr -- )
     \ assign the top of stack elements to a register
     #tos tos-#register + #tos ?do
 	i register-terminal over !
 	cell+
     loop
-    ds-tos-bottom @ ds-tos-start - tos-#register ?do ( register addr )
-	i cells 2 pick id@ ( register addr node )
-	\ dup inst inst-ds!-list @ slist-insert drop
-	over !
+    st-size-half tos-#register cells ?do
+	i #sp id@ over !
 	cell+
-    loop
-    2drop ;
+    cell +loop
+    drop ;
 
 : data-init ( -- )
-    ds-tos-start ds-tos !
-    NIL inst inst-ds!-list !
-    #sp 0 ds-init data-init-stack
-    0 ds-init ds-size 2/ dup ds-data swap cells move ;
-ds-size ds-tos-bottom !
+    NIL inst-ds!-list !
+    NIL ds-stackupdate !
+    ds-init data-init-stack
+    ds-init st-size-half dup ds-data + swap move
+    ds-data st-size-half erase
+    st-size-half
+    tos-#register cells over + swap ds-tos 2! ;
 data-init
-ds-tos-start tos-#register + ds-tos-bottom !
 
-: return-init-stack ( register addr -- )
-    rs-tos-bottom @ rs-tos-start - 0 ?do ( register addr )
-	i cells 2 pick id@ ( register addr node )
-	\ dup inst inst-rs!-list @ slist-insert drop
-	over !
+: data-reset-stack ( addr -- )
+    \ assign the top of stack elements to a register
+    tos-#register 0 ?do
+	dup @ dup il-reset regs-unallocated swap il-reg !
 	cell+
     loop
-    2drop ;
+    ds-tos cell+ @ st-size-half - 2 rshift tos-#register ?do
+	dup @ dup il-reset regs-unallocated swap il-reg !
+	cell+
+    loop
+    drop ;
+
+: data-reset ( -- )
+    NIL inst-ds!-list !
+    NIL ds-stackupdate !
+    ds-init data-reset-stack
+    ds-init st-size-half ds-data + ds-tos cell+ @ st-size-half - move
+    st-size-half
+    tos-#register cells over + swap ds-tos 2! ;
+
+: return-init-stack ( addr -- )
+    st-size-half 0 ?do
+	i #rp id@ over !
+	cell+
+    cell +loop
+    drop ;
 
 : return-init ( -- )
-    rs-tos-start rs-tos !
-    NIL inst inst-rs!-list !
-    #rp 0 rs-init return-init-stack
-    0 rs-init rs-size 2/ dup rs-data swap cells move ;
-rs-size rs-tos-bottom !
+    NIL inst-rs!-list !
+    NIL rs-stackupdate !
+    rs-init return-init-stack
+    rs-init st-size-half dup rs-data + swap move
+    rs-data st-size-half erase
+    st-size-half dup rs-tos 2! ;
 return-init
-rs-tos-start rs-tos-bottom !
+
+: return-reset-stack ( addr -- )
+    rs-tos cell+ @ st-size-half - 2 rshift 0 ?do
+	dup @ dup il-reset regs-unallocated swap il-reg !
+	cell+
+    loop
+    drop ;
+
+: return-reset ( -- )
+    NIL inst-rs!-list !
+    NIL rs-stackupdate !
+    rs-init return-reset-stack
+    rs-init st-size-half rs-data + rs-tos cell+ @ st-size-half - move
+    st-size-half dup rs-tos 2! ;
 
 : control-init ( -- )
-    0 cs-data cs-size cells NULL fill ;
+    cs-data cs-size cells erase ;
 control-init
 
 \ initial a basic block
 : basic-init ( -- )
-    ?trace $0020 [IF]
+    ?trace $0004 [IF]
 	." BASIC-INIT{ " basic-block ? here hex. cr
 	1 basic-block +!
     [THEN]
     \ regs-reset
-    here basic-head-sav !
-    basic-head-ptr @ dp !
-    ?trace $0020 [IF]
+    here basic-data-sav !
+    basic-data-ptr @ dp !
+    ?trace $0004 [IF]
 	." BASIC-INIT{ " here hex. cr
     [THEN]
     inst-init
     \ initialize the data stack
-    data-init
+    data-reset
     \ initialize the temp return stack
-    return-init ;
+    return-reset ;
 
-: (basic-stackupdate) ( val register -- )
-    >r regs-unused I_LITS terminal
+: (basic-stackupdate) ( val register -- il )
+    >r regs-unallocated I_LITS terminal
     0 r@ I_REG terminal
-    r@ #sp = if
-	I_PLUS op inst-ds!-list @ over il-depends !
-    else
-	I_PLUS op inst-rs!-list @ over il-depends !
-    endif
-    r> over il-reg ! inst-btrees-insert-end ;
+    I_PLUS op r> over il-reg !
+    dup inst-ils-insert ;
 
-: basic-stackupdate ( register n -- )
-    ?trace $0100 [IF]
+: basic-stackupdate ( register n -- il )
+    ?trace $0008 [IF]
 	." stack update:" 2dup . . cr
     [THEN]
     dup if
 	cells swap (basic-stackupdate)
     else
-	2drop
+	2drop NIL
     endif ;
 
-: basic-datastackdump-print ( -- )
-    ds-size 0 ?do
-	i ds-size 2/ >= if
-	    i ds-size 2/ - ds-init @
-	    i ds-data @ tuck = if
-		drop
-	    else
-		?dup if
-		    il-print
-		endif
-	    endif
-	else
-	    i ds-data @ ?dup if
-		il-print
-	    endif
-	endif
-    loop
-    cr
-    ." TOS-bottom:" ds-tos-bottom @ . cr
-    ." TOS:" ds-tos @ . cr ;
-
-: basic-datastackdump-new ( il-addr n -- )
-    \ new stackelements
-    ?trace $0100 [IF]
-	." STACKDUMP (new):" hex.s cr
-    [THEN]
-    cells #sp id!
-    dup inst inst-ds!-list @ slist-insert drop
-    inst-btrees-insert ;
-
-: basic-datastackdump-old ( il-addr n -- )
-    \ old stackelements (changed)
-    ?trace $0100 [IF]
-	." STACKDUMP (old):" hex.s cr
-    [THEN]
-    tuck cells #sp id!
-    dup inst inst-ds!-list @ slist-insert drop
-    swap ds-init @ inst NULL inst tuck slist-insert drop
-    over il-depends !
-    inst-btrees-insert ;
-
-: basic-datastackdump ( -- )
-    ds-tos @ ds-tos-start - >r
-    ?trace $0100 [IF]
-	basic-datastackdump-print
-    [THEN]
-
+: basic-datastackdump-regs ( il n -- )
     \ dump the data stackregisters
     #tos tos-#register + #tos ?do
 	data>
-	dup i #tos - ds-init @ = if
+	dup i #tos - cells ds-init + @ = if
 	    drop
 	else
-	    dup il-op @ I_MOVE =
-	    over il-reg @ regs-unused = or if
+	    dup il-op @ I_MOVE = if
+		i #tos - cells ds-init + @ il-reg @ regs-unallocated <> if
+		    register-move
+		endif
+	    endif
+	    dup il-reg @ regs-unallocated <> if
 		register-move
 	    endif
 	    i over il-reg !
-	    dup
-	    i #tos - ds-init @ inst NIL inst tuck slist-insert drop
-	    swap il-depends !
-	    inst-btrees-insert
+	    dup dup il-depends @ i #tos - cells ds-init + @ inst slist-insert swap il-depends !
+	    inst-ils-insert
 	endif
-    loop
+    loop ;
+
+: basic-datastackdump-new ( il n -- )
+    \ new stackelements
+    ?trace $0008 [IF]
+	." STACKDUMP (new):" hex.s cr
+    [THEN]
+    cells #sp id!
+    inst-ils-insert ;
+
+: basic-datastackdump-old ( il n -- )
+    \ old stackelements (changed)
+    ?trace $0008 [IF]
+	." STACKDUMP (old):" hex.s cr
+    [THEN]
+    tuck cells #sp id!
+    over tos-#register >= if
+	dup il-depends @ rot cells ds-init + @
+	inst slist-insert over il-depends !
+    else
+	nip
+    endif
+    inst-ils-insert ;
+
+: basic-datastackdump ( -- )
+    ds-tos @ st-size-half - 2 rshift >r
+
+    \ dump the data stackregisters
+    basic-datastackdump-regs
 
     \ dump the data stack
-    ds-tos-bottom @ ds-tos-start - ds-tos @ ds-tos-start - ?do
-	?trace $0100 [IF]
-	    ." STACKDUMP (data):" i ds-tos-start + . hex.s cr
+    ds-tos 2@ st-size-half - cell / swap st-size-half - cell / swap ?do
+	?trace $0008 [IF]
+	    ." STACKDUMP (data):" i st-size-half + . hex.s cr
 	[THEN]
 	data>
 	i dup 0< if
 	    \ new stackelements
 	    basic-datastackdump-new
 	else
-	    2dup ds-init @ <> if
+	    2dup cells ds-init + @ <> if
 		\ old stackelements (changed)
 		basic-datastackdump-old
 	    else
@@ -338,7 +361,7 @@ control-init
 		    \ top of stack elements (changed)
 		    basic-datastackdump-old
 		else
-		    ?trace $0100 [IF]
+		    ?trace $0008 [IF]
 			." STACKDUMP (nothing):" hex.s cr
 		    [THEN]
 		    2drop
@@ -348,63 +371,31 @@ control-init
     loop
 
     \ update the data stackpointer
-    ds-tos-bottom @ ds-tos-start - tos-#register ?do
-	i ds-init @ inst inst-ds!-list @ slist-insert drop
-    loop
-    #sp r> basic-stackupdate ;
-
-: basic-returnstackdump-print ( -- )
-    rs-size 0 ?do
-	i rs-size 2/ >= if
-	    i rs-size 2/ - rs-init @
-	    i rs-data @ tuck = if
-		drop
-	    else
-		?dup if
-		    il-print
-		endif
-	    endif
-	else
-	    i rs-data @ ?dup if
-		il-print
-	    endif
-	endif
-    loop
-    cr
-    ." TOR-bottom:" rs-tos-bottom @ . cr
-    ." TOR:" rs-tos @ . cr ;
+    #sp r> basic-stackupdate ds-stackupdate ! ;
 
 : basic-returnstackdump ( -- )
-    rs-tos @ rs-tos-start - >r
-    ?trace $0100 [IF]
-	basic-returnstackdump-print
-    [THEN]
+    rs-tos @ st-size-half - 2 rshift >r
 
     \ dump the return stack
-    rs-tos-bottom @ rs-tos-start - rs-tos @ rs-tos-start - ?do
-	?trace $0100 [IF]
-	    ." STACKDUMP (return):" i rs-tos-start + . hex.s cr
+    rs-tos 2@ st-size-half - cell / swap st-size-half - cell / swap ?do
+	?trace $0008 [IF]
+	    ." STACKDUMP (return):" i st-size-half 2 rshift + . hex.s cr
 	[THEN]
-	return> i rs-init @ over <> if
+	return> i cells rs-init + @ over <> if
 	    i cells #rp id!
-	    dup inst inst-rs!-list @ slist-insert drop
 	    i dup 0>= if
-		rs-init @ inst NULL inst tuck slist-insert drop
-		over il-depends !
+		over il-depends @ swap cells rs-init + @ inst slist-insert over il-depends !
 	    else
 		drop
 	    endif
-	    inst-btrees-insert
+	    inst-ils-insert
 	else
 	    drop
 	endif
     loop
 
     \ update the return stackpointer
-    rs-tos-bottom @ rs-tos-start - 0 ?do
-	i rs-init @ inst inst-rs!-list @ slist-insert drop
-    loop
-    #rp r> basic-stackupdate ;
+    #rp r> basic-stackupdate rs-stackupdate ! ;
 
 : basic-stackdump ( -- )
     \ dump the data stack
@@ -413,63 +404,50 @@ control-init
     \ dump the return stack
     basic-returnstackdump ;
 
-: basic-print ( -- )
-    ." BTREE PRINT" hex.s cr
-    inst-btrees-print
-    ." NODE PRINT" hex.s cr
-    inst-nodes-print
-    ." PNODE PRINT" hex.s cr
-    inst-pnodes-print
-    ." LISTS PRINT" hex.s cr
-    inst-lists-print ;
-
 \ exit a basic block and generate the code of the basic block
-make-ml
-0 over ml-reg !
-' asm-nop over  ml-asm !
-constant nop-ml \ nop instruction, usable only after scheduling
-
 : basic-exit ( -- )
-    ?trace $0020 [IF]
-	." BASIC-EXIT} " hex.s cr
+    ?trace $0004 [IF]
+	." BASIC-EXIT} " hex.s .ds cr
     [THEN]
     basic-stackdump
 
-    ?trace $0200 [IF]
-	basic-print
+    ?trace $0004 [IF]
+	inst-ils-print
 	." BASIC-EXIT} " here hex. cr
-	." INST SELECTION" hex.s cr
+	." INSTRUCTION SELECTION" hex.s cr
     [THEN]
-    inst-selection
-
-    translate-all-dependences
+    inst-ils-end @ if
+	inst-selection
     
-    ?trace $0200 [IF]
-	basic-print
-	." INST SCHEDULING" hex.s cr
-    [THEN]
-    inst-scheduling
+	?trace $0004 [IF]
+	    inst-mls-print
+	    ." INSTRUCTION SCHEDULING & REGISTER ALLOCATION" hex.s cr
+	[THEN]
+	inst-mls-end @ if
+	    inst-scheduling
 
-    ?trace $0200 [IF]
-	basic-print
-	." REGISTER ALLOCATION" hex.s cr
-    [THEN]
-    register-allocation
-
-    ?trace $0200 [IF]
-	basic-print
-	regs-print
-	." ASSEMBLE" hex.s cr
-    [THEN]
-    basic-head-sav @ dp !
-    assemble ;
+	    ?trace $0004 [IF]
+		inst-lists-print
+		regs-print
+		." CODE EMISSION" hex.s cr
+	    [THEN]
+	    basic-data-sav @ dp !
+	    inst-lists-end @ inst-size 1- <> if
+		code-emission
+	    endif
+	else
+	    basic-data-sav @ dp !
+	endif
+    else
+	basic-data-sav @ dp !
+    endif ;
 
 : compile-cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
     #control@ ;
 
 : compile-cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
     dup 1+ #control@ 2>r >r
-    cs-tos @ 1+ dup cs-dsize cs-data swap 1+ cs-dsize cs-data rot cs-dsize cells move
+    cs-tos @ 1+ dup cs-dsize cells cs-data + swap 1+ cs-dsize cells cs-data + rot cs-dsize cells move
     control> 2drop drop
     r> 2r> >control ;
 

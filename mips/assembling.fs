@@ -18,172 +18,218 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: (asm-lval@) ( ml-addr -- ml-addr )
-    ml-left @ ;
-: (asm-rval@) ( ml-addr -- ml-addr )
-    ml-right @ ;
-: asm-val@ ( ml-addr -- n )
-    ml-val @ ;
-: asm-lval@ ( ml-addr -- val )
-    (asm-lval@) ml-val @ ;
-: asm-reg@ ( ml-addr -- register )
-    ml-reg @ ;
-: asm-lreg@ ( ml-addr -- register )
-    (asm-lval@) ml-reg @ ;
-: asm-rreg@ ( ml-addr -- register )
-    (asm-rval@) ml-reg @ ;
+: prep-op ( ml -- rd rs rt )
+    dup ml-reg @
+    over ml-left @ ml-reg @
+    rot ml-right @ ml-reg @ ;
 
-: asm-nop ( ml-addr -- )
+: prep-opi ( ml -- rt rs val )
+    dup ml-reg @
+    over ml-left @ ml-reg @
+    rot ml-val @ ;
+
+: prep-uop ( ml -- rt rs )
+    dup ml-reg @
+    swap ml-left @ ml-reg @ ;
+
+: prep-uopi ( ml -- rt val )
+    dup ml-reg @
+    swap ml-val @ ;
+
+: asm-nop ( ml -- )
     drop nop, ;
 
-: asm-lit ( ml-addr -- )
-    dup ml-reg @ swap ml-val @ li, ;
+: asm-lit ( ml -- )
+    prep-uopi li, ;
 
-: asm-move ( ml-addr -- )
-    dup asm-reg@
-    swap asm-lreg@
-    2dup = if
-	2drop
+: asm-move ( ml -- )
+    prep-uop
+    assert( 2dup <> )
+    move, ;
+
+: prep-load ( ml -- rt offset rs )
+    dup ml-reg @
+    over ml-val @
+    rot ml-left @ ml-reg @ ;
+
+: post-load ( ml -- )
+    last-load @
+    inst-size 1- inst-lists over <> if
+	cell+ @
+	tuck ml-left @ over =
+	rot ml-right @ rot = or if
+	    nop,
+	endif
     else
-	move,
+	2drop
+	nop,
     endif ;
 
-: prep-load ( ml-addr -- rt offset rs )
-    >r
-    r@ ml-reg @
-    r@ ml-val @
-    r> ml-left @ ml-reg @ ;
+: asm-fetchc ( ml -- )
+    dup prep-load lbu,
+    post-load ;
 
-: asm-fetchc ( ml-addr -- )
-    prep-load lbu, ;
+: asm-fetchi ( ml -- )
+    dup prep-load lw,
+    post-load ;
 
-: asm-fetchi ( ml-addr -- )
-    prep-load lw, ;
+: prep-store ( ml -- rt offset rs )
+    dup ml-left @ ml-reg @
+    over ml-val @
+    rot ml-right @ ml-reg @ ;
 
-: prep-store ( ml-addr -- rt offset rs )
-    >r
-    r@ ml-left @ ml-reg @
-    r@ ml-val @
-    r> ml-right @ ml-reg @ ;
-
-: asm-storec ( ml-addr -- )
+: asm-storec ( ml -- )
     prep-store sb, ;
 
-: asm-storei ( ml-addr -- )
+: asm-storei ( ml -- )
     prep-store sw, ;
 
-: asm-add ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ addu, ;
+: asm-add ( ml -- )
+    prep-op addu, ;
 
-: asm-addi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ addiu, ;
+: asm-addi ( ml -- )
+    prep-opi addiu, ;
 
-: asm-sub ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ subu, ;
+: asm-sub ( ml -- )
+    prep-op subu, ;
 
-: asm-subi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ negate addiu, ;
+: asm-subi ( ml -- )
+    prep-opi negate addiu, ;
+
+: prep-muldiv ( ml -- rt rs )
+    dup ml-left @ ml-reg @
+    swap ml-right @ ml-reg @ ;
 
 \ !! two instructions
-: asm-mul ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ multu,
-    asm-reg@ mflo, ;
+: asm-mul ( ml -- )
+    dup prep-muldiv multu,
+    ml-reg @ mflo, ;
 
-: asm-div ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ div,
-    asm-reg@ mflo, ;
+: asm-div ( ml -- )
+    dup prep-muldiv div,
+    ml-reg @ mflo, ;
 
-: asm-mod ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ div,
-    asm-reg@ mfhi, ;
+: asm-mod ( ml -- )
+    dup prep-muldiv div,
+    ml-reg @ mfhi, ;
 
-: asm-neg ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ neg, ;
+: asm-neg ( ml -- )
+    prep-uop neg, ;
 
-: asm-abs ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ abs, ;
+: asm-abs ( ml -- )
+    prep-uop abs, ;
 
-: asm-and ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ and, ;
+: asm-and ( ml -- )
+    prep-op and, ;
 
-: asm-andi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ andi, ;
+: asm-andi ( ml -- )
+    prep-opi andi, ;
 
-: asm-or ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ or, ;
+: asm-or ( ml -- )
+    prep-op or, ;
 
-: asm-ori ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ ori, ;
+: asm-ori ( ml -- )
+    prep-opi ori, ;
 
-: asm-xor ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ xor, ;
+: asm-xor ( ml -- )
+    prep-op xor, ;
 
-: asm-xori ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ xori, ;
+: asm-xori ( ml -- )
+    prep-opi xori, ;
 
-: asm-not ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ not, ;
+: asm-not ( ml -- )
+    prep-uop not, ;
 
-: asm-lsh ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ sllv, ;
+: asm-lsh ( ml -- )
+    prep-op sllv, ;
 
-: asm-lshi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sll, ;
+: asm-lshi ( ml -- )
+    prep-opi sll, ;
 
-: asm-rshu ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ srlv, ;
+: asm-rshu ( ml -- )
+    prep-op srlv, ;
 
-: asm-rsh ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ srav, ;
+: asm-rsh ( ml -- )
+    prep-op srav, ;
 
-: asm-rshui ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ srl, ;
+: asm-rshui ( ml -- )
+    prep-opi srl, ;
 
-: asm-rshi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sra, ;
+: asm-rshi ( ml -- )
+    prep-opi sra, ;
+
+: asm-slt ( ml -- )
+    prep-op slt, ;
+
+: asm-slti ( ml -- )
+    prep-opi slti, ;
+
+: asm-sltu ( ml -- )
+    prep-op sltu, ;
+
+: asm-sltui ( ml -- )
+    prep-opi sltiu, ;
+
+: asm-sltui-one ( ml -- )
+    prep-uop 1 sltiu, ;
+
+: asm-subi-one ( ml -- )
+    prep-uop -1 addi, ;
 
 : back-patch-beq ( target-addr branch-addr -- )
     tuck - cell- 2 rshift
     over @ $ffff0000 and or swap ! ;
 
-: beq,-info ( reg reg addr -- )
-    here ['] back-patch-beq branch-info 2!
+: branch,-info ( reg reg addr -- )
+    here ['] back-patch-beq branch-info 2! ;
+
+: asm-0branch ( ml -- )
+    dup ml-left @ ml-reg @
+    @zero
+    rot ml-val @
+    here - cell- branch,-info
     beq, ;
 
-: asm-0branch ( ml-addr -- )
-    dup asm-lreg@ @zero rot asm-val@
-    here - cell- beq,-info ;
+: asm-0branch-b ( ml -- )
+    dup ml-left @ ml-reg @
+    over ml-right @ ml-reg @
+    rot ml-val @
+    here - cell- branch,-info ;
 
-: asm-branch ( ml-addr -- )
-    @zero @zero rot asm-val@
-    here - cell- beq,-info ;
+: asm-0branch-beq ( ml -- )
+    asm-0branch-b beq, ;
 
-: asm-call ( ml-addr -- )
-    asm-val@ 2cells + @ jal, ;
+: asm-0branch-bne ( ml -- )
+    asm-0branch-b bne, ;
 
-: asm-execute ( ml-addr -- )
-    asm-lreg@
-    dup $0008 over lw,
-    nop,
-    @ra swap jalr, ;
+: asm-0branch-b0 ( ml -- )
+    dup ml-left @ ml-reg @
+    swap ml-val @
+    here - cell- branch,-info ;
 
-: asm-beq ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ rot asm-val@
-    here - cell- beq,-info ;
+: asm-0branch-0beq ( ml -- )
+    asm-0branch-b0 @zero beq, ;
 
-: asm-seq ( ml-addr -- )
-    >r
-    r@ asm-reg@ r@ asm-lreg@ r> asm-rreg@ xor,
-    dup 1 sltiu, ;
+: asm-0branch-0bne ( ml -- )
+    asm-0branch-b0 @zero bne, ;
 
-: asm-slt ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ slt, ;
+: asm-0branch-bltz ( ml -- )
+    asm-0branch-b0 bltz, ;
 
-: asm-slti ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ slti, ;
+: asm-0branch-blez ( ml -- )
+    asm-0branch-b0 blez, ;
 
-: asm-sltu ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ sltu, ;
+: asm-0branch-bgez ( ml -- )
+    asm-0branch-b0 bgez, ;
 
-: asm-sltui ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sltiu, ;
+: asm-0branch-bgtz ( ml -- )
+    asm-0branch-b0 bgtz, ;
+
+: asm-branch ( ml -- )
+    @zero @zero rot ml-val @
+    here - cell- branch,-info
+    beq, ;
+
+: asm-call ( ml -- )
+    ml-val @ jal, ;
+

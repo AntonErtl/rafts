@@ -1,7 +1,7 @@
 TIME	= time
 
 CC = gcc
-CFLAGS = -I../../../../public/gforth2c-0.1alpha/ -g
+CFLAGS = -I. -I../../../../public/gforth2c-0.1alpha/ -g
 
 GFORTH	= gforth
 GFLAGS	= -m 4M

@@ -1,6 +1,6 @@
 \ inst-selection.fs	instruction selection words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -23,159 +23,150 @@ slist-struct
 end-struct inst-struct
 
 \ allocate and initial a inst
-: inst ( il-addr -- inst-addr )
+: inst ( il -- inst-addr )
     inst-struct struct-allot	\ allocate
     slist			\ initial values
     tuck inst-node ! ;
 
 \ variables for local instruction arrays
-$80 constant inst-size
-inst-size array inst-btrees
+$40 constant inst-size
+inst-size array inst-ils
+variable inst-ils-end
 \ contains all intermediate code end nodes, i.e., ! nodes, stack pointer updates, and nodes that are on the stack at the basic block end
+inst-size array inst-mls
+variable inst-mls-end
+\ contains all possible instruction code nodes, in arbitrary order
 inst-size array inst-lists
+variable inst-lists-end
 \ contains all instruction nodes, in the right order
-inst-size array inst-nodes
-\ contains all instruction nodes, in arbitrary order
-inst-size array inst-pnodes
-\ contains leader instruction nodes for instruction scheduling
 
 \ functions for handling the instruction array
 : inst-init ( -- )
-    NIL inst inst-!-list !
-    NIL inst inst-@-list !
-    0 inst-btrees inst-size cells 0 fill
-    0 inst-lists inst-size cells 0 fill
-    0 inst-nodes inst-size cells 0 fill
-    0 inst-pnodes inst-size cells 0 fill ;
+    NIL inst-!-list !
+    NIL inst-@-list !
+    0 inst-ils inst-size cells erase
+    0 inst-ils-end !
+    0 inst-mls inst-size cells erase
+    0 inst-mls-end !
+    0 inst-lists inst-size cells erase
+    inst-size 1- inst-lists-end ! ;
 
 include node.fs
 
-: asm ( il-addr -- )
-    drop ;
-
-\ reset node values
-: il-reset ( il-addr -- )
-    0 over il-slabel !
-    -1 over il-reg !
-    NIL over il-depends !
-    dup il-nt-insts cell+ max-NT 1- cells erase \ !! or just reset the mls in the nts
-    drop ;
-
 \ allocate and initialize a node
-: make-il ( val reg op -- il-addr )
+: make-il ( val reg op -- il )
     il-struct struct-allot	\ allocate
     btree
-    dup il-reset
     tuck il-op !		\ initial values
     tuck il-reg !
-    tuck il-val ! ;
+    tuck il-val !
+    0 over il-slabel !
+    NIL over il-depends !
+    dup il-nt-insts cell+ max-NT 1- cells erase \ !! or just reset the mls in the nts
+;
 
-: ?inst-delay ( ml-addr -- flag )
-    ml-delay @ ;
-
-: inst-done ( ml-addr -- )
-    ml-done on ;
-
-: inst-notdone ( ml-addr -- )
-    ml-done off ;
-
-: ?inst-done ( ml-addr -- flag )
-    ml-done @ ;
-
-: ?inst-notdone ( ml-addr -- flag )
-    ?inst-done 0= ;
-
-: inst-sequence ( xt addr -- )
-    swap over inst-size 1- cells + >r
-    begin ( addr xt )
-	over @ ?dup if ( addr xt addr@ )
-	    over execute
-	endif
-	swap cell+ swap over r@ >
-    until
-    rdrop 2drop ;
-
-: inst-sequence-reverse ( xt addr -- )
-    swap >r
-    dup inst-size 1- cells +
-    begin ( begin ptr )
-	2dup u<=
+: inst-sequence ( xt addr n -- )
+    rot >r
+    cells over + swap
+    begin ( to-addr from-addr )
+	2dup >
     while
-	dup @ ?dup if ( begin ptr element )
-	    r@ execute
-	endif
-	cell-
-    repeat
-    2drop rdrop ;
-
-: inst-insert ( ml-addr addr -- )
-    begin
-	dup @
-    while
+	r@ -rot
+	tuck 2>r
+	@ swap execute
+	2r>
 	cell+
     repeat
-    ! ;
+    rdrop 2drop ;
 
-: inst-insert-end ( ml-addr addr -- )
-    inst-size 1- cells +
-    begin
-	dup @
+: inst-sequence-code-emission ( xt addr n -- )
+    rot >r
+    cells over + swap
+    begin ( to-addr from-addr )
+	2dup >
     while
-	cell-
+	r@ -rot
+	tuck 2>r
+	dup last-load !
+	@ swap execute
+	2r>
+	cell+
     repeat
-    ! ;
+    rdrop 2drop ;
 
-: inst-btrees-insert ( ml-addr -- )
-    0 inst-btrees inst-insert ;
-: inst-btrees-insert-end ( ml-addr -- )
-    0 inst-btrees inst-insert-end ;
+: inst-ils-insert ( ml -- )
+    inst-ils-end @ inst-ils !
+    1 inst-ils-end +! ;
 
-: inst-lists-insert ( ml-addr -- )
-    0 inst-lists inst-insert ;
-: inst-lists-insert-end ( ml-addr -- )
-    0 inst-lists inst-insert-end ;
+: inst-mls-insert ( ml -- )
+    inst-mls-end @ inst-mls !
+    1 inst-mls-end +! ;
 
-: inst-nodes-insert ( ml-addr -- )
-    0 inst-nodes inst-insert ;
-: inst-nodes-insert-end ( ml-addr -- )
-    0 inst-nodes inst-insert-end ;
+: inst-mls-delete ( addr -- )
+    inst-mls-end @ 1- dup if
+	inst-mls dup @ NIL rot !
+	-1 inst-mls-end +!
+	over @ if
+	    swap !
+	else
+	    2drop
+	endif
+    else
+	NIL swap inst-mls !
+	0 inst-mls-end !
+	drop
+    endif ;
 
-: inst-pnodes-insert ( ml-addr -- )
-    0 inst-pnodes inst-insert ;
-: inst-pnodes-insert-end ( ml-addr -- )
-    0 inst-pnodes inst-insert-end ;
+: inst-lists-insert ( ml -- )
+    inst-lists-end @ inst-lists !
+    -1 inst-lists-end +! ;
 
 : make-ml ( -- ml )
-    ml-struct struct-allot
-    dup ml-delay off ;
+    ml-struct struct-allot	\ allocate
+    btree
+    dup ml-delay off            \ initial values
+;
 
-: cons-ml ( ml ml-list1 -- ml-list2 )
-    swap inst
-    tuck slist-next ! ;
-
-: inst-ok ( node nt asm-xt -- ml )
+: il>ml ( il nt asm-xt -- ml )
     \ create ml
     -rot
-    over il-nt-insts swap th	( left-ml right-ml asm-xt node il-nt-instp )
+    over il-nt-insts swap th	( asm-xt node il-nt-instp )
     make-ml
-    dup rot !			( left-ml right-ml asm-xt node ml )
+    dup rot !			( asm-xt node ml )
     over il-val @ over ml-val !
     over il-reg @ over ml-reg !
-    over il-depends @ over ml-node-dependences !
-    NIL over ml-depends !
-    nip				( left-ml right-ml asm-xt ml )
+    1 over ml-count !
+    over il-depends @ over ml-depends !
+    nip				( asm-xt ml )
     tuck ml-asm !		( ml )
-    0 over ml-count !
-    dup ml-done off
-    1 over ml-cost !
-    dup
-    inst-nodes-insert-end
-    \ inst-nodes-insert
+    1 over ml-latency !
+    0 over ml-pathlength !
+    1 over ml-let !             \ erst beim scheduler initialisieren
 ;
+
+: ml-data-pathlength ( ml -- n )
+    dup if
+	dup ml-pathlength @ swap ml-latency @ +
+    endif ;
+
+defer ml-translate
+: ml-join ( ml-left ml-right ml -- ml )
+    2dup ml-right ! swap ml-data-pathlength >r
+    2dup ml-left ! swap ml-data-pathlength
+    r> max swap                        ( n ml )
+    dup ml-depends @ ?dup if ( n ml il-list )
+	>r tuck swap
+	NIL r>
+	( ml ml n ml-list il-list )
+	['] ml-translate swap slist-forall ( ml ml n ml-list )
+	rot ml-depends ! swap
+    endif                             ( n ml )
+    tuck ml-pathlength ! ;
 
 include machine/grammar.fs
 include regs.fs
 
+?trace $0fff [IF]
 0 constant il-print-flag
 1 constant ml-print-flag
 variable print-flag
@@ -197,16 +188,17 @@ il-print-flag print-flag !
     dup (print-.-)
     lastnfa
     name>string 0 ?do
-	dup c@
-	over if
+	2dup c@
+	swap if
 	    emit
 	else
-	    dup [char] - = if
-		drop [char] _ emit
+	    dup '- = if
+		drop '_ emit
 	    else
-		dup [char] a [char] z 1+ within
-		over [char] A [char] Z 1+ within or
-		over [char] 0 [char] 9 1+ within or if
+		dup 'a 'z 1+ within
+		over 'A 'Z 1+ within or
+		over '0 '9 1+ within or
+		over '_ = or if
 		    emit
 		else
 		    0 0 d.r
@@ -228,10 +220,16 @@ il-print-flag print-flag !
     false (print-name) ;
 
 : print-number ( n -- )
-    [ cell 2* ] literal swap hexn. ;
+    [ 2 cells ] literal swap hexn. ;
 
 : ?print-number ( addr -- )
     @ print-number ;
+
+: print-number-alone ( n -- )
+    [ 2 cells ] literal swap (hexn.) ;
+
+: ?print-number-alone ( addr -- )
+    @ print-number-alone ;
 
 : print-bool ( n -- )
     if
@@ -244,7 +242,7 @@ il-print-flag print-flag !
     @ print-bool ;
 
 : print-register ( n -- )
-    dup regs-unused = if
+    dup regs-unallocated = if
 	drop
 	." unallocated"
     else
@@ -255,202 +253,224 @@ il-print-flag print-flag !
     @ print-register ;
 
 : print-node-name ( addr -- )
-    print-cname . ;
+    print-cname hexnum. ;
 
 : print-edge ( addr addr -- )
     dup if
-	print-cname .
+	print-cname hexnum.
 	." -> "
-	print-cname . ." ;" cr
+	print-cname hexnum. ." ;" cr
     else
 	2drop
     endif ;
 
-: print-edge-dashed ( addr addr -- )
+: print-edge-dotted ( addr addr -- )
     dup if
-	print-cname .
+	print-cname hexnum.
 	." -> "
-	print-cname . ." [ style = dashed ];" cr
+	print-cname hexnum. ." [ style = dotted ];" cr
     else
 	2drop
     endif ;
 
-: il-print-depends-func ( il-addr -- )
-    over swap inst-node @ print-edge-dashed cr ;
+: il-print-depends-func ( il inst -- il )
+    over swap inst-node @ print-edge-dotted cr ;
 
-: il-print-depends ( inst-addr -- )
-    dup if
-	slist-next @ ['] il-print-depends-func maplist
-    else
-	drop
+: il-print-depends ( il inst -- il )
+    ?dup if
+	['] il-print-depends-func swap slist-forall
     endif ;
 
+?trace $0fff [IF]
 : il-print ( il -- )
-    dup $20 - $80 dump
-    \ il-print-flag print-flag !
+    dup il-struct drop dump
     dup dup il-left @ print-edge
     dup dup il-right @ print-edge
 
     dup print-node-name
     ." [ "
-    ." label = " [char] " emit
-    dup burm-OP-LABEL @ burm-opname ." (" dup il-slabel ?print-number ." )\l"
+    ." label = " '" emit
+    dup burm-OP-LABEL @ burm-opname
+    ." (" dup il-slabel ?print-number ." )\l"
+    ." [" dup print-cname print-number-alone ." ]\l"
     ." val: " dup il-val ?print-number ." \l"
     ." reg: " dup il-reg ?print-register ." \l"
-    [char] " emit
+    '" emit
     ."  ];" cr
     dup il-depends @ il-print-depends
     drop ;
 
-: il-print-all ( il-addr -- )
+: il-print-all ( il -- )
     ['] il-print swap btree-postorder cr ;
+[THEN]
 
-: ml-print-depends ( inst-addr -- )
-    ['] il-print-depends-func maplist ;
+: ml-print-rule ( cfa -- )
+    >name cell+
+    count $1f and cell- swap cell+ swap snumber? if
+	burm-string
+    else
+	true burm-assert" invalid rule"
+    endif ;
+
+defer ml-print-all
+
+: ml-print-depends-func ( ml inst -- ml )
+    inst-node @
+    dup ml-count @ 1 = if
+	dup ml-print-all
+    endif
+    over swap print-edge-dotted cr ;
+
+: ml-print-depends ( ml inst-addr -- ml )
+    ?dup if
+	['] ml-print-depends-func swap slist-forall
+    endif ;
 
 : ml-print ( ml -- )
-    \ ml-print-flag print-flag !
+    dup ml-struct drop dump
     dup dup ml-left @ print-edge
     dup dup ml-right @ print-edge
 
     dup print-node-name
     ." [ "
-    ." label = " [char] " emit
-    dup ml-asm @ name. ." \l"
-    ." count:  " dup ml-count ?print-number ." \l"
-    ." val:    " dup ml-val ?print-number ." \l"
-    ." done:   " dup ml-done ?print-bool ." \l"
-    ." reg:    " dup ml-reg ?print-register ." \l"
-    ." delay:  " dup ml-delay ?print-bool ." \l"
-    ." cost:   " dup ml-cost ?print-number ." \l"
-    [char] " emit
+    ." label = " '" emit
+    dup ml-asm @ ml-print-rule ." \l"
+    ." [" dup print-cname print-number-alone ." ]\l"
+    ." count: " dup ml-count ?print-number ." \l"
+    ." val: " dup ml-val ?print-number ." \l"
+    ." reg: " dup ml-reg ?print-register ." \l"
+    ." delay: " dup ml-delay ?print-bool ." \l"
+    ." latency: " dup ml-latency ?print-number ." \l"
+    ." pathlength: " dup ml-pathlength ?print-number ." \l"
+    ." let: " dup ml-let ?print-number ." \l"
+    '" emit
     ."  ];" cr
     dup ml-depends @ ml-print-depends
     drop ;
 
-: inst-btrees-print ( -- )
+: print-edge-asm-ml ( addr -- )
+    dup if
+	print-cname dup hexnum.
+	." -> "
+	1 print-flag !
+	print-cname
+	3 print-flag !
+	hexnum. ." ;" cr
+    else
+	2drop
+    endif ;
+
+: ml-asm-print ( ml ml -- )
+    dup ml-struct drop dump
+    swap ?dup if
+	over swap print-edge
+    endif
+    dup print-edge-asm-ml
+
+    dup print-node-name
+    ." [ "
+    ." label = " '" emit
+    dup ml-asm @ ml-print-rule ." \l"
+    ." [" dup print-cname print-number-alone ." ]\l"
+    ." count: " dup ml-count ?print-number ." \l"
+    ." val: " dup ml-val ?print-number ." \l"
+    ." reg: " dup ml-reg ?print-register ." \l"
+    ." delay: " dup ml-delay ?print-bool ." \l"
+    ." latency: " dup ml-latency ?print-number ." \l"
+    ." pathlength: " dup ml-pathlength ?print-number ." \l"
+    ." let: " dup ml-let ?print-number ." \l"
+    '" emit
+    ."  ];" cr ;
+
+:noname ( il -- )
+    ['] ml-print swap btree-postorder cr ;
+is  ml-print-all
+
+: inst-ils-print ( -- )
+    ." BTREE PRINT" hex.s cr
     il-print-flag print-flag !
     ." subgraph cluster_" print-cname ."  {" cr
-    ." label = " [char] " emit print-name [char] " emit ." ;" cr
-    ['] il-print-all 0 inst-btrees inst-sequence
+    ." label = " '" emit print-name stamp '" emit ." ;" cr
+    ['] il-print-all 0 inst-ils inst-ils-end @ inst-sequence
     ." /* cluster_" print-cname ." */ }" cr ;
 
-: inst-nodes-print ( -- )
-    ml-print-flag
-    ~~
-    print-flag !
+: inst-mls-print ( -- )
+    ." NODE PRINT" hex.s cr
+    ml-print-flag print-flag !
     ." subgraph cluster_" print-cname ."  {" cr
-    ." label = " [char] " emit print-name [char] " emit ." ;" cr
-    ['] ml-print 0 inst-nodes inst-sequence
-    ." /* cluster_" print-cname ." */ }" cr ;
-
-: inst-pnodes-print ( -- )
-    ml-print-flag 1+
-    ~~
-    print-flag !
-    ." subgraph cluster_" print-cname ."  {" cr
-    ." label = " [char] " emit print-name [char] " emit ." ;" cr
-    ['] ml-print 0 inst-pnodes inst-sequence
+    ." label = " '" emit print-name stamp '" emit ." ;" cr
+    ['] ml-print-all 0 inst-mls inst-mls-end @ inst-sequence
     ." /* cluster_" print-cname ." */ }" cr ;
 
 : inst-lists-print ( -- )
-    ml-print-flag 2 +
-    ~~
-    print-flag !
+    ." LISTS PRINT" hex.s cr
+    ml-print-flag 2 + print-flag !
     ." subgraph cluster_" print-cname ."  {" cr
-    ." label = " [char] " emit print-name [char] " emit ." ;" cr
-    ['] ml-print 0 inst-lists inst-sequence
+    ." label = " '" emit print-name stamp '" emit ." ;" cr
+    NIL ['] ml-asm-print 0 inst-lists
+    inst-lists-end @ 1+ tuck cells + inst-size rot - inst-sequence drop
     ." /* cluster_" print-cname ." */ }" cr ;
+[THEN]
 
-: op ( il-addr il-addr op -- il-addr )
+: op ( il il op -- il )
     dup burm-arity c@ 2 <> burm-assert" invalid arity(2)"
     >r over il-slabel @ over il-slabel @ swap r@ burm-state
-    0 regs-unused r> make-il
+    0 regs-unallocated r> make-il
     tuck il-slabel !
     tuck il-left !
     tuck il-right ! ;
 
-: uop ( il-addr op -- il-addr )
+: uop ( il op -- il )
     dup burm-arity c@ 1 <> burm-assert" invalid arity(1)"
     >r dup il-slabel @ NIL r@ burm-state
-    0 regs-unused r> make-il
+    0 regs-unallocated r> make-il
     tuck il-slabel !
     tuck il-left ! ;
 
-: terminal ( val reg op -- il-addr )
-    dup burm-arity c@ burm-assert" invalid arity(0)"
+: terminal ( val reg op -- il )
+    \ ." A:" hex.s cr
+    \ 0 burm-arity $40 dump
+    dup burm-arity
+    \ dup $20 dump
+    \ ." B:" hex.s cr
+    c@
+    \ ." C:" hex.s cr
+    0<>
+    burm-assert" invalid arity(0)"
     dup NIL NIL rot burm-state >r make-il
     r> over il-slabel ! ;
 
-: register-move ( il-addr register -- il-addr )
+: register-move ( il1 -- il2 )
     I_MOVE uop ;
 
-: register-terminal ( reg -- il-addr )
+: register-terminal ( reg -- il )
     NULL swap I_REG terminal
     register-move ;
 
-: lit ( n -- il-addr )
-    dup $8000 <
-    over $0000 >= and if
-	regs-unused I_LITS terminal
-    else
-	regs-unused I_LIT terminal
-    endif ;
-
-: fff
-    dup 0= if
-	regs-unused I_LITS terminal \ !! warum 0 ?
-    else
-	dup $8000 >= if
-	    regs-unused I_LIT terminal
+: lit ( n -- il )
+    dup if
+	dup $8000 <
+	over $0000 > and if
+	    regs-unallocated I_LITS terminal
 	else
-	    dup $0000 < if
-		regs-unused I_LIT terminal
-	    else
-		regs-unused I_LITS terminal
-	    endif
+	    regs-unallocated I_LIT terminal
 	endif
+    else
+	0 I_ZERO terminal
     endif ;
 
-: addr ( offset register -- il-addr )
-    swap regs-unused I_LITS terminal
+: addr ( offset register -- il )
+    swap regs-unallocated I_LITS terminal
     NULL rot I_REG terminal
     I_PLUS op ;
 
-: id@ ( offset register -- il-addr )
+: id@ ( offset register -- il )
     addr I_FETCH uop ;
 
-: id! ( il-addr offset register -- il-addr )
+: id! ( il offset register -- il )
     addr swap I_STORE op ;
 
-: translate-dependence ( ml-list1 slist-node -- ml-list2 )
-    inst-node @
-    \ MAX-NT 1
-    \ ?do ( ml-list il )
-    \ dup
-    il-nt-insts ( i ) burm-reg-NT th @ ?dup if ( ml-list il ml )
-	\ rot cons-ml swap
-	swap cons-ml
-    endif
-    \ loop
-    \ drop
-;
-
-: translate-dependences ( il-list -- ml-list )
-\ translate dependences at the IL level into dependences at the ML level
-\ !! looks only at the top IL for an ML
-    dup if
-	NIL swap slist-next @ ['] translate-dependence maplist
-    endif ;
-
-: translate-ml-dependences ( ml -- )
-    dup ml-node-dependences @ translate-dependences
-    swap ml-depends ! ;
-
-: translate-all-dependences ( -- )
-    ['] translate-ml-dependences 0 inst-nodes inst-sequence ;
-
-: inst-cover ( indent goal il-addr -- )
+: inst-cover ( indent goal il -- )
     dup hex.
     tuck burm-STATE-LABEL @ swap burm-rule dup 0= if
 	nip nip
@@ -466,14 +486,13 @@ il-print-flag print-flag !
 	begin					\ (R: indent)
 	    dup @ dup
 	while
-	    rot r@ 1+ rot rot
-	    [ 1 -3 wword-regs-adjust ]
+	    rot r@ 1+ -rot
+	    \ [ 1 -3 wword-regs-adjust ]
 	    recurse
 	    cell+
 	repeat
 	2drop rdrop
-    endif
-;
+    endif ;
 
 burm-max-rule 1+ array burm-reduce-rules
 
@@ -483,13 +502,13 @@ burm-max-rule 1+ array burm-reduce-rules
     over dup 1 < swap burm-NT > or burm-assert" invalid goal"
     2dup il-nt-insts swap th @ dup if ( goal node ml )
 	\ node already reduced
-	\ 1 over ml-count +!
+	1 over ml-count +!
 	nip nip
-	exit
-    endif
-    drop
-    2dup il-slabel @ swap burm-rule
-    burm-reduce-rules @ execute ;
+    else
+	drop
+	2dup il-slabel @ swap burm-rule
+	burm-reduce-rules @ execute
+    endif ;
 
 : gen-reduce-rule ( n -- )
     >r
@@ -534,29 +553,91 @@ burm-max-rule 1+ array burm-reduce-rules
 0 burm-reduce-rules !
 gen-all-reduce-rules
 
-: inst-selection-func ( il-addr -- )
-    ?trace $0020 [IF]
+: mls-pr ( -- )
+    ." SCHED MLS: "
+    inst-mls-end @ 0 ?do
+	i inst-mls @ ?dup if
+	    hex.
+	endif
+    loop
+    cr ;
+
+: lists-pr ( -- )
+    ." SCHED LIST: "
+    inst-size 0 ?do
+	i inst-lists @ ?dup if
+	    hex.
+	endif
+    loop
+    cr ;
+
+: inst-check ( -- )
+    \ ." CHECK BB:" basic-block @ . cr
+    \ mls-pr
+    \ lists-pr
+    0 inst-mls
+    begin
+	\ mls-pr
+	\ 0 inst-mls $20 dump
+	dup @
+    while
+	dup @ ml-count @ if
+	    dup inst-mls-delete
+	else
+	    cell+
+	endif
+    repeat
+    drop ;
+
+: inst-selection-func ( il -- )
+    ?trace $0100 [IF]
 	." inst-selection:" hex.s cr
     [THEN]
-    ?trace $0020 [IF]
-	dup 0 burm-reg-NT rot inst-cover
+    ?trace $0100 [IF]
+	\ dup 0 burm-reg-NT rot inst-cover
     [THEN]
     \ reduce the tree
-    burm-reg-NT swap burm-reduce drop ;
+    burm-reg-NT swap burm-reduce
+    -1 over ml-count +!
+    inst-mls-insert ;
 
 : inst-selection ( -- )
-    ['] inst-selection-func 0 inst-btrees inst-sequence ;
+    ['] inst-selection-func 0 inst-ils inst-ils-end @ inst-sequence
+    ds-stackupdate @ ?dup if
+	inst-ds!-list @ swap il-nt-insts burm-reg-NT th @
+	tuck ml-depends !
+	100 swap ml-pathlength !
+    endif
+    rs-stackupdate @ ?dup if
+	inst-rs!-list @ swap il-nt-insts burm-reg-NT th @
+	tuck ml-depends !
+	100 swap ml-pathlength !
+    endif
+    inst-check ;
 
-: assemble-func ( ml -- )
+:noname ( pathlength1 ml-list1 inst -- pathlength2 ml-list2 )
+    burm-reg-NT swap inst-node @ burm-reduce    ( pathlength1 ml-list1 ml )
+    rot over ml-pathlength @ 1+ max -rot        ( pathlength2 ml-list1 ml )
+    inst tuck slist-next !                      ( pathlength2 ml-list2 )
+;
+is ml-translate
+
+: code-emission-func ( ml -- )
+    last-load @ here
+    = if
+	NIL asm-nop
+    endif
     dup dup ml-asm @ execute			\ assemble the instruction
-    ?inst-delay if				\ fill delay slot ?
+    ml-delay @ if				\ fill delay slot ?
 	NIL asm-nop
     endif ;
 
-: assemble ( -- )
-    ['] assemble-func 0 inst-lists inst-sequence ;
+: code-emission ( -- )
+    ['] code-emission-func
+    0 inst-lists inst-lists-end @ 1+ tuck cells +
+    inst-size rot - inst-sequence-code-emission ;
 
-?test $0020 [IF]
+?test $0010 [IF]
 cr ." Test for inst-selection.fs" cr
 
 finish

@@ -1,6 +1,6 @@
 \ word.fs	function words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -25,7 +25,7 @@
 : word-regs-write ( xt-addr -- )
     >r
     word-regs-get
-    ?trace $0800 [IF]
+    ?trace $0020 [IF]
 	." word regs: " dup . over . >r over . r> cr
     [THEN]
     r> tuck ih-regs-flag !
@@ -52,18 +52,6 @@
 	docol: of
 	['] compile,-interpreter
 	['] compile,-nonativext swap rot endof
-\	>r dup >code-address
-\	@ $1a asm-bitmask and 2 lshift case
-\	    dodoes: $1a asm-bitmask and of
-\	    \ dup ih-compile-xt @
-\	    \ over ih-compiler @
-\	    \ rot ih-interpreter @
-\	    ['] compile,-interpreter
-\	    ['] compile,-nonativext swap rot
-\	    endof
-\	    >r ['] compile,-interpreter
-\	    ['] compile,-nonativext swap rot r>
-\	endcase r>
 	>r ['] compile,-interpreter
 	['] compile,-nonativext swap rot r>
     endcase ;
@@ -159,16 +147,16 @@ previous
     nop, ;
 
 : word-native ( cfa -- )
-    ?trace $0002 [IF]
+    ?trace $0020 [IF]
 	dup >name hex. ." word-native:" dup name. cr
     [THEN]
     2cells + @ word-call ;
 
 : word-interpreter ( cfa -- )
-    ?trace $0002 [IF]
+    ?trace $0020 [IF]
 	dup >name hex. ." word-interpreter:" dup name. cr
     [THEN]
-    tos-#register 0 > if
+    tos-#register 0> if
 	$0000 #tos tos-#register + 1- #tos tos-store
 	swap
     endif
@@ -176,7 +164,7 @@ previous
     ?word-mode-direct [IF]
 	#ip here 4cells + li,
 	#cfa jr,
-	tos-#register 0 > if
+	tos-#register 0> if
 	    #tos tos-#register + 1- swap #sp sw,
 	else
 	    nop,
@@ -185,7 +173,7 @@ previous
 	@t0 0 #cfa lw,
 	#ip here 5cells + li,
 	@t0 jr,
-	tos-#register 0 > if
+	tos-#register 0> if
 	    #tos tos-#register + 1- swap #sp sw,
 	else
 	    nop,
@@ -195,7 +183,7 @@ previous
     ?word-mode-indirect [IF]
 	here cell+ a,
     [THEN]
-    tos-#register 0 > if
+    tos-#register 0> if
 	$0000 #tos tos-#register + #tos tos-load drop
 	nop,
     endif ;
@@ -203,14 +191,14 @@ previous
 : check-ra ( -- )
     return>
     dup il-reg @ @ra <> if
-	@ra over il-reg ! inst-btrees-insert
+	@ra over il-reg ! inst-ils-insert
     else
 	drop
     endif ;
 
-: compile-word-init-check ( -- )
+: compile-word-init-does ( -- )
     (word-init)
-    ?trace $0200 [IF]
+    ?trace $0020 [IF]
 	0 basic-block !
     [THEN]
     basic-init
@@ -220,7 +208,7 @@ previous
     here basic-code-sav !
     basic-code-ptr @ dup dp !
     swap 2cells + tuck ! cell flush-icache
-    ?trace $0200 [IF]
+    ?trace $0020 [IF]
 	0 basic-block !
     [THEN]
     basic-init
@@ -237,7 +225,7 @@ previous
     [ also Forth ' lit previous ] literal gforth-compile, ,
     ['] compile-word-init gforth-compile, ;
 
-: compile-word-exit-check ( -- )
+: compile-word-exit-does ( -- )
     check-ra
     basic-exit
     (word-exit) ;
@@ -282,17 +270,20 @@ previous
 
 : pass2 ( cfa -- )
     dup ih-status @ 0= if
+	?trace $0020 [IF]
+	    ." compiling: ( " version @ hex. ." ) " dup name. cr
+	[THEN]
 	dup ih-xt-addr @
 	over ih-#xt @ 0 ?do
 	    dup @
-	    ?trace $0200 [IF]
+	    ?trace $0020 [IF]
 		dup look drop (lastnfa) !
 	    [THEN]
 	    recurse
 	    cell+
 	loop
 	drop
-	?trace $0200 [IF]
+	?trace $0020 [IF]
 	    dup look drop (lastnfa) !
 	[THEN]
 	dup ih-cfsize + execute
@@ -324,17 +315,17 @@ does>
     execute ;
 
 : ; ( -- )
-    ?trace $0800 [IF]
+    ?trace $0020 [IF]
 	hex.s cr
     [THEN]
     postpone [
     word-exit
     lastih word-regs-write
-    ?trace $0800 [IF]
+    ?trace $0020 [IF]
 	.xt cr
     [THEN]
     lastih xt-write
-    ?trace $0800 [IF]
+    ?trace $0020 [IF]
 	\ Dump vom Info Header
 	lastih dup $10 - $20 dump
 	dup 2cells disasm-dump 2cells +
@@ -426,7 +417,7 @@ vtarget ' 2variable vsource alias 2user
 0 1 chars vtarget end-struct struct vsource
 >source
 
-?test $0008 [IF]
+?test $0020 [IF]
 cr ." Test for word.fs" cr
 
 docol: hex.

@@ -1,6 +1,6 @@
 \ stdlib.fs	misc words
 \
-\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\ Copyright (C) 1995-97 Martin Anton Ertl, Christian Pirker
 \
 \ This file is part of RAFTS.
 \
@@ -60,15 +60,21 @@ cell negate constant -1cells
 \ decrements addr by one cell
     1cells - ;
 
-: hexn. ( n x -- )
+: (hexn.) ( n x -- )
     base @ >r hex
     s>d <#
     rot 0 ?do
 	#
     loop
-    [char] $ hold #>
-    type
+    #> type
     r> base ! ;
+
+: hexn. ( n x -- )
+    '$ emit (hexn.) ;
+
+: hexnum. ( x -- )
+\ prints x in hex with 2*cell digits (e.g. $12345678)
+    [ cell 2* ] literal swap (hexn.) space ;
 
 : hex. ( x -- )
 \ prints x in hex with 2*cell digits (e.g. $12345678)
@@ -103,6 +109,30 @@ cell negate constant -1cells
     over name.
     dump ;
 
+create (month)
+	12 3 * chars allot
+s" JanFebMarAprMayJunJulAugSepOctNovDec" (month) swap cmove
+: (month.) (  -- )
+    1- 3 * (month) + 3 type ;
+: date. ( d m y -- )
+    swap (month.) space
+    swap 0 2 d.r ', emit space
+    .  ;
+
+: (time.) ( x -- )
+    s>d <#
+    2 0 ?do
+	#
+    loop
+    #> type ;
+: time. ( s m h -- )
+    (time.) ': emit
+    (time.) ': emit
+    (time.) ;
+
+: stamp ( -- )
+    time&date date. time. ;
+
 : finish ( -- )
     ." stack: " hex.s cr ;
 
@@ -111,7 +141,7 @@ include stdlib/matrix.fs
 include stdlib/slist.fs
 include stdlib/btree.fs
 
-?test $0100 [IF]
+?test $1000 [IF]
 cr ." Test for stdlib.fs" cr
 
 finish
