@@ -18,57 +18,6 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-?shared docode [IF]
-create docode
-  #cfa dup 8 @addiu
-  #ip -4 #rp @sw
-  @ra swap @jalr drop
-  #rp dup -4 @addiu
-
-  #ip 0 rot @lw
-  #rp dup 4 @addiu drop
-  #cfa 0 rot @lw
-  #ip dup 4 @addiu drop
-?func_mode_indirect [IF]
-  @t0 0 rot @lw
-  @nop
-[THEN]
-  @jr
-  @nop
-
-create dodoes
-  @t0 0 #cfa @lw
-  #cfa dup 8 @addiu
-  dup -4 #sp @sw
-  #sp dup -4 @addiu drop
-?func_mode_direct [IF]
-  @t1 $03ffffff @li
-  rot tuck @and
-  dup $02 @sll
-  @t1 $fc000000 @li
-  rot tuck @and
-  tuck @or
-[THEN]
-?func_mode_indirect [IF]
-  drop
-[THEN]
-  #ip -4 #rp @sw
-  dup 8 @addiu
-  @ra swap @jalr drop
-  #rp dup -4 @addiu
-
-  #ip 0 rot @lw
-  #rp dup 4 @addiu drop
-  #cfa 0 rot @lw
-  #ip dup 4 @addiu drop
-?func_mode_indirect [IF]
-  @t0 0 rot @lw
-  @nop
-[THEN]
-  @jr
-  @nop
-[THEN]
-
 include header.fs
 
 ' parse get_do constant :docol
@@ -88,24 +37,20 @@ end-struct ((:dostruc))
 [THEN]
   dodoes 2 rshift $1a @mask and $08000000 or constant :dodoes
 
-: @init ( -- )
-  @ra -4 #rp @sw
-  #rp #rp -4 @addiu drop ;
+: func_init_noname ( -- )
+  here lastcfa !
+  :docode a, 0 a,
+  (func_init) ;
 
-: @exit ( -- )
-  @ra 0 #rp @lw
-  #rp #rp 4 @addiu drop
-  @jr
-  @nop ;
+: func_exit_noname ( -- )
+  (func_exit) ;
 
 : func_init ( -- )
   header
-  here lastcfa !
-  :docode a, 0 a,
-  @init ;
+  func_init_noname ;
 
 : func_exit ( -- )
-  @exit
+  func_exit_noname
   reveal ;
 
 : func_call ( pfa -- )
@@ -142,6 +87,8 @@ end-struct ((:dostruc))
 ' func_exit alias ;code
 
 variable dostruc
+variable noname_state
+false noname_state !
 
 ?test $0008 [IF]
 cr ." Test for func.fs" cr

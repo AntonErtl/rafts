@@ -51,13 +51,13 @@ $03 @!op @!J_type1n		@jal
 $00 @!special3sa		@sll
 $02 @!special3sa		@srl
 $03 @!special3sa		@sra
-$04 @!special3n			@sllv
-$06 @!special3n			@srlv
-$07 @!special3n			@srav
+$04 @!special3s			@sllv
+$06 @!special3s			@srlv
+$07 @!special3s			@srav
 $08 @!special1n			@jr
 $09 @!special2			@jalr
-$0c @!special0			@syscall
-$0d @!special0			@break
+$0c @!special0n			@syscall
+$0d @!special0n			@break
 $10 @!special1			@mfhi
 $11 @!special1n			@mthi
 $12 @!special1			@mflo
@@ -101,10 +101,10 @@ $08 @!cop0r0			@tlbl
 : @abs ( rd rs -- rd )
   dup $0008 @bgez
   2dup @move drop
-  @zero swap @sub ;
+  @zero swap @subu ;
 
 : @neg ( rd rs -- rd )
-  @zero swap @sub ;
+  @zero swap @subu ;
 
 : @negu ( rd rs -- rd )
   @zero swap @subu ;
@@ -114,7 +114,9 @@ $08 @!cop0r0			@tlbl
 
 : @li ( rd imm -- rd )
   dup 0= if
-    drop @zero @move else
+    drop dup @zero = if
+      drop @zero else
+      @zero @move endif else
     dup $8000 u< if
       @zero swap @addiu else
       dup $10000 u< if
@@ -354,11 +356,11 @@ $00210826 $00000826 $00200026 $00010026 $03fff826 ' @xor 1 asm_test5d
 $38210001 $38010000 $38200000 $38000001 $3bffffff ' @xori 1 asm_test5d
 
 $00200821 $00000821 $00200021 $03e0f821 ' @move 1 asm_test4d
-$00010822 $00200821 $04210002
-$00000822 $00000821 $04010002
-$00010022 $00200021 $04210002
-$001ff822 $03e0f821 $07e10002 ' @abs 3 asm_test4d
-$00010822 $00000822 $00010022 $001ff822 ' @neg 1 asm_test4d
+$00010823 $00200821 $04210002
+$00000823 $00000821 $04010002
+$00010023 $00200021 $04210002
+$001ff823 $03e0f821 $07e10002 ' @abs 3 asm_test4d
+$00010823 $00000823 $00010023 $001ff823 ' @neg 1 asm_test4d
 $00010823 $00000823 $00010023 $001ff823 ' @negu 1 asm_test4d
 $00200827 $00000827 $00200027 $03e0f827 ' @not 1 asm_test4d
 $14200001 $0021082a $14200000 $0020082a $14200000

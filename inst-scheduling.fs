@@ -18,140 +18,68 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: (inst_dec) ( node-addr -- )
-  node_reg @ regs_dec ;
-
-: inst_dec ( node-addr -- )
-  ['] (inst_dec) swap btree_postorder ;
-
-: inst_check ( node-addr -- flag )
-  dup dup node_type @ ['] n_id! = if
-    swap btree_right @ dup node_type @ ['] n_id@ = if
-      dup node_offset @ swap node_pointer @
-      rot dup node_offset @ swap node_pointer @
-      rot = rot rot = and else
-      2drop false endif else
-    2drop false endif ;
-
-: inst_depends_func ( inst-addr -- flag )
-  inst_node @
-?trace $0040 [IF]
-  ." INST_DEPENDS:" dup hex. cr
-[THEN]
-  ?inst_done ;
-
-: inst_depends ( inst-addr -- inst-addr )
-?trace $0040 [IF]
-  ." inst_depends:" dup hex. ." ;" dup inst_print_depends cr
-[THEN]
-  dup 0<> if
-    ['] inst_depends_func swap slist_find dup 0<> if
-      inst_node @ endif endif ;
-
-: inst_scheduling_out ( node-addr -- )
-  dup node_type @ execute ;
-
-: inst_scheduling_postorder ( xt node-addr -- )
-?trace $0040 [IF]
-  ." scheduling:" hex.rs hex.s cr
-[THEN]
-  dup NIL <> if
-?trace $0040 [IF]
-    ." SCHEDULING" hex.s cr
-[THEN]
-    dup node_reg @ 0<> if
-?trace $0040 [IF]
-      ." regs opt:" hex.s cr
-[THEN]
-      dup node_link @ 0<> if
-?trace $0040 [IF]
-    hex ." regs link opt:" hex.s cr decimal
-[THEN]
-        dup btree_left @ inst_dec
-        dup btree_right @ inst_dec endif
-      else
-      dup inst_check if
-?trace $0040 [IF]
-        ." stack opt:" hex.s cr
-[THEN]
-        dup btree_right @ link-
-        node_reg @ dup 0<> if
-?trace $0040 [IF]
-        ." stack regs opt:" hex.s cr
-[THEN]
-          regs_dec else
-?trace $0040 [IF]
-        ." stack no regs opt:" hex.s cr
-[THEN]
-	  drop endif
-        else
-        begin
-          dup node_depends @ inst_depends
-?trace $0040 [IF]
-          ." recurse depends:" hex.s cr
-[THEN]
-	  dup 0<> while
-          rot rot 2>r 2r@
-	  drop swap
-?trace $0040 [IF]
-          ." depends{:" hex.rs hex.s cr
-[THEN]
-	  recurse 2r>
-?trace $0040 [IF]
-          ." }depends done:" hex.rs hex.s cr
-[THEN]
-	  repeat
-	drop
-
-        2>r 2r@ btree_left @
-?trace $0040 [IF]
-	." recurse{ (left):" hex.rs hex.s cr
-[THEN]
-	recurse 2r>
-?trace $0040 [IF]
-        ." }recurse done (left):" hex.rs hex.s cr
-[THEN]
-        2>r 2r@ btree_right @
-?trace $0040 [IF]
-	." recurse{ (right):" hex.rs hex.s cr
-[THEN]
-	recurse 2r>
-?trace $0040 [IF]
-        ." }recurse done (right):" hex.rs hex.s cr
-[THEN]
-
-        dup ?inst_done if
-          2>r 2r@ nip btree_left @ dup 0<> if
-            inst_reg@ else
-	    drop endif
-          2r@ nip btree_right @ dup 0<> if
-            inst_reg@ else
-	    drop endif
-?trace $0040 [IF]
-          ." used registers:" hex.s cr
-[THEN]
-          2r@ swap
-?trace $0040 [IF]
-          ." inst{:" hex.rs hex.s cr
-[THEN]
-          execute 2r>
-?trace $0040 [IF]
-          ." }inst done:" hex.rs hex.s cr
-[THEN]
-	  else
-?trace $0040 [IF]
-          ." inst already done:" hex.s cr
-[THEN]
+: inst_next ( -- node_addr )
+  0 inst_pnodes
+  -1 over
+  begin
+    inst_size 1- inst_pnodes over >= while
+      dup @ 0<> if
+        dup @ ?inst_done if		\ remove done nodes !
+	  NULL over ! else
+          2dup @ node_cost @ < if	\ search highest costs
+            nip nip dup @ node_cost @ over endif
 	  endif
-        endif endif endif
-  2drop ;
+	endif
+    cell+ repeat
+  2drop
+  dup @ 0<> if
+    dup @ NIL rot ! else		\ remove fetched node
+    drop NIL endif ;			\ no node found
 
-: inst_scheduling_func ( inst-addr -- )
-  inst_node @
-  ['] inst_scheduling_out swap inst_scheduling_postorder ;
+: inst_depends_done_func ( inst_addr -- )
+  inst_node @ ?inst_done and ;
+
+: ?inst_depends_done ( node_addr -- flag )
+  true swap
+  node_depends @ dup node_depends_init <> if
+    ['] inst_depends_done_func swap slist_forall else
+    drop endif ;
+
+: ?inst_node_done ( node_addr -- flag )
+  dup ?inst_done
+  swap ?inst_depends_done and ;
+
+: ?inst_childs_done ( node_addr -- flag )
+  dup ?inst_depends_done		\ check yourself
+  over node_lval @ ?dup 0<> if		\ check left child
+    >r over r> tuck <> if
+      ?inst_node_done else
+      drop true endif else
+    true endif
+  and swap node_rval @ ?dup 0<> if	\ check right child
+    >r over r> tuck <> if
+      ?inst_node_done else
+      drop true endif else
+    true endif
+  and ;
+
+: inst_join ( -- )
+  0 inst_nodes
+  begin
+    inst_size 1- inst_nodes over >= while
+    dup @ ?dup 0<> if
+      dup ?inst_childs_done if		\ check done childs
+        inst_pnodes_insert		\ add to pnodes
+	NULL over ! else		\ del from nodes
+	drop endif endif
+    cell+ repeat
+  drop ;
 
 : inst_scheduling ( -- )
-  ['] inst_scheduling_func inst_head @ slist_forall ;
+  begin
+    inst_join inst_next dup 0<> while
+    dup inst_done inst_lists_insert repeat
+  drop ;
 
 ?test $0040 [IF]
 cr ." Test for inst-scheduling.fs" cr

@@ -20,13 +20,6 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-bl word vocabulary find nip 0= [IF]
-include search-order.fs
-\ include wordinfo.fs
-\ include float.fs
-\ include see.fs
-[THEN]
-
 vocabulary voc_source
 vocabulary voc_target
 vocabulary voc_target_compile
@@ -37,10 +30,10 @@ include options.fs
 include stdlib/stdlib.fs
 
 : vForth ( -- )
-  Forth ; immediate
+  Forth ; restrict immediate
 
 : vsource ( -- )
-  voc_source ; immediate
+  voc_source ; restrict immediate
 
 : >source ( -- )
   also voc_source definitions previous ;
@@ -49,7 +42,7 @@ include stdlib/stdlib.fs
   voc_source also ;
 
 : vtarget ( -- )
-  voc_target ; immediate
+  voc_target ; restrict immediate
 
 : >target ( -- )
   also voc_target definitions previous ;
@@ -58,7 +51,7 @@ include stdlib/stdlib.fs
   voc_target also ;
 
 : vtarget_compile ( -- )
-  voc_target_compile ; immediate
+  voc_target_compile ; restrict immediate
 
 : >target_compile ( -- )
   also voc_target_compile definitions previous ;
@@ -70,7 +63,7 @@ include mips/r3000.asm.fs
 include mips/r3000.disasm.fs
 include basic.fs
 
-: interpreter ( c-addr u -- )
+: interpreter ( c_addr u -- )
 ?trace $0002 [IF]
   ." INTER:" 2dup type cr
 [THEN]
@@ -88,35 +81,7 @@ include basic.fs
     snumber? 0= if
       notfound endif endif ;
 
-: (compile,) ( xt n -- )
-  case
-    :docol of
-?trace $0001 [IF]
-      ." func_interpreter:" hex.s cr
-[THEN]
-      func_interpreter endof
-    :docode of
-?trace $0001 [IF]
-      ." func_native:" hex.s cr
-[THEN]
-      func_native endof
-    >r
-?trace $0001 [IF]
-      ." func_interpreter (default):" hex.s cr
-[THEN]
-      func_interpreter
-    r>
-  endcase ;
-
 : compile, ( xt -- )
-  dup forthstart u> if
-    dup get_do (compile,) else
-?trace $0001 [IF]
-    ." func_interpreter (forth):" hex.s cr
-[THEN]
-    func_interpreter endif ;
-
-: ?compile ( xt -- )
   dup forthstart u> if
     dup get_do
     case
@@ -124,31 +89,23 @@ include basic.fs
 ?trace $0001 [IF]
         ." constant:" hex.s
 [THEN]
-        execute
-?trace $0001 [IF]
-        dup hex. cr
-[THEN]
-	postpone lit endof
+        execute vtarget_compile postpone literal vsource endof
       :dovar of
 ?trace $0001 [IF]
         ." variable:" hex.s cr
 [THEN]
-        execute
-?trace $0001 [IF]
-        dup hex. cr
-[THEN]
-	postpone lit endof
+        execute vtarget_compile postpone literal vsource endof
       :douser of
 ?trace $0001 [IF]
         ." user:" hex.s cr
 [THEN]
-        execute postpone lit endof
+        execute vtarget_compile postpone literal vsource endof
       :docol of
 ?trace $0001 [IF]
         ." FUNC_INTERPRETER:" hex.s cr
 [THEN]
-        >r basic_exit r>
-        compile,
+        basic_exit
+        func_interpreter
         basic_init endof
       :dodefer of
 ?trace $0001 [IF]
@@ -160,20 +117,14 @@ include basic.fs
 ?trace $0001 [IF]
         ." FUNC_STRUC:" hex.s cr
 [THEN]
-	2 cells + @
-	\ ." -> " dup . ." <-" cr
-	\ ." BEFORE: " hex.s
-	postpone lit
-	\ ." BETWEEN: " hex.s
-	dostruc @ execute
-	\ ." AFTER: " hex.s cr
+	2 cells + @ vtarget_compile postpone literal vsource dostruc @ execute
 	endof
       :docode of
 ?trace $0001 [IF]
         ." FUNC_NATIVE:" hex.s cr
 [THEN]
-        >r basic_exit r>
-        compile,
+        basic_exit
+        func_native
         basic_init endof
       dup >r
 ?func_mode_direct [IF]
@@ -184,33 +135,32 @@ include basic.fs
 ?trace $0001 [IF]
         ." FUNC_NATIVE (DOES>):" hex.s cr
 [THEN]
-	>r 2 cells + postpone lit basic_exit r>
-        :docode (compile,)
+	swap 2 cells + vtarget_compile postpone literal vsource basic_exit
+        func_native
         basic_init else
 	drop
 ?trace $0001 [IF]
         ." FUNC_INTERPRETER (DOES>):" hex.s cr
 [THEN]
-        >r basic_exit r>
-        :docol (compile,)
+        basic_exit
+        func_interpreter
         basic_init endif
       r>
     endcase else
 ?trace $0001 [IF]
     ." FUNC_INTERPRETER (FORTH):" hex.s cr
 [THEN]
-    >r basic_exit r>
-    compile,
+    basic_exit
+    func_interpreter
     basic_init endif ;
 
-: compiler ( c-addr u -- )
+: compiler ( c_addr u -- )
 ?trace $0002 [IF]
   ." COMP:" 2dup type cr
 [THEN]
   2dup sfind
 ?trace $0001 [IF]
-  order cr
-  hex.s cr
+  order cr hex.s cr
 [THEN]
   case
     2 of nip nip
@@ -230,7 +180,7 @@ include basic.fs
       ." compiler (immediate):" dup name.
       dup hex. dup get_do hex. cr
 [THEN]
-      >r basic_exit r>
+      basic_exit
       execute
       basic_init endof
     -1 of nip nip
@@ -238,19 +188,19 @@ include basic.fs
       ." compiler:" dup name.
       dup hex. dup get_do hex. cr
 [THEN]
-      ?compile endof
+      compile, endof
     0 of
       snumber? 0<> if
 ?trace $0001 [IF]
         ." number:" dup hex. cr
 [THEN]
-        postpone lit else
+        vtarget_compile postpone literal vsource else
         notfound endif endof
   endcase ;
 
 : interpret ( -- )
   begin
-    \ ?stack
+    ?stack
     name dup 0<> while
     state @ 0= if
       interpreter else

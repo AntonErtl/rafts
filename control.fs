@@ -18,31 +18,11 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-\ control structures
-: @if ( -- )
-  @t0 0 #sp @lw
-  #sp dup 4 @addiu drop
-  @zero $0000 @beq
-  @nop ;
-
-: @ahead ( -- )
-  @zero @zero $0000 @beq
-  @nop ;
-
-: @again ( -- )
-  @zero @zero rot @beq
-  @nop ;
-
-: @until ( -- )
-  @t0 0 #sp @lw
-  #sp dup 4 @addiu drop
-  @zero rot @beq
-  @nop ;
-
 >target_compile
 : if ( flag -- ) ( C: -- orig )
+  NULL vtarget_compile postpone literal vsource data>
+  data> BEQI op 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
   basic_exit
-  @if
   here 2 cells - >control
 ?trace $0010 [IF]
   ." if " .cs cr
@@ -50,8 +30,9 @@
   basic_init ; immediate restrict
 
 : ahead ( -- ) ( C: -- orig )
+  NULL vtarget_compile postpone literal vsource data> dup
+  BEQI op 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
   basic_exit
-  @ahead
   here 2 cells - >control
 ?trace $0010 [IF]
   ." ahead " .cs cr
@@ -61,23 +42,24 @@
 : then ( -- ) ( C: orig -- )
   basic_exit
 ?trace $0010 [IF]
-  ." then " .s .cs cr
+  ." then " hex.s .cs cr
 [THEN]
   control>
 ?trace $0010 [IF]
-  dup hex. dup @ hex. cr
+  dup hex. dup hex? cr
 [THEN]
   dup here swap - cell- 2 rshift
 ?trace $0010 [IF]
+  hex.s cr
   dup hex. cr
 [THEN]
-  over @ or swap !
+  over @ $ffff0000 and or swap !
   basic_init ; immediate restrict
-vtarget_compile ' then alias endif immediate restrict vsource
+lastxt alias endif immediate restrict
 
 : else ( -- ) ( C: orig1 -- orig2 )
   vtarget_compile
-  postpone ahead 1 postpone cs-roll postpone then
+  postpone ahead 1 cs-roll postpone then
   vsource ; immediate restrict
 
 : begin ( -- ) ( C: -- dest )
@@ -89,32 +71,26 @@ vtarget_compile ' then alias endif immediate restrict vsource
   basic_init ; immediate restrict
 
 : again ( -- ) ( C: dest -- )
-  basic_exit
 ?trace $0010 [IF]
   ." again " .cs cr
 [THEN]
-  control> here - 1 cells -
-?trace $0010 [IF]
-  dup hex. cr
-[THEN]
-  @again
+  NULL vtarget_compile postpone literal vsource data> dup
+  BEQI op 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
+  basic_exit
   basic_init ; immediate restrict
 
 : until ( flag -- ) ( C: dest -- )
-  basic_exit
 ?trace $0010 [IF]
   ." until " .cs cr
 [THEN]
-  control> here - 3 cells -
-?trace $0010 [IF]
-  dup hex. cr
-[THEN]
-  @until
+  NULL vtarget_compile postpone literal vsource data>
+  data> BEQI op 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
+  basic_exit
   basic_init ; immediate restrict
 
-: while ( flag -- ) ( C: dest -- orig dest )
+: while ( flag -- ) ( C: dest -- \rig dest )
   vtarget_compile
-  postpone if 1 postpone cs-roll
+  postpone if 1 cs-roll
   vsource ; immediate restrict
 
 : repeat ( -- ) ( C: orig dest -- )
@@ -124,7 +100,7 @@ vtarget_compile ' then alias endif immediate restrict vsource
 
 : exit ( -- ) ( C: -- )
   basic_exit
-  @exit
+  (func_exit)
   basic_init ; immediate restrict
 
 >source
@@ -224,12 +200,12 @@ ls_size array ls_data
 
 : for ( count -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- 0 from )
   vtarget_compile
-  0 postpone lit postpone swap postpone do
+  0 postpone literal postpone swap postpone ?do
   vsource ; immediate restrict
 
 : next ( -- ) ( C: dest -- ) ( L: 0 destu ... dest0 -- | 0 destu ... dest0 ) ( R: 0 from -- | 0 from )
   vtarget_compile
-  -1 postpone lit postpone +loop
+  -1 postpone literal postpone +loop
   vsource ; immediate restrict
 
 : case ( -- ) ( C: -- 0 )
@@ -238,7 +214,7 @@ ls_size array ls_data
 : of ( x1 x2 -- | x1 ) ( C: u -- orig u+1 )
   control> 1+ >r
 ?trace $0010 [IF]
-  ." of:" .s cr
+  ." of:" hex.s cr
 [THEN]
   vtarget_compile
   postpone over postpone = postpone if postpone drop
@@ -263,9 +239,7 @@ ls_size array ls_data
     loop ; immediate restrict
 
 : recurse ( -- )
-  basic_exit
-  lastxt compile,
-  basic_init ; immediate restrict
+  basic_exit basic_init lastxt compile, ; immediate restrict
 
 : postpone ( "name" -- )
 ?trace $0010 [IF]
@@ -276,26 +250,22 @@ ls_size array ls_data
 ?trace $0010 [IF]
       ." postpone (restrict&immediate):" dup hex. dup get_do hex. cr
 [THEN]
-      ?compile endof
+      compile, endof
     -2 of
 ?trace $0010 [IF]
       ." postpone (restrict):" dup hex. dup get_do hex. cr
 [THEN]
-      postpone lit basic_exit
-      ['] compile, compile,
-      basic_init endof
+      compile, endof
     1 of
 ?trace $0010 [IF]
       ." postpone (immediate):" dup hex. dup get_do hex. cr
 [THEN]
-      ?compile endof
+      compile, endof
     -1 of
 ?trace $0010 [IF]
-      ." postpone:" dup hex. dup get_do hex. cr
 [THEN]
-      postpone lit basic_exit
-      ['] compile, compile,
-      basic_init endof
+      ." postpone:" dup hex. dup get_do hex. cr
+      vtarget_compile postpone literal vsource ['] compile, compile, endof
     0 of
       notfound endof
   endcase ; immediate restrict
@@ -326,17 +296,17 @@ ls_size array ls_data
 
 : does> ( -- )
   state @ if
-    basic_exit
     ['] ;dodoes compile,
-    @exit
+    basic_exit
+    (func_exit)
     dodoes, else
     here !does dodoes,
     vtarget ] vsource endif
-  @init
+  (func_init)
   basic_init ; immediate restrict
-vtarget_compile ' does>
+lastxt
 >source
-vsource alias does>
+alias does>
 
 ?test $0010 [IF]
 cr ." Test for control.fs" cr

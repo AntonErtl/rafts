@@ -176,11 +176,11 @@ $01 constant @copz_BCT
 : @!(R_type) ( code -- )
   a, ;
 
-: @!(R_type0) ( addr -- )
+: @!(R_type0n) ( addr -- )
   @ a, ;
 
-: @!R_type0
-  create @!(R_type) does> @!(R_type0) ;
+: @!R_type0n
+  create @!(R_type) does> @!(R_type0n) ;
 
 : @!(R_type1) ( rd addr -- rd )
   @
@@ -217,12 +217,12 @@ $01 constant @copz_BCT
 : @!R_type3
   create @!(R_type) does> @!(R_type3) ;
 
-: @!(R_type3n) ( rd rt rs addr -- rd )
+: @!(R_type3s) ( rd rt rs addr -- rd )
   @
   swap @!rs or swap @!rt or over @!rd or a, ;
 
-: @!R_type3n
-  create @!(R_type) does> @!(R_type3n) ;
+: @!R_type3s
+  create @!(R_type) does> @!(R_type3s) ;
 
 : @!(R_type3sa) ( rd rt sa addr -- rd )
   @
@@ -232,9 +232,9 @@ $01 constant @copz_BCT
   create @!(R_type) does> @!(R_type3sa) ;
 
 \ ***** special types
-: @!special0 ( funct -- )
+: @!special0n ( funct -- )
   $00 @!op $00 @!rs or $00 @!rd or $00 @!rt or
-  $00 @!shamt or swap @!funct or @!R_type0 ;
+  $00 @!shamt or swap @!funct or @!R_type0n ;
 
 : @!special1 ( funct -- )
   $00 @!op $00 @!rd or $00 @!rt or
@@ -256,9 +256,9 @@ $01 constant @copz_BCT
   $00 @!op
   $00 @!shamt or swap @!funct or @!R_type3 ;
 
-: @!special3n ( funct -- )
+: @!special3s ( funct -- )
   $00 @!op
-  $00 @!shamt or swap @!funct or @!R_type3n ;
+  $00 @!shamt or swap @!funct or @!R_type3s ;
 
 : @!special3sa ( funct -- )
   $00 @!op
@@ -267,7 +267,7 @@ $01 constant @copz_BCT
 \ ***** copz types 2
 : @!cop0r0 ( funct -- )
   $10 @!op $10 @!rs or $00 @!rd or $00 @!rt or
-  $00 @!shamt or swap @!funct or @!R_type0 ;
+  $00 @!shamt or swap @!funct or @!R_type0n ;
 
 : @!(R_type2_copz) ( rt rd z addr -- rt )
   @

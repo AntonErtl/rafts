@@ -19,9 +19,7 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 : ?shared ( "name" -- flag )
-  bl word find nip invert ;
-  \ name sfind 0= dup invert if
-    \ nip endif ;
+  bl word find nip 0= ;
 
 $0001 constant func_mode_direct
 $0002 constant func_mode_indirect
@@ -37,43 +35,24 @@ func_mode_direct constant func_mode_const
 : ?func_mode_indirect ( -- flag )
   func_mode_indirect func_mode ; immediate
 
-$0001 constant lit_mode_op
-$0002 constant lit_mode_val
-\ $0000 constant lit_mode_const
-\ lit_mode_op constant lit_mode_const
-\ lit_mode_val constant lit_mode_const
-lit_mode_op lit_mode_val or constant lit_mode_const
+$0000 constant trace_const	\ no trace
+\ $0811 constant trace_const	\ trace what you want
+\ $0001 constant trace_const	\ trace compiler
+\ $0002 constant trace_const	\ trace compiler
+\ $0003 constant trace_const	\ trace compiler (more)
+\ $0010 constant trace_const	\ trace controll
+\ $0020 constant trace_const	\ trace inst-selection
+\ $0040 constant trace_const	\ trace inst-scheduling
+\ $0500 constant trace_const	\ trace basics
+\ $0810 constant trace_const	\ trace disasambler
+\ $c000 constant trace_const	\ trace wordlists
+\ $ffff constant trace_const	\ trace all
 
-: lit_mode ( n -- flag )
-  lit_mode_const and ;
-
-: ?lit_mode_op ( -- flag )
-  lit_mode_op lit_mode ; immediate
-
-: ?lit_mode_op_not ( -- flag )
-  lit_mode_op lit_mode 0= ; immediate
-
-: ?lit_mode_val ( -- flag )
-  lit_mode_val lit_mode ; immediate
-
-: ?lit_mode_val_not ( -- flag )
-  lit_mode_val lit_mode 0= ; immediate
-
-$0000 constant trace_const
-\ $0002 constant trace_const
-\ $0003 constant trace_const
-\ $0800 constant trace_const
-\ $c000 constant trace_const
-\ $c800 constant trace_const
-\ $0440 constant trace_const
-\ $cf71 constant trace_const
-\ $cf51 constant trace_const
-
-$0000 constant test_const
-\ $0005 constant test_const
-\ $1f00 constant test_const
-\ $0080 constant test_const
-\ $0040 constant test_const
+$0000 constant test_const	\ no test
+\ $0040 constant test_const	\ test what you want
+\ $0080 constant test_const	\ test asambler and disasambler
+\ $1f00 constant test_const	\ test stdlib
+\ $ffff constant test_const	\ test all
 
 \ function to enable trace during execution
 : trace ( n -- flag )

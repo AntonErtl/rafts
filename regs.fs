@@ -31,10 +31,12 @@ regs_useable array regs_data
 \ @s7 constant #tos
 \ @s8 constant #ftos
 
+-1 constant regs_unused
+
 \ initial free registers
 : regs_init ( -- )
   regs_useable 0 ?do
-    -1 i regs_data ! loop
+    regs_unused i regs_data ! loop
   0 @zero regs_data !	\ reserved registers
   0 @at regs_data !
   \ 0 @v0 regs_data !
@@ -59,19 +61,23 @@ regs_useable array regs_data
   0 @ra regs_data ! ;
 regs_init
 
+\ set register with use count
+: regs_set ( n register -- )
+  regs_data ! ;
+
 \ get first free register
-: regs_get ( -- register )
+: regs_get ( n -- register )
   0				\ inital NO register is free
   regs_useable 1 ?do
     i regs_data @ -1 = if	\ check free register
       drop i leave endif loop
-  dup 0= abort" no more registers" ;
+  dup 0= abort" no more registers"
+  tuck regs_set ;
 
-\ set register with link count
-: regs_set ( n register -- )
-  regs_data ! ;
+\ decrement use count
+: regs_inc ( register -- )
+  1 swap regs_data +! ;
 
-\ decrement link count
 : regs_dec ( register -- )
   -1 swap regs_data +! ;
 
@@ -91,11 +97,11 @@ regs_init
     i @k1 = or
     i @gp = or
     i @sp = or
-    i @s0 = or			\ saved registers
-    i @s1 = or
-    i @s2 = or
+    \ i @s0 = or			\ saved registers
+    \ i @s1 = or
+    \ i @s2 = or
     i @s3 = or
-    i @s4 = or
+    \ i @s4 = or
     i @s5 = or
     i @s6 = or
     i @s7 = or
@@ -109,21 +115,21 @@ regs_init
 ?test $0040 [IF]
 cr ." Test for regs.fs" cr
 
-regs_get ." regs_get:" . cr
-3 2 regs_set ." regs_set" cr
-regs_get ." regs_get:" . cr
+1 regs_get ." regs_get:" . cr
+2 regs_get ." regs_get:" . cr
+regs_print
 0 1 regs_set ." regs_set" cr
 0 2 regs_set ." regs_set" cr
 0 3 regs_set ." regs_set" cr
 1 4 regs_set ." regs_set" cr
 0 5 regs_set ." regs_set" cr
-regs_get ." regs_get:" . cr
+1 regs_get ." regs_get:" . cr
 regs_print
 
 4 regs_dec ." regs_dec" cr
-regs_get ." regs_get:" . cr
+1 regs_get ." regs_get:" . cr
 4 regs_dec ." regs_dec" cr
-regs_get ." regs_get:" . cr
+1 regs_get ." regs_get:" . cr
 regs_print
 
 regs_init

@@ -26,29 +26,50 @@
 : ] ( -- )
   state on target_compile> ;
 
->target
+: :noname ( -- )
+  vtarget ] vsource
+  true noname_state !
+  func_init_noname
+  basic_init ;
+
 : : ( "name" -- )
   vtarget ] vsource
+  false noname_state !
   func_init
   basic_init ;
 
 >target_compile
 : ; ( -- )
 ?trace $0008 [IF]
-  .s cr
+  hex.s cr
 [THEN]
   basic_exit
+  noname_state @ if
+    func_exit_noname else
+    func_exit endif
   vtarget_compile postpone [ vsource
-  func_exit
 ?trace $0800 [IF]
-  last @ here 2dup over - hex.s dump		\ Hexdump vom generierten Maschinencode
-  swap name>
-  swap hex.s disasm_dump			\ disasemblierter Dump vom generierten Maschienencode
+  noname_state @ 0<> if
+    lastcfa @ else
+    last @ endif
+  here 2dup over - hex.s dump			\ Hexdump vom generierten Maschinencode
+  noname_state @ 0= if
+    swap name> swap endif
+  hex.s swap dup 2 cells + tuck disasm_dump	\ disassemblierter Dump vom generierten Maschienencode
+  dup 2 cells + tuck disasm_dump
+  swap 4 cells - tuck disasm_dump
+  here disasm_dump
   .cs cr
   regs_print
 [THEN]
   cs_depth 0<> abort" unstructured"
-  last @ here over - flush-icache ; immediate restrict
+  noname_state @ 0<> if
+    lastcfa @ else
+    last @ endif
+  here over - flush-icache
+  noname_state @ 0<> if
+    lastcfa @ endif
+  ; immediate restrict
 >source
 
 include primitives.fs

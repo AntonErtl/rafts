@@ -131,7 +131,7 @@
 include	mips/r3000.disasm.opc.fs
 
 ?test $0080 [IF]
-cr ." Test for r3000.asm.fs" cr
+cr ." Test for r3000.disasm.fs" cr
 
 finish
 [THEN]
