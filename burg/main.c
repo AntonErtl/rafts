@@ -1,4 +1,4 @@
-#ident "@(#)$Id: burg.c,v 1.2 1996/09/03 15:01:02 pirky Exp $";
+#ident "@(#)$Id: main.c,v 1.1 1997/02/27 13:35:11 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
