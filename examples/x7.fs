@@ -55,6 +55,3 @@ include stdlib.fs
 
 \ foo0 cr
 foo1 cr
-
-finish
-bye

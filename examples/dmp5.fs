@@ -147,5 +147,3 @@ foo68 . cr
 foo6a . cr
 1968 foo6b . cr
 [THEN]
-
-bye

@@ -77,5 +77,3 @@ foo7 cr
 ?runtest [IF]
 foo8 emit cr
 [THEN]
-
-bye

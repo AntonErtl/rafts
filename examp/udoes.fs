@@ -48,5 +48,3 @@ dd [IF]
 ' xxx $10 over + disasm_dump
 .s cr
 [THEN]
-
-bye

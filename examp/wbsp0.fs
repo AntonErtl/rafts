@@ -27,4 +27,3 @@
 100 1 printsum-until cr
 50 1 printsum-until cr
 .s cr
-bye

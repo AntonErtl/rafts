@@ -9,5 +9,3 @@ foo0 cr
   foo0 1 2 . . foo0 ;
 ' foo1 >name $20 dump
 foo1 cr
-
-bye

@@ -26,5 +26,3 @@ foo1 . cr
 
 foo2 hex. hex. cr
 [THEN]
-
-bye

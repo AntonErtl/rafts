@@ -18,5 +18,3 @@ foo0 hex. cr
 1 foo1 . hex. cr
 foo2 . hex. cr
 [THEN]
-
-bye

@@ -53,5 +53,3 @@ foo4 . cr
 foo5 . cr
 foo6 . cr
 [THEN]
-
-bye

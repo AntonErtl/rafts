@@ -20,5 +20,3 @@ foo1
 foo2
 3 foo21
 [THEN]
-
-bye

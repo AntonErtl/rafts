@@ -224,5 +224,3 @@ immediate_postpone1
 ?runtest [IF]
 10 recurse2 .
 [THEN]
-
-bye

@@ -80,4 +80,3 @@ hex
 "tib
 .s cr
 include options.fs
-bye

@@ -73,5 +73,3 @@ include stdlib/stdlib.fs
 
 foo
 $40 cell- hex.
-
-bye

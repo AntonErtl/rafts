@@ -9,4 +9,3 @@
 ?runtest [IF]
 $1000000 $0 case0
 [THEN]
-bye

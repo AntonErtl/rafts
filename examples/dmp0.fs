@@ -91,5 +91,3 @@ $10203040 $01020304 foo8 hex. cr
 $10203040 $10203040 foo8 hex. cr
 123 foo9 . cr
 [THEN]
-
-bye

@@ -29,6 +29,3 @@ foo1 cr
 foo2 cr
 foo3 cr
 foo4 cr
-
-finish
-bye

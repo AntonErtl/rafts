@@ -31,5 +31,3 @@ foo21
 ' foo1 >name $40 dump
 ' foo2 >name $40 dump
 ' foo21 >name $40 dump
-
-bye

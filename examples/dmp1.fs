@@ -24,5 +24,3 @@ foo1 . cr
 1 foo3 . . cr
 1 foo4
 [THEN]
-
-bye

@@ -24,5 +24,3 @@
 10 foo3
 0 foo3
 [THEN]
-
-bye

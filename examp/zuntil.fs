@@ -7,4 +7,3 @@
 ?runtest [IF]
 $1000000 $0 until0
 [THEN]
-bye

@@ -63,5 +63,3 @@ func execute .s cr
 
 also Forth
 order cr
-
-bye

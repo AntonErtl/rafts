@@ -38,6 +38,3 @@ code. if
 ' ?branch hex. cr
 ' branch hex. cr
 ' lit hex. cr
-
-finish
-bye

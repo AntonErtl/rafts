@@ -9,4 +9,3 @@ foo
 ' foo $20 dump
 $0800007e $20 dump
 cr
-bye

@@ -11,4 +11,3 @@
 ?runtest [IF]
 $100 $0 recurse1
 [THEN]
-bye

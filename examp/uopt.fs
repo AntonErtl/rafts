@@ -27,5 +27,3 @@ foo3
 foo4
 foo10 . . cr
 [THEN]
-
-bye

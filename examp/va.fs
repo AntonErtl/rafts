@@ -35,4 +35,3 @@ variable x
   x @ ;
 
 foo6 .s cr
-bye

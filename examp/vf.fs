@@ -5,5 +5,3 @@
   ['] pick
   ['Forth] pick
   ;
-
-bye

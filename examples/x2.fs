@@ -43,5 +43,4 @@ foo6 foo7
 \ $10002118 $20 dump
 \ $10000ac4 $40 dump
 $8208 $40 dump
-bye
 

@@ -8,4 +8,3 @@ foo  . cr
     . cr then ;
 
 foo1 
-bye

@@ -13,5 +13,3 @@
 \ foo1
 $10 foo2 .
 [THEN]
-
-bye

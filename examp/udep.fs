@@ -64,5 +64,3 @@ x @ . cr
 x x foo9
 x @ . cr
 [THEN]
-
-bye

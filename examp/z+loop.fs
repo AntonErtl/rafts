@@ -5,4 +5,3 @@
 ?runtest [IF]
 $1000000 $0 +loop0
 [THEN]
-bye

@@ -21,5 +21,3 @@
 : foo5
   char-
   3 char- ;
-
-bye

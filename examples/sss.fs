@@ -26,5 +26,3 @@ foo3 cr
 ?runtest [IF]
 1 2 foo4 . . cr
 [THEN]
-
-bye

@@ -26,5 +26,3 @@ y @ hex. cr
 ' x $10 dump
 ' y $10 dump
 [THEN]
-
-bye

@@ -10,4 +10,3 @@ variable x
 
 x foo . . . . . . cr
 .s cr
-bye

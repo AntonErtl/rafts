@@ -8,4 +8,3 @@
 ?runtest [IF]
 $1000000 $0 while0
 [THEN]
-bye

@@ -11,4 +11,3 @@
 10 0 foo cr
 20 0 foo cr
 .s cr
-bye
