@@ -18,38 +18,19 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$00 constant @zero
-$01 constant @at
-$02 constant @v0
-$03 constant @v1
-$04 constant @a0
-$05 constant @a1
-$06 constant @a2
-$07 constant @a3
-$08 constant @t0
-$09 constant @t1
-$0a constant @t2
-$0b constant @t3
-$0c constant @t4
-$0d constant @t5
-$0e constant @t6
-$0f constant @t7
-$18 constant @t8
-$19 constant @t9
-$10 constant @s0
-$11 constant @s1
-$12 constant @s2
-$13 constant @s3
-$14 constant @s4
-$15 constant @s5
-$16 constant @s6
-$17 constant @s7
-$1e constant @s8
-$1a constant @k0
-$1b constant @k1
-$1c constant @gp
-$1d constant @sp
-$1f constant @ra
+$20 constant asm-registers
+
+: asm-register ( n n "name" ... "name -- )
+    swap do
+	i constant
+    loop ;
+
+$00 $08 asm-register @zero @at @v0 @v1 @a0 @a1 @a2 @a3
+$08 $10 asm-register @t0 @t1 @t2 @t3 @t4 @t5 @t6 @t7
+$10 $18 asm-register @s0 @s1 @s2 @s3 @s4 @s5 @s6 @s7
+$18 $20 asm-register @t8 @t9 @k0 @k1 @gp @sp @s8 @ra
+
+$00 constant asm-init-code
 
 : asm-bitmask ( n -- code )
     $1 swap lshift 1- ;
@@ -59,118 +40,123 @@ $1f constant @ra
 	$ffff0000 or
     endif ;
 
-: asm-op ( n -- code )
+: asm-op ( n code -- code )
     $6 asm-bitmask and $1a lshift ;
 
-: asm-rs ( n -- code )
+: (asm-rs) ( n -- code )
     $5 asm-bitmask and $15 lshift ;
 
-: asm-rt ( n -- code )
+: asm-rs ( n code -- code )
+    swap (asm-rs) or ;
+
+: (asm-rt) ( n -- code )
     $5 asm-bitmask and $10 lshift ;
 
-: asm-imm ( n -- code )
+: asm-rt ( n code -- code )
+    swap (asm-rt) or ;
+
+: (asm-imm) ( n -- code )
     $10 asm-bitmask and ;
 
-: asm-target ( n -- code )
+: asm-imm ( n code -- code )
+    swap (asm-imm) or ;
+' asm-imm alias asm-offset
+
+: (asm-target) ( n -- code )
     $1a asm-bitmask and ;
 
-: asm-rd ( n -- code )
+: asm-target ( n -- code )
+    swap 2 rshift (asm-target) or ;
+
+: (asm-rd) ( n -- code )
     $5 asm-bitmask and $b lshift ;
 
-: asm-shamt ( n -- code )
+: asm-rd ( n -- code )
+    swap (asm-rd) or ;
+
+: (asm-shamt) ( n -- code )
     $5 asm-bitmask and $6 lshift ;
 
+: asm-shamt ( code n -- code )
+    swap (asm-shamt) or ;
 ' asm-shamt alias asm-sa
 
-: asm-funct ( n -- code )
+: (asm-funct) ( n code -- code )
     $6 asm-bitmask and ;
+
+: asm-funct ( n -- code )
+    swap (asm-funct) or ;
 
 \ ***** I-types
 : (asm-I-type) ( code -- )
     a, ;
 
-: (asm-I-type2) ( rt imm addr -- )
-    @
-    swap asm-imm or over asm-rt or a, drop ;
+: (asm-I-rt,imm) ( rt imm addr -- )
+    @ asm-imm asm-rt a, ;
 
-: asm-I-type2
+: asm-I-rt,imm
     create (asm-I-type)
 does>
-    (asm-I-type2) ;
+    (asm-I-rt,imm) ;
 
-: (asm-I-type2n) ( rs imm addr -- )
-    @
-    swap $2 rshift asm-imm or swap asm-rs or a, ;
+: (asm-I-rs,imm) ( rs imm addr -- )
+    @ swap 2 rshift swap asm-imm asm-rs a, ;
 
-: asm-I-type2n
+: asm-I-rs,imm
     create (asm-I-type)
 does>
-    (asm-I-type2n) ;
+    (asm-I-rs,imm) ;
 
-: (asm-I-type3) ( rt rs imm addr -- )
-    @
-    swap asm-imm or swap asm-rs or over asm-rt or a, drop ;
+: (asm-I-rt,rs,imm) ( rt rs imm addr -- )
+    @ asm-imm asm-rs asm-rt a, ;
 
-: asm-I-type3
+: asm-I-rt,rs,imm
     create (asm-I-type)
 does>
-    (asm-I-type3) ;
+    (asm-I-rt,rs,imm) ;
 
-: (asm-I-type3n) ( rs rt imm addr -- )
-    @
-    swap $2 rshift asm-imm or swap asm-rt or over asm-rs or a, drop ;
+: (asm-I-rs,rt,imm) ( rs rt imm addr -- )
+    @ swap 2 rshift swap asm-imm asm-rt asm-rs a, ;
 
-: asm-I-type3n
+: asm-I-rs,rt,imm
     create (asm-I-type)
 does>
-    (asm-I-type3n) ;
+    (asm-I-rs,rt,imm) ;
 
-: (asm-I-type3-offset) ( rt offset rs addr -- )
-    @
-    swap asm-rs or swap asm-imm or over asm-rt or a, drop ;
+: (asm-I-rt,offset,rs) ( rt offset rs addr -- )
+    @ asm-rs asm-offset asm-rt a, ;
 
-: asm-I-type3-offset
+: asm-I-rt,offset,rs
     create (asm-I-type)
 does>
-    (asm-I-type3-offset) ;
-
-: (asm-I-type3n-offset) ( rt offset rs addr -- )
-    @
-    swap asm-rs or swap asm-imm or over asm-rt or a, drop ;
-
-: asm-I-type3n-offset
-    create (asm-I-type)
-does>
-    (asm-I-type3n-offset) ;
+    (asm-I-rt,offset,rs) ;
 
 \ ***** regimm types
-: asm-regimm2 ( funct -- )
-    $01 asm-op swap asm-rt or asm-I-type2n ;
+: asm-regimm-rs,imm ( funct -- )
+    $01 asm-op asm-rt asm-I-rs,imm ;
 
 \ ***** copz types 1
-: (asm-I-type1-copz) ( imm z addr -- )
-    @
-    swap asm-op or swap $2 rshift asm-imm or a, ;
+: (asm-I-imm,z) ( imm z addr -- )
+    @ swap asm-op or swap 2 rshift swap asm-imm a, ;
 
-: asm-I-type1-copz
+: asm-I-imm,z
     create (asm-I-type)
 does>
-    (asm-I-type1-copz) ;
+    (asm-I-imm,z) ;
 
-: asm-copzi1 ( code -- )
-    $10 asm-op or asm-I-type1-copz ;
+: asm-copz-imm ( code -- )
+    $10 asm-op or asm-I-imm,z ;
 
-: (asm-I-type3-copz) ( rt imm rs z addr -- )
-    @
-    swap asm-op or swap asm-rs or swap asm-imm or over asm-rt or a, drop ;
+: (asm-I-rt,offset,rs,z) ( rt offset rs z addr -- )
+    @ swap asm-op or asm-rs asm-offset asm-rt a, ;
 
-: asm-I-type3-copz
+: asm-I-rt,offset,rs,z
     create (asm-I-type)
 does>
-    (asm-I-type3-copz) ;
+    (asm-I-rt,offset,rs,z) ;
 
-: asm-copzi3 ( code -- )
-    asm-op asm-I-type3-copz ;
+: asm-copz-rt,offset,rs ( code -- )
+    asm-op asm-I-rt,offset,rs,z ;
 
 $00 constant asm-copz-MF
 $02 constant asm-copz-CF
@@ -186,220 +172,199 @@ $01 constant asm-copz-BCT
 : (asm-J-type) ( code -- )
     a, ;
 
-: (asm-J-type1n) ( target addr -- )
-    @
-    swap $2 rshift asm-target or a, ;
+: (asm-J-target) ( target addr -- )
+    @ asm-target a, ;
 
-: asm-J-type1n
+: asm-J-target
     create (asm-J-type)
 does>
-    (asm-J-type1n) ;
+    (asm-J-target) ;
 
 \ ***** R-types
 : (asm-R-type) ( code -- )
     a, ;
 
-: (asm-R-type0n) ( addr -- )
+: (asm-R-nothing) ( addr -- )
     @ a, ;
 
-: asm-R-type0n
+: asm-R-nothing
     create (asm-R-type)
 does>
-    (asm-R-type0n) ;
+    (asm-R-nothing) ;
 
-: (asm-R-type1) ( rd addr -- )
-    @
-    over asm-rd or a, drop ;
+: (asm-R-rd) ( rd addr -- )
+    @ asm-rd a, ;
 
-: asm-R-type1
+: asm-R-rd
     create (asm-R-type)
 does>
-    (asm-R-type1) ;
+    (asm-R-rd) ;
 
-: (asm-R-type1n) ( rs addr -- )
-    @
-    swap asm-rs or a, ;
+: (asm-R-rs) ( rs addr -- )
+    @ asm-rs a, ;
 
-: asm-R-type1n
+: asm-R-rs
     create (asm-R-type)
 does>
-    (asm-R-type1n) ;
+    (asm-R-rs) ;
 
-: (asm-R-type2) ( rd rs addr -- )
-    @
-    swap asm-rs or over asm-rd or a, drop ;
+: (asm-R-rd,rs) ( rd rs addr -- )
+    @ asm-rs asm-rd a, ;
 
-: asm-R-type2
+: asm-R-rd,rs
     create (asm-R-type)
 does>
-    (asm-R-type2) ;
+    (asm-R-rd,rs) ;
 
-: (asm-R-type2n) ( rs rt addr -- )
-    @
-    swap asm-rt or swap asm-rs or a, ;
+: (asm-R-rs,rt) ( rs rt addr -- )
+    @ asm-rt asm-rs a, ;
 
-: asm-R-type2n
+: asm-R-rs,rt
     create (asm-R-type)
 does>
-    (asm-R-type2n) ;
+    (asm-R-rs,rt) ;
 
-: (asm-R-type3) ( rd rs rt addr -- )
-    @
-    swap asm-rt or swap asm-rs or over asm-rd or a, drop ;
+: (asm-R-rd,rs,rt) ( rd rs rt addr -- )
+    @ asm-rt asm-rs asm-rd a, ;
 
-: asm-R-type3
+: asm-R-rd,rs,rt
     create (asm-R-type)
 does>
-    (asm-R-type3) ;
+    (asm-R-rd,rs,rt) ;
 
-: (asm-R-type3s) ( rd rt rs addr -- )
-    @
-    swap asm-rs or swap asm-rt or over asm-rd or a, drop ;
+: (asm-R-rd,rt,rs) ( rd rt rs addr -- )
+    @ asm-rs asm-rt asm-rd a, ;
 
-: asm-R-type3s
+: asm-R-rd,rt,rs
     create (asm-R-type)
 does>
-    (asm-R-type3s) ;
+    (asm-R-rd,rt,rs) ;
 
-: (asm-R-type3sa) ( rd rt sa addr -- )
-    @
-    swap asm-sa or swap asm-rt or over asm-rd or a, drop ;
+: (asm-R-rd,rt,sa) ( rd rt sa addr -- )
+    @ asm-sa asm-rt asm-rd a, ;
 
-: asm-R-type3sa
+: asm-R-rd,rt,sa
     create (asm-R-type)
 does>
-    (asm-R-type3sa) ;
+    (asm-R-rd,rt,sa) ;
 
 \ ***** special types
-: asm-special0n ( funct -- )
-    $00 asm-op $00 asm-rs or $00 asm-rd or $00 asm-rt or
-    $00 asm-shamt or swap asm-funct or asm-R-type0n ;
+: asm-special-nothing ( funct -- )
+    asm-init-code asm-funct asm-R-nothing ;
 
-: asm-special1 ( funct -- )
-    $00 asm-op $00 asm-rd or $00 asm-rt or
-    $00 asm-shamt or swap asm-funct or asm-R-type1 ;
+: asm-special-rd ( funct -- )
+    asm-init-code asm-funct asm-R-rd ;
 
-: asm-special1n ( funct -- )
-    $00 asm-op $00 asm-rs or $00 asm-rt or
-    $00 asm-shamt or swap asm-funct or asm-R-type1n ;
+: asm-special-rs ( funct -- )
+    asm-init-code asm-funct asm-R-rs ;
 
-: asm-special2 ( funct -- )
-    $00 asm-op $00 asm-rt or
-    $00 asm-shamt or swap asm-funct or asm-R-type2 ;
+: asm-special-rd,rs ( funct -- )
+    asm-init-code asm-funct asm-R-rd,rs ;
 
-: asm-special2n ( funct -- )
-    $00 asm-op $00 asm-rt or
-    $00 asm-shamt or swap asm-funct or asm-R-type2n ;
+: asm-special-rs,rt ( funct -- )
+    asm-init-code asm-funct asm-R-rs,rt ;
 
-: asm-special3 ( funct -- )
-    $00 asm-op
-    $00 asm-shamt or swap asm-funct or asm-R-type3 ;
+: asm-special-rd,rs,rt ( funct -- )
+    asm-init-code asm-funct asm-R-rd,rs,rt ;
 
-: asm-special3s ( funct -- )
-    $00 asm-op
-    $00 asm-shamt or swap asm-funct or asm-R-type3s ;
+: asm-special-rd,rt,rs ( funct -- )
+    asm-init-code asm-funct asm-R-rd,rt,rs ;
 
-: asm-special3sa ( funct -- )
-    $00 asm-op
-    swap asm-funct or asm-R-type3sa ;
+: asm-special-rd,rt,sa ( funct -- )
+    asm-init-code asm-funct asm-R-rd,rt,sa ;
 
 \ ***** copz types 2
-: asm-cop0r0 ( funct -- )
-    $10 asm-op $10 asm-rs or $00 asm-rd or $00 asm-rt or
-    $00 asm-shamt or swap asm-funct or asm-R-type0n ;
+: asm-copz0 ( funct -- )
+    $10 $10 asm-op asm-rs asm-funct asm-R-nothing ;
 
-: (asm-R-type2-copz) ( rt rd z addr -- )
-    @
-    swap asm-op or swap asm-rd or over asm-rt or a, drop ;
+: (asm-R-rt,rd,z) ( rt rd z addr -- )
+    @ swap asm-op or asm-rd asm-rt a, ;
 
-: asm-R-type2-copz
+: asm-R-rt,rd,z
     create (asm-R-type)
 does>
-    (asm-R-type2-copz) ;
+    (asm-R-rt,rd,z) ;
 
-: asm-copzr2 ( funct -- )
-    $10 asm-op or
-    $00 asm-shamt or $00 asm-funct or asm-R-type2-copz ;
+: asm-copz-rt,rd ( funct -- )
+    $10 asm-op or asm-R-rt,rd,z ;
 
 : nop, ( -- )
     0 a, ;
 
-include regs.fs
+$04 asm-op asm-I-rs,rt,imm		beq,
+$05 asm-op asm-I-rs,rt,imm		bne,
+$00 $06 asm-op asm-rt asm-I-rs,imm	blez,
+$00 $07 asm-op asm-rt asm-I-rs,imm	bgtz,
+$08 asm-op asm-I-rt,rs,imm		addi,
+$09 asm-op asm-I-rt,rs,imm		addiu,
+$0a asm-op asm-I-rt,rs,imm		slti,
+$0b asm-op asm-I-rt,rs,imm		sltiu,
+$0c asm-op asm-I-rt,rs,imm		andi,
+$0d asm-op asm-I-rt,rs,imm		ori,
+$0e asm-op asm-I-rt,rs,imm		xori,
+$0f asm-op asm-I-rt,imm			lui,
+$20 asm-op asm-I-rt,offset,rs		lb,
+$21 asm-op asm-I-rt,offset,rs		lh,
+$22 asm-op asm-I-rt,offset,rs		lwl,
+$23 asm-op asm-I-rt,offset,rs		lw,
+$24 asm-op asm-I-rt,offset,rs		lbu,
+$25 asm-op asm-I-rt,offset,rs		lhu,
+$26 asm-op asm-I-rt,offset,rs		lwr,
+$28 asm-op asm-I-rt,offset,rs		sb,
+$29 asm-op asm-I-rt,offset,rs		sh,
+$2a asm-op asm-I-rt,offset,rs		swl,
+$2b asm-op asm-I-rt,offset,rs		sw,
+$2e asm-op asm-I-rt,offset,rs		swr,
 
-$04 asm-op asm-I-type3n			beq,
-$05 asm-op asm-I-type3n			bne,
-$06 asm-op $00 asm-rt or asm-I-type2n	blez,
-$07 asm-op $00 asm-rt or asm-I-type2n	bgtz,
-$08 asm-op asm-I-type3			addi,
-$09 asm-op asm-I-type3			addiu,
-$0a asm-op asm-I-type3			slti,
-$0b asm-op asm-I-type3			sltiu,
-$0c asm-op asm-I-type3			andi,
-$0d asm-op asm-I-type3			ori,
-$0e asm-op asm-I-type3			xori,
-$0f asm-op asm-I-type2			lui,
-$20 asm-op asm-I-type3-offset		lb,
-$21 asm-op asm-I-type3-offset		lh,
-$22 asm-op asm-I-type3-offset		lwl,
-$23 asm-op asm-I-type3-offset		lw,
-$24 asm-op asm-I-type3-offset		lbu,
-$25 asm-op asm-I-type3-offset		lhu,
-$26 asm-op asm-I-type3-offset		lwr,
-$28 asm-op asm-I-type3n-offset		sb,
-$29 asm-op asm-I-type3n-offset		sh,
-$2a asm-op asm-I-type3n-offset		swl,
-$2b asm-op asm-I-type3n-offset		sw,
-$2e asm-op asm-I-type3n-offset		swr,
+$02 asm-op asm-J-target			j,
+$03 asm-op asm-J-target			jal,
 
-$02 asm-op asm-J-type1n			j,
-$03 asm-op asm-J-type1n			jal,
+$00 asm-special-rd,rt,sa		sll,
+$02 asm-special-rd,rt,sa		srl,
+$03 asm-special-rd,rt,sa		sra,
+$04 asm-special-rd,rt,rs		sllv,
+$06 asm-special-rd,rt,rs		srlv,
+$07 asm-special-rd,rt,rs		srav,
+$08 asm-special-rs			jr,
+$09 asm-special-rd,rs			jalr,
+$0c asm-special-nothing			syscall,
+$0d asm-special-nothing			break,
+$10 asm-special-rd			mfhi,
+$11 asm-special-rs			mthi,
+$12 asm-special-rd			mflo,
+$13 asm-special-rs			mtlo,
+$18 asm-special-rs,rt			mult,
+$19 asm-special-rs,rt			multu,
+$1a asm-special-rs,rt			div,
+$1b asm-special-rs,rt			divu,
+$20 asm-special-rd,rs,rt		add,
+$21 asm-special-rd,rs,rt		addu,
+$22 asm-special-rd,rs,rt		sub,
+$23 asm-special-rd,rs,rt		subu,
+$24 asm-special-rd,rs,rt		and,
+$25 asm-special-rd,rs,rt		or,
+$26 asm-special-rd,rs,rt		xor,
+$27 asm-special-rd,rs,rt		nor,
+$2a asm-special-rd,rs,rt		slt,
+$2b asm-special-rd,rs,rt		sltu,
 
-$00 asm-special3sa			sll,
-$02 asm-special3sa			srl,
-$03 asm-special3sa			sra,
-$04 asm-special3s			sllv,
-$06 asm-special3s			srlv,
-$07 asm-special3s			srav,
-$08 asm-special1n			jr,
-$09 asm-special2			jalr,
-$0c asm-special0n			syscall,
-$0d asm-special0n			break,
-$10 asm-special1			mfhi,
-$11 asm-special1n			mthi,
-$12 asm-special1			mflo,
-$13 asm-special1n			mtlo,
-$18 asm-special2n			mult,
-$19 asm-special2n			multu,
-$1a asm-special2n			div,
-$1b asm-special2n			divu,
-$20 asm-special3			add,
-$21 asm-special3			addu,
-$22 asm-special3			sub,
-$23 asm-special3			subu,
-$24 asm-special3			and,
-$25 asm-special3			or,
-$26 asm-special3			xor,
-$27 asm-special3			nor,
-$2a asm-special3			slt,
-$2b asm-special3			sltu,
+$00 asm-regimm-rs,imm			bltz,
+$01 asm-regimm-rs,imm			bgez,
+$10 asm-regimm-rs,imm			bltzal,
+$11 asm-regimm-rs,imm			bgezal,
 
-$00 asm-regimm2				bltz,
-$01 asm-regimm2				bgez,
-$10 asm-regimm2				bltzal,
-$11 asm-regimm2				bgezal,
-
-$30 asm-copzi3				lwcz,
-$38 asm-copzi3				swcz,
-asm-copz-MF asm-rs asm-copzr2		mfcz,
-asm-copz-CF asm-rs asm-copzr2		cfcz,
-asm-copz-MT asm-rs asm-copzr2		mtcz,
-asm-copz-CT asm-rs asm-copzr2		ctcz,
-asm-copz-BC asm-rs asm-copz-BCF asm-rt or asm-copzi1 bczf,
-asm-copz-BC asm-rs asm-copz-BCT asm-rt or asm-copzi1 bczt,
-$01 asm-cop0r0				tlbr,
-$02 asm-cop0r0				tlbwi,
-$06 asm-cop0r0				tlbwr,
-$08 asm-cop0r0				tlbl,
+$30 asm-copz-rt,offset,rs		lwcz,
+$38 asm-copz-rt,offset,rs		swcz,
+asm-copz-MF $00 asm-rs asm-copz-rt,rd	mfcz,
+asm-copz-CF $00 asm-rs asm-copz-rt,rd	cfcz,
+asm-copz-MT $00 asm-rs asm-copz-rt,rd	mtcz,
+asm-copz-CT $00 asm-rs asm-copz-rt,rd	ctcz,
+asm-copz-BC $00 asm-rs asm-copz-BCF swap asm-rt asm-copz-imm bczf,
+asm-copz-BC $00 asm-rs asm-copz-BCT swap asm-rt asm-copz-imm bczt,
+$01 asm-copz0				tlbr,
+$02 asm-copz0				tlbwi,
+$06 asm-copz0				tlbwr,
+$08 asm-copz0				tlbl,
 
 : move, ( rd rs -- )
     @zero addu, ;
@@ -446,22 +411,6 @@ $08 asm-cop0r0				tlbl,
 	endif
     endif ;
 
-: law, ( rt rs imm -- )
-    regs-get dup >r rot rot li,
-    0 r> lw, ;
-
-: saw, ( rt rs imm -- )
-    regs-get dup >r rot rot li,
-    0 r> sw, ;
-
-: lab, ( rt imm rs -- )
-    regs-get dup >r rot rot li,
-    0 r> lb, ;
-
-: sab, ( rt imm rs -- )
-    regs-get dup >r rot rot li,
-    0 r> sb, ;
-
 : blt, ( rs rt imm -- )		\ <
     >r @at rot rot slt,
     @at @zero r> bne, ;
@@ -498,108 +447,99 @@ $08 asm-cop0r0				tlbl,
 cr ." Test for asm.fs" cr
 
 : exec ( u -- )
-    >r execute r> 1+ 1 ?do
-	here i cells - @
-    loop ;
+    >r execute r> 1+ cells cell ?do
+	here i - @
+    cell +loop ;
 
 : same ( valn ... val0 u -- flag )
-    true swap dup 2 + 2 ?do
-	i pick over i + 1+ pick = rot and swap
+    true swap dup 4 + 4 ?do
+	i 2dup pick
+	rot rot + 1- pick
+	= rot and swap
     loop
     swap >r 2* 0 ?do
 	drop
     loop
     r> ;
 
-variable asm-exec
 variable asm-xt
 variable asm-u
 variable asm-z
 
-: save ( xt u exec -- )
-    asm-exec ! asm-u !
+: save ( xt u -- )
+    asm-u !
     dup name. asm-xt ! ;
 
 : check ( orz -- )
-    asm-xt @ asm-u @ asm-exec @ execute asm-u @ same if
+    asm-xt @ asm-u @ dup >r exec r> same if
 	." OK "
     else
 	." NOK "
     endif ;
 
-: asm-t0 ( val xt u xt -- )
+: asm-test0 ( val xt u -- )
     save
     check cr ;
-: asm-test0 ( val xt u -- ) ['] exec asm-t0 ;
 
-: asm-t2 ( val val xt u xt -- )
+: asm-test2 ( val val xt u -- )
     save
     $ffffffff check
     $1 check cr ;
-: asm-test2 ( val val xt u -- ) ['] exec asm-t2 ;
 
-: asm-t2i ( val val xt u xt -- )
+: asm-test2i ( val val xt u -- )
     save
     $fffffffc check
     $4 check cr ;
-: asm-test2i ( val val xt u -- ) ['] exec asm-t2i ;
 
-: asm-t2-copzi ( val val z xt u xt -- )
+: asm-test2-copzi ( val val z xt u -- )
     save asm-z !
     $fffffffc asm-z @ check
     $4 asm-z @ check cr ;
-: asm-test2-copzi ( val val z xt u -- ) ['] exec asm-t2-copzi ;
 
-: asm-t4 ( val val val val xt u xt -- )
+: asm-test4 ( val val val val xt u -- )
     save
     $ffffffff $ffffffff check
     $0 $1 check
     $1 $0 check
     $1 $1 check cr ;
-: asm-test4 ( val val val val xt u -- ) ['] exec asm-t4 ;
 
-: asm-t4i ( val val val val xt u xt -- )
+: asm-test4i ( val val val val xt u -- )
     save
     $ffffffff $fffffffc check
     $0 $4 check
     $1 $0 check
     $1 $4 check cr ;
-: asm-test4i ( val val val val xt u -- ) ['] exec asm-t4i ;
 
-: asm-t4-copz ( val val val val z xt u xt -- )
+: asm-test4-copz ( val val val val z xt u -- )
     save asm-z !
     $ffffffff $ffffffff asm-z @ check
     $0 $1 asm-z @ check
     $1 $0 asm-z @ check
     $1 $1 asm-z @ check cr ;
-: asm-test4-copz ( val val val val z xt u -- ) ['] exec asm-t4-copz ;
 
-: asm-t5 ( val val val val val xt u xt -- )
+: asm-test5 ( val val val val val xt u -- )
     save
     $ffffffff $ffffffff $ffffffff check
     $0 $0 $1 check
     $0 $1 $0 check
     $1 $0 $0 check
     $1 $1 $1 check cr ;
-: asm-test5 ( val val val val val xt u -- ) ['] exec asm-t5 ;
 
-: asm-t5i ( val val val val val xt u xt -- )
+: asm-test5i ( val val val val val xt u -- )
     save
     $ffffffff $ffffffff $fffffffc check
     $0 $0 $4 check
     $0 $1 $0 check
     $1 $0 $0 check
     $1 $1 $4 check cr ;
-: asm-test5i ( val val val val val xt u -- ) ['] exec asm-t5i ;
 
-: asm-t5-copz ( val val val val val z xt u xt -- )
+: asm-test5-copz ( val val val val val z xt u -- )
     save asm-z !
     $ffffffff $ffffffff $ffffffff asm-z @ check
     $0 $0 $1 asm-z @ check
     $0 $1 $0 asm-z @ check
     $1 $0 $0 asm-z @ check
     $1 $1 $1 asm-z @ check cr ;
-: asm-test5-copz ( val val val val val z xt u -- ) ['] exec asm-t5-copz ;
 
 $00210820 $00000820 $00200020 $00010020 $03fff820 ' add, 1 asm-test5
 $20210001 $20010000 $20200000 $20000001 $23ffffff ' addi, 1 asm-test5
@@ -667,10 +607,9 @@ $00210826 $00000826 $00200026 $00010026 $03fff826 ' xor, 1 asm-test5
 $38210001 $38010000 $38200000 $38000001 $3bffffff ' xori, 1 asm-test5
 
 $00200821 $00000821 $00200021 $03e0f821 ' move, 1 asm-test4
-$00010823 $00200821 $04210002
-$00000823 $00000821 $04010002
-$00010023 $00200021 $04210002
-$001ff823 $03e0f821 $07e10002 ' abs, 3 asm-test4
+$00010823 $00200821 $04210002 $00000823
+$00000821 $04010002 $00010023 $00200021
+$04210002 $001ff823 $03e0f821 $07e10002 ' abs, 3 asm-test4
 $00010823 $00000823 $00010023 $001ff823 ' neg, 1 asm-test4
 $00010823 $00000823 $00010023 $001ff823 ' negu, 1 asm-test4
 $00200827 $00000827 $00200027 $03e0f827 ' not, 1 asm-test4

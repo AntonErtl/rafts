@@ -18,18 +18,67 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+@s0 constant #ip
+@s1 constant #sp
+@s2 constant #rp
+\ @s3 constant #fp
+\ @s4 constant #lp
+@s4 constant #cfa
+\ @s6 constant #up
+\ @s7 constant #tos
+\ @s8 constant #ftos
+
+\ initialize freeable registers
+$0300FFFC constant regs-freeable-set
+
+: (word-init) ( -- )
+    here info-head-size tuck + a,
+    ['] compile-native a,
+    2cells ?do
+	0 a,
+    cell +loop ;
+
+: (word-exit) ( -- )
+    @ra jr,
+    nop, ;
+
+: (word-lwexit) ( -- )
+    @ra 0 #rp lw, ;
+
 ?shared docode: [IF]
 
 create docode:
-    #cfa 2cell over lw,
-    #ip -1cell #rp sw,
+    #cfa 2cells over lw,
+    #ip -1cells #rp sw,
     @ra #cfa jalr,
-    #rp dup -1cell addiu,
+    #rp dup -1cells addiu,
 
     #ip 0 #rp lw,
-    #rp dup 1cell addiu,
+    #rp dup 1cells addiu,
     #cfa 0 #ip lw,
-    #ip dup 1cell addiu,
+    #ip dup 1cells addiu,
+    ?word-mode-direct [IF]
+	#cfa jr,
+    [THEN]
+    ?word-mode-indirect [IF]
+	@t0 0 #cfa lw,
+	nop,
+	@t0 jr,
+    [THEN]
+    nop,
+
+create dodata:
+    #cfa -1cells #sp sw,
+    #sp dup -1cells addiu,
+    #cfa 2cells over lw,
+    #ip -1cells #rp sw,
+    @ra #cfa jalr,
+    #rp dup -1cells addiu,
+
+    #ip 0 #rp lw,
+    #rp dup 1cells addiu,
+    #cfa 0 #ip lw,
+    #ip dup 1cells addiu,
     ?word-mode-direct [IF]
 	#cfa jr,
     [THEN]
@@ -42,9 +91,9 @@ create docode:
 
 create dodoes:
     @t0 0 #cfa lw,
-    #cfa dup 2cell addiu,
-    #cfa -1cell #sp sw,
-    #sp dup -1cell addiu,
+    #cfa dup 2cells info-head-size + addiu,
+    #cfa -1cells #sp sw,
+    #sp dup -1cells addiu,
     ?word-mode-direct [IF]
 	@t1 $03ffffff li,
 	@t1 @t0 tuck and,
@@ -53,15 +102,15 @@ create dodoes:
 	@t1 #cfa tuck and,
 	@t0 #cfa tuck or,
     [THEN]
-    #cfa 2cell over lw,
-    #ip -1cell #rp sw,
+    #cfa 2cells over lw,
+    #ip -1cells #rp sw,
     @ra #cfa jalr,
-    #rp dup -1cell addiu,
+    #rp dup -1cells addiu,
 
     #ip 0 #rp lw,
-    #rp dup cell addiu,
+    #rp dup 1cells addiu,
     #cfa 0 #ip lw,
-    #ip dup cell addiu,
+    #ip dup 1cells addiu,
     ?word-mode-direct [IF]
 	#cfa jr,
     [THEN]
@@ -74,20 +123,10 @@ create dodoes:
 
 [THEN]
 
-4 constant info-head-size
-
-: (word-init) ( -- )
-    here info-head-size tuck cells + ,
-    1 ?do
-	0 ,
-    loop ;
-
-: (word-exit) ( -- )
-    @ra jr,
-    nop, ;
-
-: (word-lwexit) ( -- )
-    @ra 0 #rp lw, ;
+\ hex.s cr
+\ ." DOCODE:" docode: hex. cr
+\ ." DODATA:" dodata: hex. cr
+\ ." DODOES:" dodoes: hex. cr
 
 ?test $0002 [IF]
 cr ." Test for header.fs" cr
