@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.6 1996/12/02 20:16:59 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.7 1997/03/28 20:56:20 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -990,7 +990,7 @@ void DEFUN_VOID(startBurm)
     SOURCE(("#endif /* %s_PANIC */\n", prefix),
 	("[ENDIF]\n"));
     SOURCE(("#define %s_assert(x, y)\tif(!(x)) {y; abort();}\n\n", prefix),
-	(": %s-assert\" ( \"string\"<\"> -- )\n  postpone abort\" ; immediate compile-only\n\n", prefix));
+	("comp' abort\" drop alias %s-assert\" ( \"string\"<\"> -- ) immediate compile-only\n\n", prefix));
 }
 
 void DEFUN_VOID(reportDiagnostics)
