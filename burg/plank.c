@@ -1,4 +1,4 @@
-#ident "@(#)$Id: plank.c,v 1.1 1996/08/14 18:42:30 anton Exp $";
+#ident "@(#)$Id: plank.c,v 1.2 1996/09/06 10:51:02 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -379,7 +379,7 @@ static void DEFUN(doDimPmaps, (op), Operator op)
 		op->name,
 		op->table->dimen[0]->map->count-(1-safely),
 		op->table->dimen[1]->map->count-(1-safely)),
-		("%d %d 2 m%sarray_noallot %s_%s_transition", 
+		("%d %d %s2array_noallot %s_%s_transition", 
 		op->table->dimen[0]->map->count-(1-safely),
 		op->table->dimen[1]->map->count-(1-safely),
 		op->stateCount <= 255?"c":"",
@@ -477,7 +477,7 @@ static void DEFUN(outPlank, (p), Plank p)
 	    ("%d constant %s_%s\n", i, prefix, sm->fieldname));
     }
     SOURCE(("} %s[] = {\n", p->name),
-	("%d %d 2 marray_noallot %s\n", globalMap->count-(safely?0:1), i, p->name));
+	("%d %d 2array_noallot %s\n", globalMap->count-(safely?0:1), i, p->name));
 
     for (i = 0; i < globalMap->count-(safely?0:1); i++) {
 	SOURCE(("\t{"),

@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.3 1996/09/03 15:01:01 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.4 1996/09/06 10:51:02 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -461,7 +461,7 @@ void DEFUN_VOID(makeCostArray)
     if (!pVector)
 	makePvector();
     SOURCE(("short %s_cost[][%d] = {\n", prefix, DELTAWIDTH),
-	("%d %d 2 marray_noallot %s_cost\n", max_erule_num+1, DELTAWIDTH, prefix, prefix));
+	("%d %d 2array_noallot %s_cost\n", max_erule_num+1, DELTAWIDTH, prefix, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (i > 0)
 	    SOURCE((",\t/* %d */\n", i - 1),
