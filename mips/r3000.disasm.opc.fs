@@ -105,13 +105,13 @@ $40 2 2 marray disasm_opc_cop0
 ' disasm_gen_copzrs $20 disasm_init
 ' disasm_gen_copzrt $20 disasm_init
 ' disasm_gen_cop0 $40 disasm_init
-NIL ['] disasm_print_spezial $00 disasm_gen
-NIL ['] disasm_print_regimm $01 disasm_gen
-NIL ['] disasm_print_cop0 $10 disasm_gen
-NIL ['] disasm_print_copzrs $11 disasm_gen
-NIL ['] disasm_print_copzrs $12 disasm_gen
-NIL ['] disasm_print_copzrs $13 disasm_gen
-NIL ['] disasm_print_copzrt @copz_BC disasm_gen_copzrs
+NIL ' disasm_print_spezial $00 disasm_gen
+NIL ' disasm_print_regimm $01 disasm_gen
+NIL ' disasm_print_cop0 $10 disasm_gen
+NIL ' disasm_print_copzrs $11 disasm_gen
+NIL ' disasm_print_copzrs $12 disasm_gen
+NIL ' disasm_print_copzrs $13 disasm_gen
+NIL ' disasm_print_copzrt @copz_BC disasm_gen_copzrs
 
 ' @beq		' @@I_type3n $04 disasm_gen
 ' @bne		' @@I_type3n $05 disasm_gen

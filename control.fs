@@ -99,6 +99,7 @@ lastxt alias endif immediate restrict
   vsource ; immediate restrict
 
 : exit ( -- ) ( C: -- )
+  check-ra
   basic_exit
   (func_exit)
   basic_init ; immediate restrict
@@ -248,26 +249,26 @@ ls_size array ls_data
   name sfind case
     2 of
 ?trace $0010 [IF]
-      ." postpone (restrict&immediate):" dup hex. dup get_do hex. cr
+      ." postpone (restrict&immediate):" dup hex. dup >code-address hex. cr
 [THEN]
       compile, endof
     -2 of
 ?trace $0010 [IF]
-      ." postpone (restrict):" dup hex. dup get_do hex. cr
+      ." postpone (restrict):" dup hex. dup >code-address hex. cr
 [THEN]
-      compile, endof
+      vtarget_compile postpone literal vsource ['] compile, compile, endof
     1 of
 ?trace $0010 [IF]
-      ." postpone (immediate):" dup hex. dup get_do hex. cr
+      ." postpone (immediate):" dup hex. dup >code-address hex. cr
 [THEN]
       compile, endof
     -1 of
 ?trace $0010 [IF]
+      ." postpone:" dup hex. dup >code-address hex. cr
 [THEN]
-      ." postpone:" dup hex. dup get_do hex. cr
       vtarget_compile postpone literal vsource ['] compile, compile, endof
     0 of
-      notfound endof
+      -13 throw endof
   endcase ; immediate restrict
 >source
 
@@ -279,7 +280,7 @@ ls_size array ls_data
   here last @ tuck - flush-icache ;
 
 : dodoes, ( -- )
-  :dodoes a, 0 a, ;
+  dodoes cfa, ;
 
 : ;dodoes ( -- )
   r@ 4 cells +
@@ -297,10 +298,7 @@ ls_size array ls_data
 : does> ( -- )
   state @ if
     ['] ;dodoes compile,
-    return>
-    dup node_reg @ @ra <> if
-      @ra over node_reg ! inst_btrees_insert else
-      drop endif
+    check-ra
     basic_exit
     (func_exit)
     dodoes, else
@@ -309,9 +307,8 @@ ls_size array ls_data
   (func_init)
   basic_init
   0 @ra VREGP node dup inst_done >return ; immediate restrict
-lastxt
+\ !! make it visible in target to get interpretation semantics?
 >source
-alias does>
 
 ?test $0010 [IF]
 cr ." Test for control.fs" cr

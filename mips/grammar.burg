@@ -144,10 +144,10 @@ con:  LITI			#0#	dup inst_done
 reg:  cons			#1#	node_dup >r r@ inst_notdone NIL [\'] asm_lit r> inst_ok
 reg:  con			#1#	node_dup >r r@ inst_notdone NIL [\'] asm_lit r> inst_ok
 
-reg:  FETCHC(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchc r@ inst inst_s!_list @ slist_insert drop r> inst_ok
-reg:  FETCHC(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregc r@ inst inst_s!_list @ slist_insert drop r> inst_ok
-reg:  FETCHI(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchi r@ inst inst_s!_list @ slist_insert drop r> inst_ok
-reg:  FETCHI(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregi r@ inst inst_s!_list @ slist_insert drop r> inst_ok
+reg:  FETCHC(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchc r> inst_ok
+reg:  FETCHC(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregc r> inst_ok
+reg:  FETCHI(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchi r> inst_ok
+reg:  FETCHI(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregi r> inst_ok
 stmt: STOREC(reg, addr)		#1#	>r 0 r@ node_reg ! [\'] asm_storec r> inst_ok drop
 stmt: STOREC(reg, reg)		#1#	>r 0 r@ node_reg ! [\'] asm_storeregc r> inst_ok drop
 stmt: STOREI(reg, addr)		#1#	>r 0 r@ node_reg ! [\'] asm_storei r> inst_ok drop

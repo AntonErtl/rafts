@@ -244,7 +244,7 @@
   >data ; immediate restrict
 
 : ! ( D: addr addr -- )
-  data> data> STOREI opn
+  data> data> STOREI op
   inst_@_list @ over node_depends !
   NIL inst inst_!_list !
   dup inst inst_!_list @ slist_insert drop
@@ -266,7 +266,7 @@
   >data ; immediate restrict
 
 : c! ( D: addr addr -- )
-  data> data> STOREC opn
+  data> data> STOREC op
   inst_@_list @ over node_depends !
   NIL inst inst_!_list !
   dup inst inst_!_list @ slist_insert drop

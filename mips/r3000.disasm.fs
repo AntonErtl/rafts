@@ -18,7 +18,7 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-?trace $0800 [IF]
+\ ?trace $0800 [IF]
 : @@op ( code -- n )
   $1a rshift $6 @mask and ;
 
@@ -135,4 +135,4 @@ cr ." Test for r3000.disasm.fs" cr
 
 finish
 [THEN]
-[THEN]
+\ [THEN]

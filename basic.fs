@@ -22,6 +22,7 @@
 $20 constant ds_size
 ds_size 2/ constant ds_tosstart
 variable ds_tos
+\ compile-time data stack pointer
 ds_size array ds_data
 ds_size 2/ array ds_init
 
@@ -58,6 +59,7 @@ ds_size 2/ array ds_init
 $20 constant rs_size
 rs_size 2/ constant rs_torstart
 variable rs_tor
+\ compile-time return stack pointer
 rs_size array rs_data
 rs_size array rs_init
 
@@ -134,8 +136,11 @@ variable basic_head_ptr
 $2000 constant basic_code
 
 variable inst_!_list
+\ contains the last !
 variable inst_@_list
+\ contains the last ! and all @ since the last !
 variable inst_s!_list
+\ contains all stores to the data stack (and, unnecessarily, all the stack fetches)
 
 include inst-selection.fs
 include inst-scheduling.fs

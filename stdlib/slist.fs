@@ -24,17 +24,20 @@ struct
 end-struct slist_struct
 
 \ init function
-: slist ( addr -- addr )
+: slist ( slistp -- slistp )
+  \ initialize slist node
   NIL over slist_next ! ;
 
 \ insert an element
-: slist_insert ( new-addr old-addr -- new-addr )
-  slist_next dup @ rot
+: slist_insert ( new old -- new )
+  \ inserts new node right after old node
+  slist_next dup @ rot ( old old-next new )
   tuck slist_next !				\ set next (new)
   tuck swap ! ;					\ set next (old)
 
 \ deletes an element
-: slist_delete ( addr -- )
+: slist_delete ( slist-node -- )
+  \ delete the node after slist-node
   slist_next dup @ slist_next @ swap ! ;	\ set next
 
 \ exit function
@@ -46,6 +49,7 @@ end-struct slist_struct
 
 \ executes a function for all elements
 : slist_forall ( xt addr -- )
+  \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
   slist_next @
   begin
     dup NIL <> while
@@ -68,7 +72,7 @@ end-struct slist_struct
   drop 1+ ;
 
 : slist_size ( addr -- u )
-  0 swap ['] slist_size_func swap slist_forall ;
+  0 ['] slist_size_func rot slist_forall ;
 
 \ print function
 : slist_print_func ( addr -- )

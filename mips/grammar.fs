@@ -93,9 +93,7 @@ bl word burm_PANIC" find nip 0= [IF]
 : burm_PANIC" ( -- )
   ." PANIC" ; immediate
 [ENDIF]
-\ ' abort" alias burm_assert" immediate
-: burm_assert"
-  postpone abort" ; immediate restrict
+: burm_assert" postpone abort" ; immediate restrict
 
 create burm_r1_nts
   3 , 0 ,
@@ -1658,10 +1656,10 @@ bl word burm_INCLUDE_EXTRA find nip 0<> [IF]
 :noname 	>r 0 r@ node_reg ! ['] asm_storei r> inst_ok drop ;
 :noname 	>r 0 r@ node_reg ! ['] asm_storeregc r> inst_ok drop ;
 :noname 	>r 0 r@ node_reg ! ['] asm_storec r> inst_ok drop ;
-:noname 	>r r@ inst_notdone NIL ['] asm_fetchregi r@ inst inst_s!_list @ slist_insert drop r> inst_ok ;
-:noname 	>r r@ inst_notdone NIL ['] asm_fetchi r@ inst inst_s!_list @ slist_insert drop r> inst_ok ;
-:noname 	>r r@ inst_notdone NIL ['] asm_fetchregc r@ inst inst_s!_list @ slist_insert drop r> inst_ok ;
-:noname 	>r r@ inst_notdone NIL ['] asm_fetchc r@ inst inst_s!_list @ slist_insert drop r> inst_ok ;
+:noname 	>r r@ inst_notdone NIL ['] asm_fetchregi r> inst_ok ;
+:noname 	>r r@ inst_notdone NIL ['] asm_fetchi r> inst_ok ;
+:noname 	>r r@ inst_notdone NIL ['] asm_fetchregc r> inst_ok ;
+:noname 	>r r@ inst_notdone NIL ['] asm_fetchc r> inst_ok ;
 :noname 	node_dup >r r@ inst_notdone NIL ['] asm_lit r> inst_ok ;
 :noname 	node_dup >r r@ inst_notdone NIL ['] asm_lit r> inst_ok ;
 :noname 	dup inst_done ;

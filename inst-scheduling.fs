@@ -45,20 +45,16 @@
     ['] inst_depends_done_func swap slist_forall else
     drop endif ;
 
-: ?inst_node_done ( node_addr -- flag )
-  dup ?inst_done
-  swap ?inst_depends_done and ;
-
 : ?inst_childs_done ( node_addr -- flag )
   dup ?inst_depends_done		\ check yourself
   over node_lval @ ?dup 0<> if		\ check left child
     >r over r> tuck <> if
-      ?inst_node_done else
+      ?inst_done else
       drop true endif else
     true endif
   and swap node_rval @ ?dup 0<> if	\ check right child
     >r over r> tuck <> if
-      ?inst_node_done else
+      ?inst_done else
       drop true endif else
     true endif
   and ;

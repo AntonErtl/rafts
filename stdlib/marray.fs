@@ -20,6 +20,7 @@
 
 \ allocate an array
 : marray_create ( i*u i -- )
+  \ i dimensions
   dup ,
   0 ?do
     , loop ;

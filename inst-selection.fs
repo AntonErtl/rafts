@@ -31,9 +31,13 @@ end-struct inst_struct
 \ variables for local instruction arrays
 $80 constant inst_size
 inst_size array inst_btrees
+\ contains all intermediate code end nodes, i.e., ! nodes, stack pointer updates, and nodes that are on the stack at the basic block end
 inst_size array inst_lists
+\ contains all instruction nodes, in the right order
 inst_size array inst_nodes
+\ contains all instruction nodes, in arbitrary order
 inst_size array inst_pnodes
+\ contains leader instruction nodes for instruction scheduling
 
 : inst_btrees@ ( n -- n ) inst_btrees @ ;
 : inst_btrees! ( n n -- ) inst_btrees ! ;
@@ -272,7 +276,7 @@ include grammar.fs
   dup node_right@ hex.
   dup node_lval @ hex.
   dup node_rval @ hex.
-  dup node_copy @ hex.
+\  dup node_copy @ hex.
   dup node_asm @ hex.
 
   dup burm_OP_LABEL@ burm_opname
@@ -303,7 +307,7 @@ include grammar.fs
 : inst_pnodes_print ( -- )
   ['] inst_print_node 0 inst_pnodes inst_sequence ;
 
-NULL regs_unused NOP node ['] asm_nop over node_asm ! constant inst_nop
+NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
 
 : lit ( n -- node_addr )
   dup 0= if
@@ -343,16 +347,7 @@ NULL regs_unused NOP node ['] asm_nop over node_asm ! constant inst_nop
   tuck node_left !
   tuck node_right ! ;
 
-: opn ( node_addr node_addr val -- node_addr )
-  0 regs_unused rot node
-  tuck node_left !
-  tuck node_right ! ;
-
 : uop ( node_addr op -- node_addr )
-  0 regs_unused rot node
-  tuck node_left ! ;
-
-: uopn ( node_addr op -- node_addr )
   0 regs_unused rot node
   tuck node_left ! ;
 

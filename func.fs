@@ -19,36 +19,40 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 include header.fs
+' parse >code-address constant :docol
+' defstart >code-address constant :docon
+' dead-code >code-address constant :dovar
+' "error >code-address constant :douser
+' type >code-address constant :dodefer
+docode constant :docode
+\ dodoes constant :dodoes
 
-' parse get_do constant :docol
-' defstart get_do constant :docon
-' dead-code get_do constant :dovar
-' "error get_do constant :douser
-' type get_do constant :dodefer
 struct
   1 cells: field (:dostruc)
 end-struct ((:dostruc))
-' (:dostruc) get_do constant :dostruc
-?func_mode_direct [IF]
-  docode 2 rshift $1a @mask and $08000000 or constant :docode
-[THEN]
-?func_mode_indirect [IF]
-  docode constant :docode
-[THEN]
-  dodoes 2 rshift $1a @mask and $08000000 or constant :dodoes
+' (:dostruc) >code-address constant :dostruc
+\ ?func_mode_direct [IF]
+\   docode 2 rshift $1a @mask and $08000000 or constant :docode
+\ [THEN]
+\ ?func_mode_indirect [IF]
+\   docode constant :docode
+\ [THEN]
+\   dodoes 2 rshift $1a @mask and $08000000 or constant :dodoes
 
 : func_init_noname ( -- )
-  here lastcfa !
-  :docode a, 0 a,
+  docode cfa,
   (func_init)
   basic_init
   0 @ra VREGP node dup inst_done >return ;
 
-: func_exit_noname ( -- )
+: check-ra ( -- )
   return>
   dup node_reg @ @ra <> if
     @ra over node_reg ! inst_btrees_insert else
-    drop endif
+    drop endif ;
+
+: func_exit_noname ( -- )
+  check-ra
   basic_exit
   (func_exit) ;
 

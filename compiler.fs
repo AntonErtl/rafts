@@ -21,8 +21,11 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 vocabulary voc_source
+\ basically the host-residing words, but may be called from target words
 vocabulary voc_target
+\ all words compiled by the target, and a few more
 vocabulary voc_target_compile
+\ compilation semantics of "primitives" and other words visible in "compile state"
 
 voc_source also definitions
 
@@ -75,15 +78,15 @@ include basic.fs
   1 and if nip nip
 ?trace $0001 [IF]
     ." interpreter:" dup name.
-    dup hex. dup get_do hex. cr
+    dup hex. dup >code-address hex. cr
 [THEN]
     execute else
     snumber? 0= if
-      notfound endif endif ;
+      interpreter-notfound endif endif ;
 
 : compile, ( xt -- )
   dup forthstart u> if
-    dup get_do
+    dup >code-address
     case
       :docon of
 ?trace $0001 [IF]
@@ -108,11 +111,16 @@ include basic.fs
         func_interpreter
         basic_init endof
       :dodefer of
-?trace $0001 [IF]
+\ ?trace $0001 [IF]
         ." FUNC_DEFER:" hex.s cr
-[THEN]
-	2 cells + @
-        recurse endof
+\ [THEN]
+	basic_exit
+        func_interpreter
+        basic_init endof
+\	2 cells +
+\        vtarget_compile postpone literal vsource
+\	['] @ recurse
+\        ['] execute recurse endof
       :dostruc of
 ?trace $0001 [IF]
         ." FUNC_STRUC:" hex.s cr
@@ -127,11 +135,7 @@ include basic.fs
         func_native
         basic_init endof
       dup >r
-?func_mode_direct [IF]
-      $03ffffff and 2 lshift
-      over $fc000000 and +
-[THEN]
-      dup @ :dodoes = if
+      over >does-code 0= if \ !! defaults to native-code does> handler, interpreter would be better
 ?trace $0001 [IF]
         ." FUNC_NATIVE (DOES>):" hex.s cr
 [THEN]
@@ -166,27 +170,25 @@ include basic.fs
     2 of nip nip
 ?trace $0001 [IF]
       ." compiler (restrict&immediate):" dup name.
-      dup hex. dup get_do hex. cr
+      dup hex. dup >code-address hex. cr
 [THEN]
       execute endof
     -2 of nip nip
 ?trace $0001 [IF]
       ." compiler (restrict):" dup name.
-      dup hex. dup get_do hex. cr
+      dup hex. dup >code-address hex. cr
 [THEN]
-      execute endof
+      compile, endof
     1 of nip nip
 ?trace $0001 [IF]
       ." compiler (immediate):" dup name.
-      dup hex. dup get_do hex. cr
+      dup hex. dup >code-address hex. cr
 [THEN]
-      basic_exit
-      execute
-      basic_init endof
+      execute endof
     -1 of nip nip
 ?trace $0001 [IF]
       ." compiler:" dup name.
-      dup hex. dup get_do hex. cr
+      dup hex. dup >code-address hex. cr
 [THEN]
       compile, endof
     0 of
@@ -195,7 +197,7 @@ include basic.fs
         ." number:" dup hex. cr
 [THEN]
         vtarget_compile postpone literal vsource else
-        notfound endif endof
+        compiler-notfound endif endof
   endcase ;
 
 : interpret ( -- )

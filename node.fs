@@ -19,26 +19,27 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 btree_struct
-  1 cells: field node_op	\ operation
+  1 cells: field node_op	\ operation (intermediate language)
   1 cells: field node_slabel	\ state label
 
-  1 cells: field node_val
-  1 cells: field node_count	\ use count
+  1 cells: field node_val	\ literal value (alias: node_offset)
+  1 cells: field node_count	\ use count (# of parents)
   1 cells: field node_done	\ scheduling done flag
   1 cells: field node_reg	\ used register
   1 cells: field node_depends	\ list of dependencies
-  1 cells: field node_cost
-  1 cells: field node_lval
-  1 cells: field node_rval
-  1 cells: field node_asm
-  1 cells: field node_copy
-  1 cells: field node_delay
+  1 cells: field node_cost	\ path length to end of bb
+  1 cells: field node_lval	\ left child instruction
+  1 cells: field node_rval	\ right child instruction
+  1 cells: field node_asm	\ xt of the assembler word for the instruction
+\  1 cells: field node_copy	\ can point to a copy of the node, used for dealing with chain rules in the code selection grammar
+  1 cells: field node_delay	\ true: create a delay slot nop for the instruction
 end-struct node_struct
 
-['] btree_left alias node_left
-['] btree_right alias node_right
-['] node_val alias node_offset
+' btree_left alias node_left
+' btree_right alias node_right
+' node_val alias node_offset	\ for stack elements: offset (in bytes) from stack pointer at start of basic block
 
+\ ' inst >body 96 over + disasm_dump
 NIL inst constant node_depends_init
 
 : asm ( node_addr -- )
@@ -55,7 +56,7 @@ NIL inst constant node_depends_init
   NIL over node_lval !
   NIL over node_rval !
   ['] asm over node_asm !
-  dup over node_copy !
+\  dup over node_copy !
   false over node_delay !
   drop ;
 
@@ -69,9 +70,10 @@ NIL inst constant node_depends_init
   tuck node_val ! ;
 
 : node_dup ( node_addr -- node_addr )
-  dup node_copy @ over = if
-    0 0 0 node 2dup node_struct drop move
-    dup rot node_copy ! endif ;
+  0 0 0 node tuck node_struct drop move ;
+\  dup node_copy @ over = if
+\    0 0 0 node 2dup node_struct drop move
+\    dup rot node_copy ! endif ;
 
 : (count+) ( node_addr -- )
   node_count 1 swap +! ;
