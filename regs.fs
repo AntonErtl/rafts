@@ -33,7 +33,7 @@ regs_useable array regs_data
 
 -1 constant regs_unused
 
-\ initial free registers
+\ initialize free registers
 : regs_init ( -- )
   regs_useable 0 ?do
     regs_unused i regs_data ! loop
@@ -60,6 +60,18 @@ regs_useable array regs_data
   0 @s8 regs_data !
   0 @ra regs_data ! ;
 regs_init
+
+: free-set ( -- w )
+\ produces a bitset of (currently ) free registers
+\ relies on #regs<bits/cell
+  0
+  regs_useable 0 ?do
+    i regs_data @ regs_unused = if
+      1 i lshift or
+    endif
+  loop ;
+
+free-set constant freeable-set
 
 \ set register with use count
 : regs_set ( n register -- )

@@ -18,53 +18,57 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: inst_next ( -- node_addr )
+: inst_next ( -- ml )
+  \ find the best possible in inst_pnodes
   0 inst_pnodes
   -1 over
   begin
     inst_size 1- inst_pnodes over >= while
-      dup @ 0<> if
-        dup @ ?inst_done if		\ remove done nodes !
-	  NULL over ! else
-          2dup @ node_cost @ < if	\ search highest costs
-            nip nip dup @ node_cost @ over endif
-	  endif
-	endif
+    dup @ 0<> if
+      dup @ ?inst_done if		\ remove done nodes !
+	NULL over !
+      else
+        2dup @ ml-cost @ < if	\ search highest costs
+          nip nip dup @ ml-cost @ over endif
+      endif
+    endif
     cell+ repeat
   2drop
   dup @ 0<> if
-    dup @ NIL rot ! else		\ remove fetched node
+    dup @ NIL rot ! 
+  else		\ remove fetched node
     drop NIL endif ;			\ no node found
 
 : inst_depends_done_func ( inst_addr -- )
   inst_node @ ?inst_done and ;
 
-: ?inst_depends_done ( node_addr -- flag )
+: ?inst_depends_done ( ml -- flag )
   true swap
-  node_depends @ dup node_depends_init <> if
-    ['] inst_depends_done_func swap slist_forall else
-    drop endif ;
+  ml-depends @ ['] inst_depends_done_func maplist ;
 
-: ?inst_kids_done ( node_addr -- flag )
-  dup ?inst_depends_done		\ check yourself
-  over node_lval @ ?dup 0<> if		\ check left kid
-    >r over r> tuck <> if
-      ?inst_done else
-      drop true endif else
-    true endif
-  and swap node_rval @ ?dup 0<> if	\ check right kid
-    >r over r> tuck <> if
-      ?inst_done else
-      drop true endif else
-    true endif
-  and ;
+: ml-done? ( parent-ml flag1 ml -- parent-ml flag1 flag )
+  ?dup 0<> if
+    >r over r> tuck <> if \ !! does it ever take the second branch?
+\      ~~ dup print-ml
+      ?inst_done
+    else
+      ." parent is child" cr
+      drop true endif
+  else
+    true endif ;
+
+: ?inst_kids_done ( ml -- flag )
+\  ~~ dup print-ml
+  dup ?inst_depends_done ( ml flag )
+  over btree_left  @ ml-done? and
+  swap btree_right @ ml-done? and ;
 
 : inst_join ( -- )
   0 inst_nodes
   begin
     inst_size 1- inst_nodes over >= while
     dup @ ?dup 0<> if
-      dup ?inst_kids_done if		\ check done kids
+      dup ?inst_kids_done if	\ check done kids
         inst_pnodes_insert		\ add to pnodes
 	NULL over ! else		\ del from nodes
 	drop endif endif

@@ -47,15 +47,19 @@ end-struct slist_struct
     dup slist_delete repeat
   drop ;
 
-\ executes a function for all elements
-: slist_forall ( xt addr -- )
+: maplist ( addr xt -- )
   \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
-  slist_next @
+  swap
   begin
     dup NIL <> while
     2>r 2r@ swap execute 2r>
     slist_next @ repeat
   2drop ;
+
+\ executes a function for all elements
+: slist_forall ( xt addr -- )
+  \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
+  slist_next @ swap maplist ;
 
 \ executes a function for all elements until it is true
 : slist_find ( xt addr -- addr )

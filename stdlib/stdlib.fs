@@ -23,6 +23,9 @@
 
 0 constant NULL
 
+: th		( addr1 n -- addr2 )
+ cells + ;
+
 : ? ( addr -- )
   @ . ;
 
@@ -49,9 +52,9 @@
 
 : hexn. ( n x -- )
   base @ rot rot hex
-  <# s>d bl hold rot 0 ?do
+  s>d <# bl hold rot 0 ?do
     # loop
-  [char] x hold [char] 0 hold #>
+  [char] $ hold #>
   type base ! ;
 
 : hex. ( x -- )
@@ -65,6 +68,8 @@
   depth 0 max maxdepth-.s @ min dup 0 ?do
     dup i - pick hex. loop
   drop ;
+
+\ ' hex.s IS printdebugdata
 
 : hex.rs ( -- )
   ." <R: " rp@ hex. ." > "

@@ -21,7 +21,9 @@
 >target_compile
 : if ( flag -- ) ( C: -- orig )
   vtarget_compile vsource
-  data> I_0BRANCH uop 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
+  data> I_0BRANCH uop 0 over node_reg !
+  NULL over node_val !
+  inst_btrees_insert_end
   basic_exit
   here 2 cells - >control
 ?trace $0010 [IF]
@@ -31,7 +33,9 @@
 
 : ahead ( -- ) ( C: -- orig )
   vtarget_compile vsource
-  0 0 I_BRANCH terminal 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
+  0 0 I_BRANCH terminal 0 over node_reg !
+  NULL over node_val !
+  inst_btrees_insert_end
   basic_exit
   here 2 cells - >control
 ?trace $0010 [IF]
@@ -75,7 +79,8 @@ lastxt alias endif immediate restrict
   ." again " .cs cr
 [THEN]
   vtarget_compile vsource
-  0 0 I_BRANCH terminal 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
+  0 0 I_BRANCH terminal 0 over node_reg !
+  control> over node_val ! inst_btrees_insert_end
   basic_exit
   basic_init ; immediate restrict
 
@@ -84,7 +89,8 @@ lastxt alias endif immediate restrict
   ." until " .cs cr
 [THEN]
   vtarget_compile vsource
-  data> I_0BRANCH uop 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
+  data> I_0BRANCH uop 0 over node_reg !
+  control> over node_val ! inst_btrees_insert_end
   basic_exit
   basic_init ; immediate restrict
 
@@ -306,7 +312,7 @@ ls_size array ls_data
     vtarget ] vsource endif
   (func_init)
   basic_init
-  0 @ra I_REG terminal dup inst_done >return ; immediate restrict
+  0 @ra I_REG terminal >return ; immediate restrict
 \ !! make it visible in target to get interpretation semantics?
 >source
 

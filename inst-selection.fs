@@ -57,243 +57,282 @@ inst_size array inst_pnodes
 
 include node.fs
 
-: ?inst_delay ( node_addr -- flag )
-  node_delay @ ;
+: ?inst_delay ( ml-addr -- flag )
+  ml-delay @ ;
 
-: inst_done ( node_addr -- )
-  true swap node_done ! ;
+: inst_done ( ml-addr -- )
+  ml-done on ;
 
-: inst_notdone ( node_addr -- )
-  false swap node_done ! ;
+: inst_notdone ( ml-addr -- )
+  ml-done off ;
 
-: ?inst_done ( node_addr -- flag )
-  node_done @ ;
+: ?inst_done ( ml-addr -- flag )
+  ml-done @ ;
 
-: ?inst_notdone ( node_addr -- flag )
-  node_done @ invert ;
+: ?inst_notdone ( ml-addr -- flag )
+  ?inst_done 0= ;
 
 : inst_sequence ( xt addr -- )
-  swap over inst_size 1- cells + >r begin
-    over @ ?dup 0<> if
+  swap over inst_size 1- cells + >r begin ( addr xt )
+    over @ ?dup 0<> if ( addr xt addr@ )
       over execute endif
     swap cell+ swap over r@ > until
   rdrop 2drop ;
 
-: inst_insert ( node_addr addr -- )
+: inst_sequence_reverse ( xt addr -- )
+  swap >r
+  dup inst_size 1- cells + begin ( begin ptr )
+     2dup u<= while
+     dup @ ?dup if ( begin ptr element )
+	r@ execute
+     endif
+     cell-
+  repeat
+  2drop rdrop ;
+
+: inst_insert ( ml-addr addr -- )
   begin
     dup @ 0<> while
     cell+ repeat
   ! ;
 
-: inst_insert_end ( node_addr addr -- )
+: inst_insert_end ( ml-addr addr -- )
   inst_size 1- cells +
   begin
     dup @ 0<> while
     cell- repeat
   ! ;
 
-: inst_btrees_insert ( node_addr -- )
+: inst_btrees_insert ( ml-addr -- )
   0 inst_btrees inst_insert ;
-: inst_btrees_insert_end ( node_addr -- )
+: inst_btrees_insert_end ( ml-addr -- )
   0 inst_btrees inst_insert_end ;
 
-: inst_lists_insert ( node_addr -- )
+: inst_lists_insert ( ml-addr -- )
   0 inst_lists inst_insert ;
-: inst_lists_insert_end ( node_addr -- )
+: inst_lists_insert_end ( ml-addr -- )
   0 inst_lists inst_insert_end ;
 
-: inst_nodes_insert ( node_addr -- )
+: inst_nodes_insert ( ml-addr -- )
   0 inst_nodes inst_insert ;
-: inst_nodes_insert_end ( node_addr -- )
+: inst_nodes_insert_end ( ml-addr -- )
   0 inst_nodes inst_insert_end ;
 
-: inst_pnodes_insert ( node_addr -- )
+: inst_pnodes_insert ( ml-addr -- )
   0 inst_pnodes inst_insert ;
-: inst_pnodes_insert_end ( node_addr -- )
+: inst_pnodes_insert_end ( ml-addr -- )
   0 inst_pnodes inst_insert_end ;
 
-: inst_ok ( left_node right_node asm_xt node_addr -- node_addr )
-  tuck node_asm !
-  tuck node_rval !
-  tuck node_lval !
-  dup ?inst_done 0= if
-    dup inst_nodes_insert_end endif ;
+: make-ml ( -- ml )
+  ml-struct struct-allot
+  dup ml-delay off ;
 
-: (asm_lval@) ( node_addr -- node_addr )
-  node_lval @ ;
-: (asm_rval@) ( node_addr -- node_addr )
-  node_rval @ ;
-: asm_val@ ( node_addr -- register )
-  node_val @ ;
-: asm_lval@ ( node_addr -- val )
-  (asm_lval@) node_val @ ;
-: asm_rval@ ( node_addr -- val )
-  (asm_rval@) node_val @ ;
-: asm_reg@ ( node_addr -- register )
-  node_reg @ ;
-: asm_lreg@ ( node_addr -- register )
-  (asm_lval@) node_reg @ ;
-: asm_rreg@ ( node_addr -- register )
-  (asm_rval@) node_reg @ ;
+: cons-ml ( ml ml-list1 -- ml-list2 )
+    swap inst
+    tuck slist_next ! ;
 
-: asm_nop ( node_addr -- )
+: translate-dependence ( ml-list1 slist_node -- ml-list2 )
+    inst_node @
+    MAX-NT 1 ?DO ( ml-list node )
+	dup node-nt-insts i th @ ?dup if ( ml-list node ml )
+	    rot cons-ml swap
+        endif
+    LOOP
+    drop ;
+
+: translate-dependences ( node-list -- ml-list )
+\ translate dependences at the IL level into dependences at the ML level
+\ !! looks only at the top IL for an ML
+    dup node_depends_init <> if
+	NIL ['] translate-dependence rot slist_forall
+    else
+	drop NIL
+    endif ;
+
+: translate-ml-dependences ( ml -- )
+    dup ml-node-dependences @ translate-dependences
+    swap ml-depends ! ;
+
+: translate-all-dependences ( -- )
+  ['] translate-ml-dependences 0 inst_nodes inst_sequence ;
+
+: inst_ok ( node nt asm-xt -- ml )
+  \ create ml
+  -rot
+  over node-nt-insts swap th	( left-ml right-ml asm_xt node node-nt-instp )
+  make-ml
+  dup rot !			( left-ml right-ml asm_xt node ml )
+  over node_val @ over ml-val !
+  over node_reg @ over ml-reg !
+  over node_depends @ over ml-node-dependences !
+  NIL over ml-depends !
+  nip				( left-ml right-ml asm_xt ml )
+  tuck ml-asm !		( ml )
+  1 over ml-count !
+  dup ml-done off
+  1 over ml-cost !
+  dup inst_nodes_insert_end ;
+
+: (asm_lval@) ( ml-addr -- ml-addr )
+  btree_left @ ;
+: (asm_rval@) ( ml-addr -- ml-addr )
+  btree_right @ ;
+: asm_val@ ( ml-addr -- n )
+  ml-val @ ;
+: asm_lval@ ( ml-addr -- val )
+  (asm_lval@) ml-val @ ;
+: asm_reg@ ( ml-addr -- register )
+  ml-reg @ ;
+: asm_lreg@ ( ml-addr -- register )
+  (asm_lval@) ml-reg @ ;
+: asm_rreg@ ( ml-addr -- register )
+  (asm_rval@) ml-reg @ ;
+
+: asm_nop ( ml-addr -- )
   drop @nop ;
 
-: asm_lit ( node_addr -- )
-  dup asm_reg@ swap asm_lval@ @li drop ;
+: asm_lit ( ml-addr -- )
+  dup ml-reg @ swap ml-val @ @li drop ;
 
-: asm_addr ( node_addr -- )
-  drop ;
+: prep-load ( ml-addr -- rt offset rs )
+  >r 
+  r@ ml-reg @
+  r@ ml-val @
+  r> btree_left @ ml-reg @ ;
 
-: get_addr ( node_addr -- imm register )
-  dup node_right @ node_val @ swap node_left @ node_reg @ ;
+: asm_fetchc ( ml-addr -- )
+  prep-load @lbu drop ;
 
-: asm_fetchc ( node_addr -- )
-  dup asm_reg@ swap (asm_lval@) get_addr @lbu drop ;
+: asm_fetchi ( ml-addr -- )
+  prep-load @lw drop ;
 
-: asm_fetchregc ( node_addr -- )
-  dup asm_reg@ swap asm_lreg@ 0 swap @lbu drop ;
+: prep-store ( ml-addr -- rt offset rs )
+  >r 
+  r@ btree_left @ ml-reg @
+  r@ ml-val @
+  r> btree_right @ ml-reg @ ;
 
-: asm_fetchi ( node_addr -- )
-  dup asm_reg@ swap (asm_lval@) get_addr @lw drop ;
+: asm_storec ( ml-addr -- )
+  prep-store @sb ;
 
-: asm_fetchregi ( node_addr -- )
-  dup asm_reg@ swap asm_lreg@ 0 swap @lw drop ;
+: asm_storei ( ml-addr -- )
+  prep-store @sw ;
 
-: asm_storec ( node_addr -- )
-  dup asm_lreg@ swap (asm_rval@) get_addr @sb ;
+: asm_add ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @addu drop ;
 
-: asm_storeregc ( node_addr -- )
-  dup asm_lreg@ swap asm_rreg@ 0 swap @sb ;
+: asm_addi ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @addiu drop ;
 
-: asm_storei ( node_addr -- )
-  dup asm_lreg@ swap (asm_rval@) get_addr @sw ;
-
-: asm_storeregi ( node_addr -- )
-  dup asm_lreg@ swap asm_rreg@ 0 swap @sw ;
-
-: asm_add ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @add drop ;
-
-: asm_addi ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @addi drop ;
-
-: asm_sub ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @sub drop ;
+: asm_sub ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @subu drop ;
 
 \ !! two instructions
-: asm_mul ( node_addr -- )
-  dup asm_lreg@ over asm_rreg@ @mult asm_reg@ @mflo drop ;
+: asm_mul ( ml-addr -- )
+  dup asm_lreg@ over asm_rreg@ @multu asm_reg@ @mflo drop ;
 
-: asm_div ( node_addr -- )
+: asm_div ( ml-addr -- )
   dup asm_lreg@ over asm_rreg@ @div asm_reg@ @mflo drop ;
 
-: asm_mod ( node_addr -- )
+: asm_mod ( ml-addr -- )
   dup asm_lreg@ over asm_rreg@ @div asm_reg@ @mfhi drop ;
 
-: asm_neg ( node_addr -- )
+: asm_neg ( ml-addr -- )
   dup asm_reg@ swap asm_lreg@ @neg drop ;
 
-: asm_abs ( node_addr -- )
+: asm_abs ( ml-addr -- )
   dup asm_reg@ swap asm_lreg@ @abs drop ;
 
-: asm_and ( node_addr -- )
+: asm_and ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @and drop ;
 
-: asm_andi ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @andi drop ;
+: asm_andi ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @andi drop ;
 
-: asm_or ( node_addr -- )
+: asm_or ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @or drop ;
 
-: asm_ori ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @ori drop ;
+: asm_ori ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @ori drop ;
 
-: asm_xor ( node_addr -- )
+: asm_xor ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @xor drop ;
 
-: asm_xori ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @xori drop ;
+: asm_xori ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @xori drop ;
 
-: asm_not ( node_addr -- )
+: asm_not ( ml-addr -- )
   dup asm_reg@ swap asm_lreg@ @not drop ;
 
-: asm_lsh ( node_addr -- )
+: asm_lsh ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @sllv drop ;
 
-: asm_lshi ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @sll drop ;
+: asm_lshi ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @sll drop ;
 
-: asm_rshu ( node_addr -- )
+: asm_rshu ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @srlv drop ;
 
-: asm_rsh ( node_addr -- )
+: asm_rsh ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @srav drop ;
 
-: asm_rshui ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @srl drop ;
+: asm_rshui ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @srl drop ;
 
-: asm_rshi ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @sra drop ;
+: asm_rshi ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @sra drop ;
 
-: asm_0branch ( node_addr -- )
+: asm_0branch ( ml-addr -- )
   dup asm_lreg@ @zero rot asm_val@
   here - cell- @beq ;
 
-: asm_branch ( node_addr -- )
+: asm_branch ( ml-addr -- )
   @zero @zero rot asm_val@
   here - cell- @beq ;
 
-: asm_beq ( node_addr -- )
+: asm_beq ( ml-addr -- )
   dup asm_lreg@ over asm_rreg@ rot asm_val@
   here - cell- @beq ;
 
-: asm_seq ( node_addr -- )
+: asm_seq ( ml-addr -- )
   >r
   r@ asm_reg@ r@ asm_lreg@ r> asm_rreg@ @xor drop
   dup 1 @sltiu drop ;
 
-: asm_slt ( node_addr -- )
+: asm_slt ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @slt drop ;
 
-: asm_slti ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @slti drop ;
+: asm_slti ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @slti drop ;
 
-: asm_sltu ( node_addr -- )
+: asm_sltu ( ml-addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @sltu drop ;
 
-: asm_sltui ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @sltiu drop ;
+: asm_sltui ( ml-addr -- )
+  dup asm_reg@ swap dup asm_lreg@ swap ml-val @ @sltiu drop ;
 
 include grammar.fs
 
-: inst_print_depends_func ( inst_addr -- )
-  inst_node hex? ;
-
-: inst_print_depends ( inst_addr -- )
-  dup node_depends_init <> if
-    ['] inst_print_depends_func swap slist_forall else
-    drop ." no " endif ;
-
-: inst_print_node ( node_addr -- )
+: inst_print_node ( node -- )
   ." { "
   dup hex.
-  dup node_left@ hex.
-  dup node_right@ hex.
-  dup node_lval @ hex.
-  dup node_rval @ hex.
+  dup node_left @ hex.
+  dup node_right @ hex.
+\  dup node_lval @ hex.
+\  dup node_rval @ hex.
 \  dup node_copy @ hex.
-  dup node_asm @ hex.
+\  dup node_asm @ hex.
 
   dup burm_OP_LABEL@ burm_opname
   dup node_slabel hex?
   dup node_val hex?
   ." reg:" dup node_reg ?
-  ." done:" dup node_done ?
-  ." count:" dup node_count ?
-  ." cost:" dup node_cost ?
-  ." delay:" dup node_delay ?
+\  ." done:" dup node_done ?
+\  ." count:" dup node_count ?
+\  ." cost:" dup node_cost ?
+\  ." delay:" dup node_delay ?
   ." depends:" dup node_depends @ inst_print_depends
+  ." mls:" MAX-NT 1 ?DO dup node-nt-insts i th @ hex. LOOP
   drop
 
   ." }" cr ;
@@ -305,18 +344,16 @@ include grammar.fs
   ['] inst_print_nodes 0 inst_btrees inst_sequence ;
 
 : inst_lists_print ( -- )
-  ['] inst_print_node 0 inst_lists inst_sequence ;
+  ['] print-ml 0 inst_lists inst_sequence ;
 
 : inst_nodes_print ( -- )
-  ['] inst_print_node 0 inst_nodes inst_sequence ;
+  ['] print-ml 0 inst_nodes inst_sequence ;
 
 : inst_pnodes_print ( -- )
-  ['] inst_print_node 0 inst_pnodes inst_sequence ;
-
-NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
+  ['] print-ml 0 inst_pnodes inst_sequence ;
 
 : op ( node_addr node_addr op -- node_addr )
-\  assert( dup burm_arity@ 2 = ) \ !!
+  assert( dup burm_arity@ 2 = ) \ !!
   >r over node_slabel @ over node_slabel @ swap r@ burm_state
   0 regs_unused r> node
   tuck node_slabel !
@@ -324,7 +361,7 @@ NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
   tuck node_right ! ;
 
 : uop ( node_addr op -- node_addr )
-\  assert( dup burm_arity@ 1 = ) \ !!
+  assert( dup burm_arity@ 1 = ) \ !!
   >r dup node_slabel @ NIL r@ burm_state
   0 regs_unused r> node
   tuck node_slabel !
@@ -332,7 +369,7 @@ NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
 
 : terminal ( val reg op -- node_addr )
  dup NIL NIL rot burm_state >r
-\ assert( dup burm_arity@ 0= ) \ !! assert funktioniert nicht
+ assert( dup burm_arity@ 0= ) \ !! assert funktioniert nicht
  node
  r> over node_slabel ! ;
 
@@ -344,8 +381,7 @@ NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
   else dup $0000 < if
     regs_unused I_LIT terminal
   else
-    regs_unused I_LITS terminal endif endif endif
-  dup inst_done ;
+    regs_unused I_LITS terminal endif endif endif ;
 
 >target_compile
 : literal ( x -- D: addr )
@@ -353,10 +389,9 @@ NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
 >source
 
 : addr ( offset register -- node_addr )
-  swap regs_unused I_LITS terminal dup inst_done
-  NULL rot I_REG terminal dup inst_done
-  I_PLUS op
-  dup inst_done ;
+  swap regs_unused I_LITS terminal
+  NULL rot I_REG terminal
+  I_PLUS op ;
 
 : id@ ( offset register -- node_addr )
   addr I_FETCH uop ;
@@ -382,54 +417,100 @@ NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
       cell+ repeat
     2drop r> endif ;
 
-: inst_cost ( cost goal node_addr -- )
-  \ ." INST_COST:" hex.s cr
-  tuck burm_STATE_LABEL@ swap burm_rule dup 0= if
-    drop 2drop else
-    dup 0 burm_cost@ >r rot r> + >r
-    over node_cost r@ swap ! 
-    dup burm_nts@ >r				\ (R: cost nts_addr)
-    over swap burm_kids r>
-    begin					\ (R: cost)
-      dup @ dup 0<> while
-      rot r@ rot rot recurse
-      cell+ repeat
-    rdrop drop 2drop endif ;
+: burm_reduce ( goal node -- ... )
+  \ if an ml is produced, the ... is an ml
+  \ otherwise it can be anything (a constant, a register number ...)
+  ( ." printReduce1" hex.s cr )
+  assert( over 1 >= )
+  assert( over MAX-NT < )
+\  dup inst_print_node
+  2dup node-nt-insts swap th @
+  dup if ( goal node ml )
+    1 over ml-count +!
+    nip nip
+    EXIT
+  endif
+  drop
+  over >r
+  tuck node_slabel @ swap burm_rule ( node rule )
+  dup 0= if
+    nip nip r> drop
+    burm_assert" no cover" cr 
+  else ( node rule )
+    2dup 2>r
+    dup burm_nts@ >r		( node rule; R: node rule nts-addr )
+    depth >r burm_kids depth r> - 2 + \ !! fix this!
+    r>
+    swap case
+      0 of
+        endof
+      1 of
+        swap >r endof
+      2 of
+        rot >r swap >r endof endcase
+    >r
+    begin
+      r> dup @ dup 0<> while
+      r> rot cell+ >r
+      recurse
+      repeat
+    2drop
+    2r>
+    [burm_reduce] @ r> swap execute
+  endif
+  ( ." printReduce2" hex.s cr )
+  ;
+
 
 : inst_selection_func ( node_addr -- )
 ?trace $0020 [IF]
   ." inst_selection:" hex.s cr
 [THEN]
-\  dup burm_label drop				\ label the tree
 ?trace $0020 [IF]
   dup 0 burm_stmt_NT rot inst_cover drop
 [THEN]
-  dup 0 burm_stmt_NT rot inst_cost		\ calculate the costs
-  burm_stmt_NT swap burm_reduce ;		\ reduce the tree
+  burm_stmt_NT swap burm_reduce drop ;		\ reduce the tree
 
 : inst_selection ( -- )
   ['] inst_selection_func 0 inst_btrees inst_sequence ;
 
-: register_free ( node_addr -- )
-  node_reg @ dup regs_unused <> if
-    regs_dec else
-    drop endif ;
+\ register allocation
+: alloc-reg ( ml -- )
+\ allocate a register for the result of the ml, if necessary
+  dup ml-reg @ regs_unused = if
+    1 regs_get swap  ml-reg !
+  else
+    drop
+  endif ;
 
-: register_allocation_func ( node_addr -- )
-  dup node_lval @ ?dup 0<> if			\ free possible left register
-    register_free endif
-  dup node_rval @ ?dup 0<> if			\ free possible right register
-    register_free endif
-  dup node_reg @ regs_unused <> if		\ check if already set
-    drop else
-    dup node_count @ regs_get			\ take a new register
-    swap node_reg ! endif ;
+: reg-freeable? ( reg -- f )
+\ returns true if register is freeable
+   assert( dup 0>= over regs_useable < and )
+   1 swap lshift freeable-set and 0<> ;
+
+: free-reg ( ml -- )
+\ return the register to the free ones (except 0, which stands for "no
+\ result register")
+   ml-reg @ dup reg-freeable? if
+	assert( dup 0> over regs_useable < and )
+        regs_unused swap regs_data !
+   else
+        drop
+   endif ;
+
+: register_allocation_func ( ml -- )
+  dup free-reg
+  dup btree_left @ ?dup 0<> if
+    alloc-reg endif
+  btree_right @ ?dup 0<> if
+    alloc-reg endif ;
 
 : register_allocation ( -- )
-  ['] register_allocation_func 0 inst_lists inst_sequence ;
+  ['] register_allocation_func 0 inst_lists inst_sequence_reverse ;
 
-: assemble_func ( node_addr -- )
-  dup dup node_asm @ execute			\ assemble the instruction
+: assemble_func ( ml -- )
+\  dup print-ml
+  dup dup ml-asm @ execute			\ assemble the instruction
   ?inst_delay if				\ fill delay slot ?
     NIL asm_nop endif ;
 

@@ -226,6 +226,10 @@ include basic.fs
   ." piled" ;
 
 include dataflow.fs
+include primitives.fs
+include source.fs
+include control.fs
+include primitives_ext.fs
 
 : quit ( -- )
   loadfile off blk off

@@ -26,16 +26,16 @@
 \ stack primitives
 : drop ( D: x -- )
   data>
-  count- vForth drop vsource ; immediate restrict
+  vForth drop vsource ; immediate restrict
 
 : dup ( D: x -- x x )
   data>
-  vForth dup vsource count+
+  vForth dup vsource
   >data >data ; immediate restrict
 
 : over ( D: x1 x2 -- x1 x2 x1 )
   data> data>
-  vForth dup vsource count+
+  vForth dup vsource
   >data vForth swap vsource >data >data ; immediate restrict
 
 : rot ( D: x1 x2 x3 -- x2 x3 x1 )
@@ -50,7 +50,7 @@
 
 : pick ( D: xu ... x1 x0 u -- xu ... x1 x0 xu )
   data> dup node_op @ dup I_LITS = swap I_LIT = or if
-    node_val @ #data@ count+ >data else
+    node_val @ #data@ >data else
     >data ['Forth] pick compile, endif ; immediate restrict
 
 : roll ( D: xu xu-1 ... x0 u -- xu-1 ... x0 xu )
@@ -78,7 +78,7 @@
 : ?dup ( D: x -- 0 | x x )
   data> dup node_op @ dup I_LITS = swap I_LIT = or if
     dup node_val @ 0<> if
-      vForth dup vsource count+ >data >data else
+      vForth dup vsource >data >data else
       >data endif else
     >data ['Forth] ?dup compile, endif ; immediate restrict
 
@@ -217,7 +217,6 @@ I_INVERT unop-primitive invert
 
 : @ ( D: addr -- addr )
   data> I_FETCH uop
-  true over node_delay !
   inst_!_list @ over node_depends !
   dup inst inst_@_list @ slist_insert drop
   >data ; immediate restrict
@@ -239,7 +238,6 @@ I_INVERT unop-primitive invert
 
 : c@ ( D: addr -- addr )
   data> I_CFETCH uop
-  true over node_delay !
   inst_!_list @ over node_depends !
   dup inst inst_@_list @ slist_insert drop
   >data ; immediate restrict
@@ -256,7 +254,7 @@ I_INVERT unop-primitive invert
   data> >return ; immediate restrict
 
 : r@ ( R: -- addr )
-  0 #return@ count+ >data ; immediate restrict
+  0 #return@ >data ; immediate restrict
 
 : r> ( R: -- addr )
   return> >data ; immediate restrict
@@ -289,7 +287,7 @@ create text_data
 : text_print ( -- )
   text_data dup @ over - dump ;
 
-: ," ( "string"<"> -- n )
+: ," ( "string"<"> -- addr )
   text_data @ dup
   [char] " parse
   rot 2dup + char+ dup aligned swap over swap ?do
@@ -330,8 +328,6 @@ create text_data
 : (dostruc) ( addr u - addr )
   vtarget_compile postpone + vsource ; immediate restrict
 comp' (dostruc) drop dostruc !
-
-include source.fs
 
 ?test $0004 [IF]
 cr ." Test for primitives.fs" cr

@@ -18,7 +18,7 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-\ variables for local data stack
+\ variables for compile-time data stack
 $20 constant ds_size
 ds_size 2/ constant ds_tosstart
 variable ds_tos
@@ -30,10 +30,8 @@ ds_size 2/ array ds_init
 : ds_tos! ( n -- ) ds_tos ! ;
 : ds_data@ ( n -- n ) ds_data @ ;
 : ds_data! ( n n -- ) ds_data ! ;
-: ds_init@ ( n -- n ) ds_init @ ;
-: ds_init! ( n n -- ) ds_init ! ;
 
-\ functions for handling the local data stack
+\ functions for handling the compile-time data stack
 : #data@ ( n -- x )
   ds_tos@ + ds_data@ ;
 
@@ -55,27 +53,25 @@ ds_size 2/ array ds_init
     hex. loop
   drop ;
 
-\ variables for local return stack
+\ variables for compile-time return stack
 $20 constant rs_size
 rs_size 2/ constant rs_torstart
 variable rs_tor
 \ compile-time return stack pointer
 rs_size array rs_data
-rs_size array rs_init
+rs_size 2/ array rs_init
 
 : rs_tor@ ( -- n ) rs_tor @ ;
 : rs_tor! ( n -- ) rs_tor ! ;
 : rs_data@ ( n -- n ) rs_data @ ;
 : rs_data! ( n n -- ) rs_data ! ;
-: rs_init@ ( n -- n ) rs_init @ ;
-: rs_init! ( n n -- ) rs_init ! ;
 
-\ functions for handling the local return stack
+\ functions for handling the compile-time return stack
 : #return@ ( n -- x )
-  rs_torstart rs_tor@ + + rs_data@ ;
+  rs_tor@ + rs_data@ ;
 
 : #return! ( x n -- )
-  rs_torstart rs_tor@ + + rs_data! ;
+  rs_tor@ + rs_data! ;
 
 : >return ( x -- ) ( R: -- x )
   -1 rs_tor +!
@@ -140,38 +136,50 @@ variable inst_!_list
 variable inst_@_list
 \ contains the last ! and all @ since the last !
 variable inst_s!_list
-\ contains all stores to the data stack (and, unnecessarily, all the stack fetches)
+\ contains all stores to the data stack (and all loads)
 
 include inst-selection.fs
 include inst-scheduling.fs
 
-\ initial the local data stack
-: data_init_stack ( -- )
-  0 ds_data ds_size cells NULL fill
-  ds_size 2/ 0 ?do
-    i cells #sp id@
-    i ds_init! loop ;
-data_init_stack
+\ \ initialize the compile-time data stack
+\ : data_init_stack ( -- )
+\   0 ds_data ds_size cells NULL fill
+\   ds_size 2/ 0 ?do
+\     i cells #sp id@
+\     burm_reg_NT over burm_reduce drop	\ make ml for tree
+\     0 0 inst_nodes !			\ make sure inst_nodes does not overrun
+\     i ds_init ! loop ;
+\ data_init_stack
+\ inst_init
+
+\ : reset-stack-node ( node -- )
+\     dup node_reset
+\     regs_unused swap node_reg ! ;
+
+: init-compile-stack ( reg addr n -- )
+  0 ?do ( reg addr )
+    i cells 2 pick id@ ( reg addr node )
+    dup inst inst_s!_list @ slist_insert drop
+    over !
+    cell+
+  loop
+  2drop ;
 
 : data_init ( -- )
-  0 ds_init ds_size 2/ dup ds_data swap cells move
-  ds_size 2/ 0 ?do
-    i ds_init@ dup node_reset dup inst_done
-    regs_unused swap node_reg ! loop ;			\ reset the node values
+  #sp 0 ds_init ds_size 2/ init-compile-stack
+  0 ds_init ds_size 2/ dup ds_data swap cells move ;
 
-\ initial the local return stack
-: return_init_stack ( -- )
-  0 rs_data rs_size cells NULL fill
-  rs_torstart dup negate ?do
-    i cells #rp id@
-    i rs_torstart + rs_init! loop ;
-return_init_stack
+\ \ initialize the compile-time return stack
+\ : return_init_stack ( -- )
+\   0 rs_data rs_size cells NULL fill
+\   rs_torstart dup negate ?do
+\     i cells #rp id@
+\     i rs_torstart + rs_init ! loop ;
+\ return_init_stack
 
 : return_init ( -- )
-  0 rs_init 0 rs_data rs_size cells move
-  rs_size 0 ?do
-    i rs_init@ dup node_reset dup inst_done
-    regs_unused swap node_reg ! loop ;			\ reset the node values
+  #rp 0 rs_init rs_size 2/ init-compile-stack
+  0 rs_init rs_size 2/ dup rs_data swap cells move ;
 
 : control_init ( -- )
   0 cs_data cs_size cells NULL fill ;
@@ -191,10 +199,10 @@ control_init
   inst_init
   NIL inst inst_!_list !
   NIL inst inst_@_list !
-  ds_tosstart ds_tos!					\ initial the data stack
+  ds_tosstart ds_tos!			\ initialize the data stack
   NIL inst inst_s!_list !
   data_init
-  0 rs_tor!						\ initial the temp return stack
+  rs_torstart rs_tor!			\ initialize the temp return stack
   return_init
 ?trace $0020 [IF]
   ." BASIC_INIT " hex.s cr
@@ -202,8 +210,8 @@ control_init
   ;
 
 : (basic_stackupdate) ( val register -- )
-  >r regs_unused I_LITS terminal dup inst_done
-  0 r@ I_REG terminal dup inst_done
+  >r regs_unused I_LITS terminal
+  0 r@ I_REG terminal
   I_PLUS op inst_s!_list @ over node_depends !
   r> dup regs_inc over node_reg ! inst_btrees_insert_end ;
 
@@ -219,7 +227,7 @@ control_init
   ds_tos@ ds_tosstart - >r
 ?trace $0100 [IF]
   ds_size 2/ 0 ?do
-    i ds_init@ dup hex.
+    i ds_init @ dup hex.
     inst_print_node loop cr
   ds_size 0 ?do
     i ds_data@ dup hex.
@@ -239,55 +247,38 @@ control_init
       cells #sp id!
       dup inst inst_s!_list @ slist_insert drop
       inst_btrees_insert else
-      2dup ds_init@ <> if				\ old stackelements (changed)
+      2dup ds_init @ <> if				\ old stackelements (changed)
 ?trace $0100 [IF]
     ." STACKDUMP (old):" hex.s cr
 [THEN]
         tuck cells #sp id!
         dup inst inst_s!_list @ slist_insert drop
-        swap ds_init@ inst NULL inst tuck slist_insert drop
+        swap ds_init @ inst NULL inst tuck slist_insert drop
         over node_depends !
-        inst_btrees_insert else
+        inst_btrees_insert
+      else
 ?trace $0100 [IF]
     ." STACKDUMP (nothing):" hex.s cr
 [THEN]
 	2drop endif endif loop
   #sp r> basic_stackupdate				\ update the data stackpointer
-  rs_size rs_torstart rs_tor@ + ?do			\ dump the return stack
+  rs_size rs_tor@ ?do					\ dump the return stack
 ?trace $0100 [IF]
     ." STACKDUMP (return):" i . hex.s cr
 [THEN]
-
-    i rs_data@ i rs_init@ over <> if
+    i rs_data@ i rs_torstart - rs_init @ over <> if
       i rs_torstart - cells #rp id!
       dup inst inst_s!_list @ slist_insert drop
-      i rs_torstart - dup 0> if
-        rs_init@ inst NULL inst tuck slist_insert drop
-        over node_depends ! else
+      i rs_torstart - dup 0>= if
+        rs_init @ inst NULL inst tuck slist_insert drop
+        over node_depends !
+      else
 	drop endif
-      inst_btrees_insert else
+      inst_btrees_insert
+    else
       drop endif
     loop
-  #rp rs_tor@ basic_stackupdate ;			\ update the data stackpointer
-
-: basic_load ( -- flag )
-  false
-  ds_size 2/ 0 ?do					\ load the data stack
-?trace $0100 [IF]
-    ." STACKLOAD (data):" i . hex.s cr
-[THEN]
-    i ds_init@ dup ?inst_notdone if
-      dup inst_done inst_lists_insert
-      drop true else
-      drop endif loop
-  rs_size 0 ?do						\ load the return stack
-?trace $0100 [IF]
-    ." STACKLOAD (return):" i . hex.s cr
-[THEN]
-    i rs_init@ dup ?inst_notdone if
-      dup inst_done inst_lists_insert
-      drop true else
-      drop endif loop ;
+  #rp rs_tor@ rs_torstart - basic_stackupdate ;		\ update the data stackpointer
 
 : basic_print ( -- )
   ." BTREE PRINT" hex.s cr
@@ -300,6 +291,11 @@ control_init
   inst_lists_print ;
 
 \ exit a basic block and generate the code of the basic block
+make-ml
+0 over ml-reg !
+' asm_nop over  ml-asm !
+constant nop-ml \ nop instruction, usable only after scheduling
+
 : basic_exit ( -- )
 ?trace $0020 [IF]
   ." BASIC_EXIT " hex.s cr
@@ -312,8 +308,8 @@ control_init
   ." INST SELECTION" hex.s cr
 [THEN]
   inst_selection
-  basic_load if
-    inst_nop inst_lists_insert endif
+
+  translate-all-dependences
 
 ?trace $0200 [IF]
   basic_print

@@ -1,2 +1,2 @@
 #!/bin/sh
-awk -f $0.awk $1
+gawk -f $0.awk $1

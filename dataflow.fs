@@ -70,11 +70,6 @@
   ; immediate restrict
 >source
 
-include primitives.fs
-include control.fs
-
-include primitives_ext.fs
-
 ?test $0008 [IF]
 cr ." Test for dataflow.fs" cr
 

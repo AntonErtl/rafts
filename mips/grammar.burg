@@ -88,29 +88,55 @@
 1 constant unary
 2 constant binary
 
-: bin-inst ( left_node right_node node_addr asm_xt -- node_addr )
-    swap inst_ok ;
+: bin-inst ( left-ml right-ml node_addr nt asm_xt -- ml )
+    inst_ok 
+    tuck btree_right !
+    tuck btree_left ! ;
 
-: un-inst ( left-node node-addr asm-xt -- node-addr )
-    NIL swap rot inst_ok ;
+: binrc-inst ( left-ml n node_addr nt asm_xt -- ml )
+    inst_ok 
+    tuck ml-val !
+    tuck btree_left !
+    NIL over btree_right ! ;
 
-: 0branch-inst ( left-node node-addr asm-xt -- )
-    swap >r NIL swap 0 r@ node_cost ! r> inst_ok drop ;
+: un-inst ( left-ml node-addr nt asm-xt -- ml )
+    inst_ok
+    tuck btree_left !
+    NIL over btree_right ! ;
 
-: branch-inst ( node-addr asm-xt -- )
-    NIL -rot 0branch-inst ;
+: 0branch-inst ( left-ml node-addr nt asm-xt -- ml )
+    un-inst
+    dup ml-delay on
+    0 over ml-cost ! ;
 
-: store-inst ( left_node right_node node_addr asm_xt -- )
-    swap >r 0 r@ node_reg ! r> inst_ok drop ;
+: term-inst ( node-addr nt asm-xt -- ml )
+    inst_ok
+    NIL over btree_left !
+    NIL over btree_right ! ;
 
-: load-inst ( left-node node-addr asm-xt -- node-addr )
-    swap >r NIL swap r@ inst_notdone r> inst_ok ;
+: branch-inst ( node-addr nt asm-xt -- ml )
+    term-inst
+    dup ml-delay on
+    0 over ml-cost ! ;
 
-: li-inst ( left-node node-addr asm-xt -- node-addr2 ) 
-    swap node_dup >r r@ inst_notdone NIL swap r> inst_ok ;
+: lit-inst ( n node-addr nt asm-xt -- ml )
+    term-inst
+    tuck ml-val ! ;
 
-: addr-inst ( left_node right_node node_addr asm_xt -- node_addr )
-    >r over node_val @ over node_val ! r> swap inst_ok ;
+: store-inst ( left-ml right-ml n node_addr nt asm_xt -- ml )
+    inst_ok
+    tuck ml-val !
+    tuck btree_right !
+    tuck btree_left !
+    0 over ml-reg ! \\ store does not produce a result
+    ;
+
+: load-inst ( ml n node-addr nt asm-xt -- ml )
+    inst_ok
+    tuck ml-val !
+    tuck btree_left !
+    NIL over btree_right !
+    dup ml-delay on ;
 
 %}
 
@@ -138,42 +164,73 @@
 %term I_CSTORE
 %term I_STORE
 /* compare		*/
-%term I_EQUALS
+/* %term I_EQUALS */
 %term I_LESS
 %term I_ULESS
 %term I_0BRANCH
 %term I_BRANCH
 %term I_REG
 %term I_LITS 
+%term NOP
 
 /* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
    %term I_FFETCH=46  I_FSTORE=47
 */
 
-%term NOP
+/* 
+In the following a line is divided into fields with #:
+
+rule# cost# reducing# assembling
+
+rule is a Burg rule, cost is an integer, reducing and assembling are
+Forth code.
+
+Rules: Each nonterminal has a stack effect, that describes what
+happens when (a tree derived from) the nonterminal is (parsed and)
+reduced.
+
+The stack effects for our non-terminals are:
+reg	( -- ml )
+stmt	( -- ml )
+cons	( -- n )
+con	( -- n )
+addr	( -- ml n )
+
+For a given rule, burm_reduce first (parses and) reduces the children
+(which produce their respective stack effects) left to right, then
+pushes the IL node, the (number of the) target nonterminal, and the xt
+of a definition containing the "assembling" code, then it executes the
+"reducing" code.
+
+I.e. the reducing code must have the stack effect
+
+stuff1 node nt asm_xt -- stuff2
+
+where stuff1 is the stack contents produced by the children of the
+rule, and stuff2 is the right side of the stack effect for the target
+nonterminal of the rule.
+
+The assembling code is usually called by the assembler and should have
+the stack effect ( ml -- ), where ml is the ml node of the instruction.
+
+*/
 
 %%
 
-stmt: reg			#0#	drop 2drop	#
-addr: I_PLUS(reg, cons)		#0#	addr-inst	#asm_addr
+addr: I_PLUS(reg, cons)		#0#	drop 2drop	#
+addr: reg			#0#	drop 2drop 0	#
 
-reg:  I_REG			#0#	drop		#
-cons: I_LITS			#0#	drop dup inst_done #
-con:  I_LIT			#0#	drop dup inst_done #
-reg:  cons			#1#	li-inst		#asm_lit
-reg:  con			#1#	li-inst		#asm_lit
+reg:  I_REG			#0#	term-inst	#drop
+cons: I_LITS			#0#	drop drop node_val @ #
+con:  I_LIT			#0#	drop drop node_val @ #
+reg:  cons			#1#	lit-inst	#asm_lit
+reg:  con			#1#	lit-inst	#asm_lit
 
 reg:  I_CFETCH(addr)		#1#	load-inst	#asm_fetchc
-reg:  I_CFETCH(reg)		#1#	load-inst	#asm_fetchregc
 reg:  I_FETCH(addr)		#1#	load-inst	#asm_fetchi
-reg:  I_FETCH(reg)		#1#	load-inst	#asm_fetchregi
-stmt: I_CSTORE(reg, addr)	#1#	store-inst	#asm_storec
-stmt: I_CSTORE(reg, reg)	#1#	store-inst	#asm_storeregc
-stmt: I_STORE(reg, addr)	#1#	store-inst	#asm_storei
-stmt: I_STORE(reg, reg)		#1#	store-inst	#asm_storeregi
 
 reg:  I_PLUS(reg, reg)		#1#	bin-inst	#asm_add
-reg:  I_PLUS(reg, cons)		#1#	bin-inst	#asm_addi
+reg:  I_PLUS(reg, cons)		#1#	binrc-inst	#asm_addi
 reg:  I_MINUS(reg, reg)		#1#	bin-inst	#asm_sub
 reg:  I_TIMES(reg, reg)		#1#	bin-inst	#asm_mul
 reg:  I_SLASH(reg, reg)		#1#	bin-inst	#asm_div
@@ -181,53 +238,27 @@ reg:  I_MOD(reg, reg)		#1#	bin-inst	#asm_mod
 reg:  I_NEGATE(reg)		#1#	un-inst		#asm_neg
 
 reg:  I_AND(reg, reg)		#1#	bin-inst	#asm_and
-reg:  I_AND(reg, cons)		#1#	bin-inst	#asm_andi
+reg:  I_AND(reg, cons)		#1#	binrc-inst	#asm_andi
 reg:  I_OR(reg, reg)		#1#	bin-inst	#asm_or
-reg:  I_OR(reg, cons)		#1#	bin-inst	#asm_ori
+reg:  I_OR(reg, cons)		#1#	binrc-inst	#asm_ori
 reg:  I_XOR(reg, reg)		#1#	bin-inst	#asm_xor
-reg:  I_XOR(reg, cons)		#1#	bin-inst	#asm_xori
+reg:  I_XOR(reg, cons)		#1#	binrc-inst	#asm_xori
 reg:  I_INVERT(reg)		#1#	un-inst		#asm_not
 reg:  I_LSHIFT(reg, reg)	#1#	bin-inst	#asm_lsh
-reg:  I_LSHIFT(reg, cons)	#1#	bin-inst	#asm_lshi
+reg:  I_LSHIFT(reg, cons)	#1#	binrc-inst	#asm_lshi
 reg:  I_RSHIFT(reg, reg)	#1#	bin-inst	#asm_rshu
 reg:  I_SRSHIFT(reg, reg)	#1#	bin-inst	#asm_rsh
-reg:  I_RSHIFT(reg, cons)	#1#	bin-inst	#asm_rshui
-reg:  I_SRSHIFT(reg, cons)	#1#	bin-inst	#asm_rshi
+reg:  I_RSHIFT(reg, cons)	#1#	binrc-inst	#asm_rshui
+reg:  I_SRSHIFT(reg, cons)	#1#	binrc-inst	#asm_rshi
 
-flag:  I_EQUALS(reg, reg)	#2#	bin-inst	#asm_seq
 reg:  I_LESS(reg, reg)		#1#	bin-inst	#asm_slt
-reg:  I_LESS(reg, cons)		#1#	bin-inst	#asm_slti
+reg:  I_LESS(reg, cons)		#1#	binrc-inst	#asm_slti
 reg:  I_ULESS(reg, reg)		#1#	bin-inst	#asm_sltu
-reg:  I_ULESS(reg, cons)	#1#	bin-inst	#asm_sltui
+reg:  I_ULESS(reg, cons)	#1#	binrc-inst	#asm_sltui
+
+stmt: reg			#0#	drop 2drop	#
+stmt: I_CSTORE(reg, addr)	#1#	store-inst	#asm_storec
+stmt: I_STORE(reg, addr)	#1#	store-inst	#asm_storei
 stmt: I_0BRANCH(reg)		#1#	0branch-inst	#asm_0branch
 stmt: I_BRANCH			#1#	branch-inst	#asm_branch
 %%
-: burm_reduce ( goal node-addr -- )
-  ( ." printReduce1" hex.s cr )
-  tuck burm_STATE_LABEL@ swap burm_rule
-  dup 0= if
-    nip nip
-    burm_assert" no cover" cr else
-    2dup 2>r
-    dup burm_nts@ >r		( R: goal node_addr nts-addr )
-    depth >r burm_kids depth r> - 2 +
-    r>
-    swap case
-      0 of
-        endof
-      1 of
-        swap >r endof
-      2 of
-        rot >r swap >r endof endcase
-    >r
-    begin
-      r> dup @ dup 0<> while
-      r> rot cell+ >r
-      recurse
-      repeat
-    2drop
-    2r>
-    [burm_reduce] @ execute
-    endif
-  ( ." printReduce2" hex.s cr )
-  ;

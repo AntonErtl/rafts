@@ -75,7 +75,7 @@ create dodoes
   \ -4 regs_unused I_LIT node
   \ 0 #rp I_REG node
   \ ADDU op #rp over node_reg ! inst_btrees_insert
-  \ 0 @ra I_REG node dup inst_done
+  \ 0 @ra I_REG node
   \ -4 #rp id! inst_btrees_insert
   ;
 

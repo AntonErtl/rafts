@@ -18,29 +18,68 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+7 constant MAX-NT \ !! machine dependent
+
 btree_struct
   1 cells: field node_op	\ operation (intermediate language)
   1 cells: field node_slabel	\ state label
-
   1 cells: field node_val	\ literal value (alias: node_offset)
-  1 cells: field node_count	\ use count (# of parents)
-  1 cells: field node_done	\ scheduling done flag
   1 cells: field node_reg	\ used register
   1 cells: field node_depends	\ list of dependencies
-  1 cells: field node_cost	\ path length to end of bb
-  1 cells: field node_lval	\ left child instruction
-  1 cells: field node_rval	\ right child instruction
-  1 cells: field node_asm	\ xt of the assembler word for the instruction
-\  1 cells: field node_copy	\ can point to a copy of the node, used for dealing with chain rules in the code selection grammar
-  1 cells: field node_delay	\ true: create a delay slot nop for the instruction
+  -1 cells: field node_unpad	\ next field starts at offset 1
+  MAX-NT cells: field node-nt-insts \ for each nt, the ml for this node
 end-struct node_struct
 
 ' btree_left alias node_left
 ' btree_right alias node_right
 ' node_val alias node_offset	\ for stack elements: offset (in bytes) from stack pointer at start of basic block
 
-\ ' inst >body 96 over + disasm_dump
 NIL inst constant node_depends_init
+
+btree_struct \ !! machine dep: is it really a *binary* tree?
+  1 cells: field ml-asm		\ xt of the assembler word for the instruction
+  1 cells: field ml-count	\ use count (# of parents)
+  1 cells: field ml-val		\ literal value
+  1 cells: field ml-done	\ scheduling done flag
+  1 cells: field ml-reg		\ used register
+  1 cells: field ml-node-dependences \ dependences of ml's node
+  1 cells: field ml-depends	\ list of dependencies
+  1 cells: field ml-delay	\ true: create a delay slot nop for the instruction
+  1 cells: field ml-cost	\ path length to end of bb
+end-struct ml-struct
+
+: flag. ( f -- )
+ dup 0= if
+  ." true " drop EXIT endif
+ dup true = if
+  ." false" drop EXIT endif
+ hex. assert( FALSE ) ;
+
+: inst_print_depends_func ( inst_addr -- )
+  inst_node hex? ;
+
+: inst_print_depends ( inst_addr -- )
+  dup node_depends_init <> if
+    ['] inst_print_depends_func swap slist_forall
+  else
+    drop ." no " endif ;
+
+: ml-print-depends ( inst_addr -- )
+  ['] inst_print_depends_func maplist ;
+
+: print-ml ( ml -- )
+  dup hex.
+  dup btree_left @ hex.
+  dup btree_right @ hex.
+  dup ml-asm @ name.
+  ." count=" dup ml-count @ .
+  ." val=" dup ml-val @ .
+  ." done=" dup ml-done @ flag.
+  ." reg=" dup ml-reg @ .
+  ." delay=" dup ml-delay @ flag.
+  ." cost=" dup ml-cost @ .
+  ." depends=" dup ml-depends @ ml-print-depends
+  drop cr ;
 
 : asm ( node_addr -- )
   drop ;
@@ -48,44 +87,19 @@ NIL inst constant node_depends_init
 \ reset node values
 : node_reset ( node_addr -- )
 \  0 over node_slabel !
-  0 over node_count !
-  false over node_done !
   -1 over node_reg !
   node_depends_init over node_depends !
-  0 over node_cost !
-  NIL over node_lval !
-  NIL over node_rval !
-  ['] asm over node_asm !
-\  dup over node_copy !
-  false over node_delay !
   drop ;
 
-\ allocate and initial a node
+\ allocate and initialize a node
 : node ( val reg op -- node_addr )
   node_struct struct-allot	\ allocate
   btree
   dup node_reset
+  dup node-nt-insts cell+ max-nt 1- cells erase \ !! or just reset the mls in the nts
   tuck node_op !		\ initial values
   tuck node_reg !
   tuck node_val ! ;
-
-: node_dup ( node_addr1 -- node_addr2 )
-  0 0 0 node tuck node_struct drop move ;
-\  dup node_copy @ over = if
-\    0 0 0 node 2dup node_struct drop move
-\    dup rot node_copy ! endif ;
-
-: (count+) ( node_addr -- )
-  node_count 1 swap +! ;
-
-: (count-) ( node_addr -- )
-  node_count -1 swap +! ;
-
-: count+ ( node_addr -- node_addr )
-  ['] (count+) over btree_postorder ;
-
-: count- ( node_addr -- node_addr )
-  ['] (count-) over btree_postorder ;
 
 ?test $0002 [IF]
 cr ." Test for node.fs" cr
