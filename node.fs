@@ -18,6 +18,8 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+4 cells constant info-head-size
+
 7 constant MAX-NT \ !! machine dependent
 
 btree-struct

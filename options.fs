@@ -42,7 +42,7 @@ $0000 constant trace-const	\ no trace
 \ $ffff constant trace-const	\ trace all
 
 $0000 constant test-const	\ no test
-\ $0040 constant test-const	\ test what you want
+\ $00ff constant test-const	\ test what you want
 \ $0080 constant test-const	\ test asambler and disasambler
 \ $1f00 constant test-const	\ test stdlib
 \ $ffff constant test-const	\ test all
@@ -52,7 +52,7 @@ $0000 constant test-const	\ no test
     trace-const and ;
 
 : ?trace ( "n" -- flag )
-    name snumber?  dup 0<> if
+    name snumber? dup 0<> if
 	drop trace
     endif ; immediate
 
@@ -68,5 +68,4 @@ $0000 constant test-const	\ no test
 ?test $0001 [IF]
 cr ." Test for options.fs" cr
 
-finish
 [THEN]

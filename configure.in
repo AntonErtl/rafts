@@ -27,7 +27,9 @@ AC_ARG_WITH(debug,
   --without-debug         omits the -g switch and creates smaller images on
                           machines where "strip" has problems with gcc style
                           debugging informations.],
-if test "$withval" = "yes"; then DEBUGFLAG=; fi)
+if test "$withval" = "yes"; then DEBUGFLAG=-g; fi)
+
+CFLAGS=$CFLAGS
 
 AC_SUBST(CC)
 AC_SUBST(GCCLDFLAGS)
@@ -60,18 +62,22 @@ AC_SUBST(host)
 AC_SUBST(mach)
 
 dnl Checks for programs.
-AC_PROG_LN_S
+AC_PROG_CC
 AC_PROG_INSTALL
+AC_PROG_LN_S
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
+AC_HEADER_STDC
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
+AC_FUNC_VPRINTF
+AC_CHECK_FUNC(getopt,getopt="",getopt="getopt.o getopt1.o")
+AC_SUBST(getopt)
 
-AC_LINK_FILES(${mach}/grammar.burg ${mach}/header.fs ${mach}/asm.fs ${mach}/disasm.fs,
-	grammar.burg header.fs asm.fs disasm.fs)
-AC_OUTPUT(Makefile)
+AC_LINK_FILES(${mach}, machine)
+AC_OUTPUT(Makefile burg/Makefile)
 

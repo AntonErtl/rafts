@@ -18,6 +18,7 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+
 \ variables for compile-time data stack
 $20 constant ds-size
 ds-size 2/ constant ds-tosstart
@@ -50,30 +51,30 @@ ds-size 2/ array ds-init
 
 \ variables for compile-time return stack
 $20 constant rs-size
-rs-size 2/ constant rs-torstart
-variable rs-tor
+rs-size 2/ constant rs-tosstart
+variable rs-tos
 \ compile-time return stack pointer
 rs-size array rs-data
 rs-size 2/ array rs-init
 
 \ functions for handling the compile-time return stack
 : #return@ ( n -- x )
-    rs-tor @ + rs-data @ ;
+    rs-tos @ + rs-data @ ;
 
 : #return! ( x n -- )
-    rs-tor @ + rs-data ! ;
+    rs-tos @ + rs-data ! ;
 
 : >return ( x -- ) ( R: -- x )
-    -1 rs-tor +!
+    -1 rs-tos +!
     0 #return! ;
 
 : return> ( -- x ) ( R: x -- )
     0 #return@
-    1 rs-tor +! ;
+    1 rs-tos +! ;
 
 : .rs ( -- )
-    ." <R:" rs-tor @ 0 .r ." > "
-    rs-tor @ dup 0 ?do
+    ." <R:" rs-tos @ 0 .r ." > "
+    rs-tos @ dup 0 ?do
 	dup i - #return@ hex.
     loop
     drop ;
@@ -125,6 +126,7 @@ variable inst-s!-list
 
 include inst-selection.fs
 include inst-scheduling.fs
+include register.fs
 
 : init-stack ( register addr n -- )
     0 ?do ( register addr )
@@ -136,10 +138,13 @@ include inst-scheduling.fs
     2drop ;
 
 : data-init ( -- )
+    ds-tosstart ds-tos !
+    NIL inst inst-s!-list !
     #sp 0 ds-init ds-size 2/ init-stack
     0 ds-init ds-size 2/ dup ds-data swap cells move ;
 
 : return-init ( -- )
+    rs-tosstart rs-tos !
     #rp 0 rs-init rs-size 2/ init-stack
     0 rs-init rs-size 2/ dup rs-data swap cells move ;
 
@@ -152,31 +157,23 @@ control-init
     ?trace $0020 [IF]
 	." basic-init " here hex. cr
     [THEN]
-    regs-reset
+    \ regs-reset
     here basic-head-ptr !
     basic-code allot
     ?trace $0020 [IF]
 	." BASIC-INIT{ " here hex. cr
     [THEN]
     inst-init
-    NIL inst inst-!-list !
-    NIL inst inst-@-list !
     \ initialize the data stack
-    ds-tosstart ds-tos !
-    NIL inst inst-s!-list !
     data-init
     \ initialize the temp return stack
-    rs-torstart rs-tor !
-    return-init
-    ?trace $0020 [IF]
-	." BASIC-INIT " hex.s cr
-    [THEN] ;
+    return-init ;
 
 : (basic-stackupdate) ( val register -- )
     >r regs-unused I_LITS terminal
     0 r@ I_REG terminal
     I_PLUS op inst-s!-list @ over il-depends !
-    r> dup regs-inc over il-reg ! inst-btrees-insert-end ;
+    r> over il-reg ! inst-btrees-insert-end ;
 
 : basic-stackupdate ( register n -- )
     ?trace $0100 [IF]
@@ -188,26 +185,32 @@ control-init
 	2drop
     endif ;
 
-: basic-stackdump ( -- )
-    ds-tos @ ds-tosstart - >r
-    ?trace $0100 [IF]
-	ds-size 2/ 0 ?do
-	    i ds-init @ dup hex.
+: basic-datastackdump-print ( -- )
+    ds-size 2/ 0 ?do
+	i ds-init @ dup hex.
+	inst-print-node
+    loop
+    cr
+    ds-size 0 ?do
+	i ds-data @ dup hex.
+	?dup 0<> if
 	    inst-print-node
-	loop
-	cr
-	ds-size 0 ?do
-	    i ds-data @ dup hex.
-	    ?dup 0<> if
-		inst-print-node
-	    else
-		cr
-	    endif
-	loop
-	cr
-	." TOS:" ds-tos @ . cr
+	else
+	    cr
+	endif
+    loop
+    cr
+    ." TOS:" ds-tos @ . cr ;
+
+: ---basic-datastackdump ( -- )
+    ds-tos @ ds-tosstart - >r
+
+    ?trace $0100 [IF]
+	basic-datastackdump-print
     [THEN]
-    ds-size ds-tos @ ?do				\ dump the data stack
+
+    \ dump the data stack
+    ds-size ds-tos @ ?do
 	?trace $0100 [IF]
 	    ." STACKDUMP (data):" i . hex.s cr
 	[THEN]
@@ -219,7 +222,7 @@ control-init
 	    dup inst inst-s!-list @ slist-insert drop
 	    inst-btrees-insert
 	else
-	    2dup ds-init @ <> if				\ old stackelements (changed)
+	    2dup ds-init @ <> if			\ old stackelements (changed)
 		?trace $0100 [IF]
 		    ." STACKDUMP (old):" hex.s cr
 		[THEN]
@@ -237,16 +240,66 @@ control-init
 	endif
     loop
     \ update the data stackpointer
-    #sp r> basic-stackupdate
+    #sp r> basic-stackupdate ;
+
+: basic-datastackdump-new ( -- )
+    \ stackelements
+    ?trace $0100 [IF]
+	." STACKDUMP (new):" hex.s cr
+    [THEN]
+    cells #sp id!
+    dup inst inst-s!-list @ slist-insert drop
+    inst-btrees-insert ;
+
+: basic-datastackdump-old ( -- )
+    \ old stackelements (changed)
+    ?trace $0100 [IF]
+	." STACKDUMP (old):" hex.s cr
+    [THEN]
+    tuck cells #sp id!
+    dup inst inst-s!-list @ slist-insert drop
+    swap ds-init @ inst NULL inst tuck slist-insert drop
+    over il-depends !
+    inst-btrees-insert ;
+
+: basic-datastackdump ( -- )
+    ds-tos @ ds-tosstart - >r
+
+    ?trace $0100 [IF]
+	basic-datastackdump-print
+    [THEN]
+
+    \ dump the data stack
+    ds-size ds-tos @ ?do
+	?trace $0100 [IF]
+	    ." STACKDUMP (data):" i . hex.s cr
+	[THEN]
+	data> i ds-tosstart - dup 0< if			\ new stackelements
+	    basic-datastackdump-new
+	else
+	    2dup ds-init @ <> if			\ old stackelements (changed)
+		basic-datastackdump-old
+	    else
+		?trace $0100 [IF]
+		    ." STACKDUMP (nothing):" hex.s cr
+		[THEN]
+		2drop
+	    endif
+	endif
+    loop
+    \ update the data stackpointer
+    #sp r> basic-stackupdate ;
+
+: basic-returnstackdump ( -- )
     \ dump the return stack
-    rs-size rs-tor @ ?do
+    rs-size rs-tos @ ?do
 	?trace $0100 [IF]
 	    ." STACKDUMP (return):" i . hex.s cr
 	[THEN]
-	i rs-data @ i rs-torstart - rs-init @ over <> if
-	    i rs-torstart - cells #rp id!
+	i rs-data @ i rs-tosstart - rs-init @ over <> if
+	    i rs-tosstart - cells #rp id!
 	    dup inst inst-s!-list @ slist-insert drop
-	    i rs-torstart - dup 0>= if
+	    i rs-tosstart - dup 0>= if
 		rs-init @ inst NULL inst tuck slist-insert drop
 		over il-depends !
 	    else
@@ -257,8 +310,15 @@ control-init
 	    drop
 	endif
     loop
-    \ update the data stackpointer
-    #rp rs-tor @ rs-torstart - basic-stackupdate ;
+    \ update the return stackpointer
+    #rp rs-tos @ rs-tosstart - basic-stackupdate ;
+
+: basic-stackdump ( -- )
+    \ dump the data stack
+    basic-datastackdump
+
+    \ dump the return stack
+    basic-returnstackdump ;
 
 : basic-print ( -- )
     ." BTREE PRINT" hex.s cr
@@ -311,8 +371,9 @@ constant nop-ml \ nop instruction, usable only after scheduling
     basic-head-ptr @ dp !
     assemble ;
 
->target-compile
-' #control@ alias cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
+>target
+: cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
+    #control@ ;
 
 : cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
     dup 1+ #control@ swap

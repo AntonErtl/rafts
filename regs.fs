@@ -18,126 +18,88 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$20 constant regs-useable
-regs-useable array regs-data
-regs-useable array regs-init
-
-@s0 constant #ip
-@s1 constant #sp
-@s2 constant #rp
-\ @s3 constant #fp
-\ @s4 constant #lp
-@s4 constant #cfa
-\ @s6 constant #up
-\ @s7 constant #tos
-\ @s8 constant #ftos
-
 -1 constant regs-unused
 
-\ initialize free registers
-: regs-initalize ( -- )
-    regs-useable 0 ?do
-	regs-unused i regs-init !
-    loop
-    0 @zero regs-init !	\ reserved registers
-    0 @at regs-init !
-    \ 0 @v0 regs-init !
-    \ 0 @v1 regs-init !
-    \ 0 @a0 regs-init !
-    \ 0 @a1 regs-init !
-    \ 0 @a2 regs-init !
-    \ 0 @a3 regs-init !
-    0 @k0 regs-init !
-    0 @k1 regs-init !
-    0 @gp regs-init !
-    0 @sp regs-init !
-    0 @s0 regs-init !		\ saved registers
-    0 @s1 regs-init !
-    0 @s2 regs-init !
-    0 @s3 regs-init !
-    0 @s4 regs-init !
-    0 @s5 regs-init !
-    0 @s6 regs-init !
-    0 @s7 regs-init !
-    0 @s8 regs-init !
-    0 @ra regs-init ! ;
-regs-initalize
+variable regs-free-set
 
-\ initialize free registers
 : regs-reset ( -- )
-    0 regs-init 0 regs-data regs-useable cells move ;
+\ initialize free registers
+    regs-freeable-set regs-free-set ! ;
 regs-reset
 
-: free-set ( -- w )
-    \ produces a bitset of (currently) free registers
-    \ relies on #regs<bits/cell
+: regs-set ( register -- )
+\ set register with used flag
+    regs-free-set tuck @
+    1 rot lshift invert and swap ! ;
+
+: regs-free ( register -- )
+\ set register with freed flag
+    regs-free-set tuck @
+    1 rot lshift or swap ! ;
+
+: regs-check ( n -- n | true )
+\ checkout first free register
     0
-    regs-useable 0 ?do
-	i regs-data @ regs-unused = if
-	    1 i lshift or
+    begin
+	over 0<>
+    while
+	over 1 and if
+	    nip exit
 	endif
-    loop ;
+	1+ swap 1 rshift swap
+    repeat
+    2drop true ;
 
-free-set constant freeable-set
-
-\ set register with use count
-: regs-set ( n register -- )
-    regs-data ! ;
-
+: regs-get ( -- register )
 \ get first free register
-: regs-get ( n -- register )
-    0				\ inital NO register is free
-    regs-useable 1 ?do
-	i regs-data @ -1 = if	\ check free register
-	    drop i leave
-	endif
-    loop
-    dup 0= abort" no more registers"
-    tuck regs-set ;
+    regs-free-set @ regs-check
+    dup true = abort" no more registers"
+    dup regs-set ;
 
-\ decrement use count
-: regs-inc ( register -- )
-    1 swap regs-data +! ;
-
-: regs-dec ( register -- )
-    -1 swap regs-data +! ;
-
-\ print out all registers, that are not free
 : regs-print ( -- )
-    ." regs:"
-    regs-useable 0 ?do
-	i regs-data @ dup 0> if
-	    2 i hexn. .
-	else
-	    dup -1 < if
-		2 i hexn. .
-	    else
-		drop
-	    endif
+\ print out all registers, that are not free
+    ." regs: ( " regs-free-set @ dup hex. ." ) "
+    invert regs-freeable-set and 0
+    begin
+	over 0<>
+    while
+	over 1 and if
+	    dup hex.
 	endif
-    loop
+	1+ swap 1 rshift swap
+    repeat
+    2drop
     cr ;
 
 ?test $0040 [IF]
 cr ." Test for regs.fs" cr
 
-1 regs-get ." regs-get:" . cr
-2 regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
 regs-print
-0 1 regs-set ." regs-set" cr
-0 2 regs-set ." regs-set" cr
-0 3 regs-set ." regs-set" cr
-1 4 regs-set ." regs-set" cr
-0 5 regs-set ." regs-set" cr
-1 regs-get ." regs-get:" . cr
+4 regs-set ." regs-set" cr
+5 regs-set ." regs-set" cr
+6 regs-set ." regs-set" cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
 regs-print
 
-4 regs-dec ." regs-dec" cr
-1 regs-get ." regs-get:" . cr
-4 regs-dec ." regs-dec" cr
-1 regs-get ." regs-get:" . cr
+4 regs-free ." regs-set" cr
+5 regs-free ." regs-set" cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
+regs-get ." regs-get:" . cr
 regs-print
 
 regs-reset
+hex.s cr
 finish
 [THEN]

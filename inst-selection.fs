@@ -41,6 +41,8 @@ inst-size array inst-pnodes
 
 \ functions for handling the instruction array
 : inst-init ( -- )
+    NIL inst inst-!-list !
+    NIL inst inst-@-list !
     0 inst-btrees inst-size cells 0 fill
     0 inst-lists inst-size cells 0 fill
     0 inst-nodes inst-size cells 0 fill
@@ -165,148 +167,8 @@ include node.fs
     1 over ml-cost !
     dup inst-nodes-insert-end ;
 
-: (asm-lval@) ( ml-addr -- ml-addr )
-    ml-left @ ;
-: (asm-rval@) ( ml-addr -- ml-addr )
-    ml-right @ ;
-: asm-val@ ( ml-addr -- n )
-    ml-val @ ;
-: asm-lval@ ( ml-addr -- val )
-    (asm-lval@) ml-val @ ;
-: asm-reg@ ( ml-addr -- register )
-    ml-reg @ ;
-: asm-lreg@ ( ml-addr -- register )
-    (asm-lval@) ml-reg @ ;
-: asm-rreg@ ( ml-addr -- register )
-    (asm-rval@) ml-reg @ ;
-
-: asm-nop ( ml-addr -- )
-    drop nop, ;
-
-: asm-lit ( ml-addr -- )
-    dup ml-reg @ swap ml-val @ li, ;
-
-: prep-load ( ml-addr -- rt offset rs )
-    >r
-    r@ ml-reg @
-    r@ ml-val @
-    r> ml-left @ ml-reg @ ;
-
-: asm-fetchc ( ml-addr -- )
-    prep-load lbu, ;
-
-: asm-fetchi ( ml-addr -- )
-    prep-load lw, ;
-
-: prep-store ( ml-addr -- rt offset rs )
-    >r
-    r@ ml-left @ ml-reg @
-    r@ ml-val @
-    r> ml-right @ ml-reg @ ;
-
-: asm-storec ( ml-addr -- )
-    prep-store sb, ;
-
-: asm-storei ( ml-addr -- )
-    prep-store sw, ;
-
-: asm-add ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ addu, ;
-
-: asm-addi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ addiu, ;
-
-: asm-sub ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ subu, ;
-
-\ !! two instructions
-: asm-mul ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ multu,
-    asm-reg@ mflo, ;
-
-: asm-div ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ div,
-    asm-reg@ mflo, ;
-
-: asm-mod ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ div,
-    asm-reg@ mfhi, ;
-
-: asm-neg ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ neg, ;
-
-: asm-abs ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ abs, ;
-
-: asm-and ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ and, ;
-
-: asm-andi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ andi, ;
-
-: asm-or ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ or, ;
-
-: asm-ori ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ ori, ;
-
-: asm-xor ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ xor, ;
-
-: asm-xori ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ xori, ;
-
-: asm-not ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ not, ;
-
-: asm-lsh ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ sllv, ;
-
-: asm-lshi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sll, ;
-
-: asm-rshu ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ srlv, ;
-
-: asm-rsh ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ srav, ;
-
-: asm-rshui ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ srl, ;
-
-: asm-rshi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sra, ;
-
-: asm-0branch ( ml-addr -- )
-    dup asm-lreg@ @zero rot asm-val@
-    here - cell- beq, ;
-
-: asm-branch ( ml-addr -- )
-    @zero @zero rot asm-val@
-    here - cell- beq, ;
-
-: asm-beq ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ rot asm-val@
-    here - cell- beq, ;
-
-: asm-seq ( ml-addr -- )
-    >r
-    r@ asm-reg@ r@ asm-lreg@ r> asm-rreg@ xor,
-    dup 1 sltiu, ;
-
-: asm-slt ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ slt, ;
-
-: asm-slti ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ slti, ;
-
-: asm-sltu ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ sltu, ;
-
-: asm-sltui ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sltiu, ;
-
-include grammar.fs
+include machine/grammar.fs
+include regs.fs
 
 : inst-print-node ( il -- )
     ." { "
@@ -382,7 +244,7 @@ include grammar.fs
 	endif
     endif ;
 
->target-compile
+>target
 : literal ( x -- D: addr )
     lit >data ; immediate compile-only
 >source
@@ -464,7 +326,6 @@ include grammar.fs
     endif
     ( ." printReduce2" hex.s cr ) ;
 
-
 : inst-selection-func ( il-addr -- )
     ?trace $0020 [IF]
 	." inst-selection:" hex.s cr
@@ -477,42 +338,6 @@ include grammar.fs
 
 : inst-selection ( -- )
     ['] inst-selection-func 0 inst-btrees inst-sequence ;
-
-\ register allocation
-: alloc-reg ( ml -- )
-\ allocate a register for the result of the ml, if necessary
-    dup ml-reg @ regs-unused = if
-	1 regs-get swap  ml-reg !
-    else
-	drop
-    endif ;
-
-: reg-freeable? ( reg -- f )
-\ returns true if register is freeable
-     assert( dup 0>= over regs-useable < and )
-     1 swap lshift freeable-set and 0<> ;
-
-: free-reg ( ml -- )
-\ return the register to the free ones (except 0, which stands for "no
-\ result register")
-    ml-reg @ dup reg-freeable? if
-	assert( dup 0> over regs-useable < and )
-	regs-unused swap regs-data !
-    else
-	drop
-    endif ;
-
-: register-allocation-func ( ml -- )
-    dup free-reg
-    dup ml-left @ ?dup 0<> if
-	alloc-reg
-    endif
-    ml-right @ ?dup 0<> if
-	alloc-reg
-    endif ;
-
-: register-allocation ( -- )
-    ['] register-allocation-func 0 inst-lists inst-sequence-reverse ;
 
 : assemble-func ( ml -- )
     \ dup print-ml

@@ -26,33 +26,18 @@
 #To do:
 #use $(srcdir) to make compilation in a non-srcdir possible
 
-VERSION	= 0.2.0#gforth version
+VERSION	= 0.2.1#gforth version
 SHELL	= /bin/sh
-RM	= rm -f
-CP	= cp
 INSTALL	= @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_DIR = ./install-sh -d
 LN_S	= @LN_S@
-GCC	= @CC@
-CC	= $(GCC)
-STRIP	= strip
 TEXI2DVI = texi2dvi
 DVI2PS	= dvips -D300
 #you can get texi2html from http://asis01.cern.ch/infohtml/texi2html.html
 TEXI2HTML = texi2html
 MAKEINFO = makeinfo
-XCFLAGS	= @CFLAGS@
-XDEFINES = @DEFS@
-SWITCHES = $(XCFLAGS) $(XDEFINES) #-DNDEBUG #turn off assertions
-DEBUGFLAG = @DEBUGFLAG@
-CFLAGS	= $(SWITCHES) $(DEBUGFLAG) -O2 -Wall
-
-XLDFLAGS = @LDFLAGS@
-GCCLDFLAGS = @GCCLDFLAGS@
-LDFLAGS	= -s $(DEBUGFLAG) $(XLDFLAGS) $(GCCLDFLAGS)
-LDLIBS	= @LIBS@
 
 VPATH	= @srcdir@
 prefix	= @prefix@
@@ -70,13 +55,9 @@ man1ext	= .1
 #older emacses have their site-lisp in $(libdir)/emacs/
 emacssitelispdir = $(datadir)/emacs/site-lisp
 
-YFLAGS	= -d
-YACC	= bison -y
-LEX	= flex -l
-
-BURG	= burg/burg
-BFEF	= burg/bfef
-BURGFLAGS = -d -= -I
+BURG		= burg/burg
+BFEF		= burg/bfef
+BURGFLAGS	= -d -= -I
 
 DIR		= examples
 
@@ -127,13 +108,17 @@ GEN_PRECIOUS = Makefile configure
 		-$(DIFF) $^ >$@
 .SUFFIXES:	.dmp .p1 .p2 .diff
 
-%.gr:		%.burg $(BFEF).awk
+%.gr:		%.burg $(BFEF) $(BFEF).awk
 		$(BFEF) $< >$@
 %.fs:		%.gr
 		$(BURG) -F $(BURGFLAGS) -o $@ $<
 .SUFFIXES:	.gr .fs
 
-all:		grammar.fs asm.fs disasm.fs
+all::		$(BURG)
+all::		machine/grammar.fs machine/asm.fs machine/disasm.fs
+
+$(BURG):
+		( cd burg; $(MAKE))
 
 dmp:		$(DMP)
 dmpclean:	
@@ -157,26 +142,31 @@ mostlyclean:	dmpclean diffclean
 		$(RM) *.aux *.log
 
 clean:		mostlyclean
+		( cd burg; $(MAKE) $<)
 		$(RM) *.dmp *.p1 *.p2 *.diff
 		$(RM) *.o core
 
 distclean:	clean
-		$(RM) header.fs
-		$(RM) grammar.burg grammar.gr grammar.fs
-		$(RM) asm.fs disasm.fs
+		( cd burg; $(MAKE) $<)
+		$(RM) machine/grammar.gr machine/grammar.fs machine
 		$(RM) config.cache config.log config.status Makefile
 
 realclean:	distclean
+		( cd burg; $(MAKE) $<)
 		$(RM) $(GEN)
 		$(RM) *.dvi
 
 dist:		$(SOURCES) $(DOCDIST)
+		( cd burg; $(MAKE) $<)
 
 install:	all
+		( cd burg; $(MAKE) $<)
 
 uninstall:
+		( cd burg; $(MAKE) $<)
 
 dvi:
+		( cd burg; $(MAKE) $<)
 
 # For an explanation of the following Makefile rules, see node
 # `Automatic Remaking' in GNU Autoconf documentation.
