@@ -86,6 +86,11 @@ defer compile,-does
 variable noname-state
 false noname-state !
 
+2variable branch-info \ contains the address of the last assembled branch
+		\ and the method ( target-addr branch-addr -- ) for patching it
+		\ so, for patching the last branch to jump to x one would do:
+		\ x branch-info 2@ execute
+
 include machine/asm.fs
 include machine/disasm.fs
 include basic.fs

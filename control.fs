@@ -18,36 +18,31 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: compile,-if ( flag -- ) ( C: -- orig )
-    data> I_0BRANCH uop 0 over il-reg !
+: compile-forward-branch ( il -- )
+    0 over il-reg !
     NULL over il-val !
     inst-btrees-insert-end
     basic-exit
-    here 2 cells - >control
+    branch-info 2@ drop >control
     ?trace $0010 [IF]
-	." if " .cs cr
+	." forward branch " .cs cr
     [THEN]
     basic-init ;
 
+: compile,-if ( flag -- ) ( C: -- orig )
+    data> I_0BRANCH uop
+    compile-forward-branch ;
+
 : compile,-ahead ( -- ) ( C: -- orig )
-    0 0 I_BRANCH terminal 0 over il-reg !
-    NULL over il-val !
-    inst-btrees-insert-end
-    basic-exit
-    here 2 cells - >control
-    ?trace $0010 [IF]
-	." ahead " .cs cr
-    [THEN]
-    basic-init ;
+    0 0 I_BRANCH terminal
+    compile-forward-branch ;
 
 : compile,-then ( -- ) ( C: orig -- )
     basic-exit
     ?trace $0010 [IF]
 	." then " hex.s .cs cr
     [THEN]
-    control>
-    dup here swap - cell- 2 rshift
-    over @ $ffff0000 and or swap !
+    here control> back-patch-beq
     basic-init ;
 >target
 
