@@ -64,8 +64,8 @@
     endif ;
 
 : ?inst-kids-done ( ml -- flag )
-    dup ?inst-depends-done 0<> if
-	dup ml-left @ ml-done? 0<> if
+    dup ?inst-depends-done if
+	dup ml-left @ ml-done? if
 	    ml-right @ ml-done?
 	else
 	    drop false

@@ -52,23 +52,25 @@
 	docol: of
 	['] compile,-interpreter
 	['] compile,-nonativext swap rot endof
-	>r dup >code-address
-	@ $1a asm-bitmask and 2 lshift case
-	    dodoes: $1a asm-bitmask and of
-	    \ dup ih-compile-xt @
-	    \ over ih-compiler @
-	    \ rot ih-interpreter @
-	    ['] compile,-interpreter
-	    ['] compile,-nonativext swap rot
-	    endof
-	    >r ['] compile,-interpreter
-	    ['] compile,-nonativext swap rot r>
-	endcase r>
+\	>r dup >code-address
+\	@ $1a asm-bitmask and 2 lshift case
+\	    dodoes: $1a asm-bitmask and of
+\	    \ dup ih-compile-xt @
+\	    \ over ih-compiler @
+\	    \ rot ih-interpreter @
+\	    ['] compile,-interpreter
+\	    ['] compile,-nonativext swap rot
+\	    endof
+\	    >r ['] compile,-interpreter
+\	    ['] compile,-nonativext swap rot r>
+\	endcase r>
+	>r ['] compile,-interpreter
+	['] compile,-nonativext swap rot r>
     endcase ;
 
 : :compile ( xt b -- xt xt xt )
     alias-mask and if
-	dup forthstart < over >does-code 0<> or if
+	dup forthstart < over >does-code or if
 	    ['] compile,-interpreter
 	    ['] compile,-nonativext swap rot
 	else
@@ -79,7 +81,7 @@
 		rot ih-interpreter @ endof
 		docode: of
 		2cells + @
-		dup forthstart < over >does-code 0<> or if
+		dup forthstart < over >does-code or if
 		    ['] compile,-interpreter
 		    ['] compile,-nonativext swap rot
 		else
@@ -152,13 +154,6 @@ word-good 0 0 vtarget :word dodoes:
 previous
 >source
 
-variable (lastih)
-: lastih ( -- addr )
-    (lastih) @ ;
-
-: lastih-init ( -- )
-    here (lastih) ! ;
-
 : word-call ( pfa -- )
     jal,
     nop, ;
@@ -215,13 +210,19 @@ variable (lastih)
 
 : compile-word-init-check ( -- )
     (word-init)
+    ?trace $0200 [IF]
+	0 basic-block !
+    [THEN]
     basic-init
     0 @ra I_REG terminal >return ;
 
 : compile-word-init ( -- )
     here basic-code-sav !
     basic-code-ptr @ dup dp !
-    swap 2cells + !
+    swap 2cells + tuck ! cell flush-icache
+    ?trace $0200 [IF]
+	0 basic-block !
+    [THEN]
     basic-init
     0 @ra I_REG terminal >return ;
 
@@ -283,14 +284,21 @@ variable (lastih)
     dup ih-status @ 0= if
 	dup ih-xt-addr @
 	over ih-#xt @ 0 ?do
-	    dup @ recurse
+	    dup @
+	    ?trace $0200 [IF]
+		dup look drop (lastnfa) !
+	    [THEN]
+	    recurse
 	    cell+
 	loop
 	drop
+	?trace $0200 [IF]
+	    dup look drop (lastnfa) !
+	[THEN]
 	dup ih-cfsize + execute
 	true over ih-status !
 	['] compile,-native over ih-compiler !
-	j,-docode: @ over !
+	j,-docode: over !
 	dup 2cells flush-icache
     endif
     drop ;
@@ -309,6 +317,7 @@ does>
     noname-state off
     header
     lastih-init
+    lastnfa-init
     word-init ]
 does>
     body> dup pass2
@@ -332,7 +341,7 @@ does>
 	ih-size disasm-dump
 	.cs regs-print cr
     [THEN]
-    cs-depth 0<> abort" unstructured"
+    cs-depth abort" unstructured"
     noname-state @ if
 	lastxt
     else
@@ -376,13 +385,6 @@ does>
 : (2constant) ( xt "name" -- )
     2 0 rot ['] (2constant-head) (header) ;
 
-: (defer-head)
-    \ rdrop
-    ih-cfsize + @ execute ;
-
-: (defer) ( xt "name" -- )
-    0 0 rot ['] (defer-head) (header) ;
-
 : (field-head)
     ih-cfsize + @ + ;
 
@@ -412,10 +414,6 @@ vtarget ' 2variable vsource alias 2user
 : 2constant ( n1 n2 "name" -- )
     ['] compile,-2constant (2constant)
     2, ;
-
-: defer ( "name" -- )
-    ['] compile,-defer (defer)
-    ['] noop , ;
 
 : field ( offset1 allign1 size align "name" -- offset2 align2 )
     ['] compile,-field (field)

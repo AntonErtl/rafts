@@ -41,7 +41,7 @@ regs-reset
 \ checkout first free register
     0
     begin
-	over 0<>
+	over
     while
 	over 1 and if
 	    nip exit
@@ -61,7 +61,7 @@ regs-reset
     ." regs: ( " regs-free-set @ dup hex. ." ) "
     invert regs-freeable-set and 0
     begin
-	over 0<>
+	over
     while
 	over 1 and if
 	    dup hex.

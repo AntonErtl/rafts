@@ -122,7 +122,8 @@ struct
     1 cells: field ih-xt-addr
     1 cells: field ih-#xt
     1 cells: field ih-#access
-    5 cells: field ih-buffer1
+    4 cells: field ih-buffer1
+    1 cells: field ih-does-xt
     1 cells: field ih-null
     1 cells: field ih-status
 end-struct ih-struct
@@ -141,7 +142,6 @@ defer compile,-2constant
 defer compile,-variable
 defer compile,-user
 defer compile,-field
-defer compile,-defer
 defer compile,-native
 defer compile,-does
 
@@ -152,6 +152,20 @@ noname-state off
 		\ and the method ( target-addr branch-addr -- ) for patching it
 		\ so, for patching the last branch to jump to x one would do:
 		\ x branch-info 2@ execute
+
+variable (lastih)
+: lastih ( -- addr )
+    (lastih) @ ;
+
+: lastih-init ( -- )
+    here (lastih) ! ;
+
+variable (lastnfa)
+: lastnfa ( -- addr )
+    (lastnfa) @ ;
+
+: lastnfa-init ( -- )
+    lastih look drop (lastnfa) ! ;
 
 \ variables for compile-xt stack
 $40 constant xt-size
@@ -197,12 +211,7 @@ xt-size array xt-data
 	dup name.
     [THEN]
     dup >xt
-    1 over ih-#access
-    ?trace $0001 [IF]
-	dup @ hex. cr
-    [THEN]
-    +!
-;
+    1 over ih-#access +! ;
 
 : compile,-nonativext ( xt -- xt )
     ;
@@ -260,8 +269,7 @@ is compile,-field-gforth
 	." compile,-defer (gforth): " dup name. hex.s cr
     [THEN]
     basic-exit
-    2cells + @
-    word-interpreter
+    2cells + @ word-interpreter
     basic-init ;
 is compile,-defer-gforth
 
@@ -312,20 +320,10 @@ is compile,-field
 
 :noname ( xt -- )
     ?trace $0001 [IF]
-	." compile,-defer: " dup name. hex.s cr
-    [THEN]
-    ih-cfsize + compile,-literal 0 compile-@
-    basic-exit
-    ['] execute word-interpreter
-    basic-init ;
-is compile,-defer
-
-:noname ( xt -- )
-    ?trace $0001 [IF]
 	." compile,-native: " dup name. hex.s cr
     [THEN]
+    NIL I_CALL terminal inst-btrees-insert-end
     basic-exit
-    word-native
     basic-init ;
 is compile,-native
 
@@ -334,9 +332,10 @@ is compile,-native
 	." compile,-native (does>): " hex.s cr
     [THEN]
     dup ih-cfsize + compile,-literal
+    ih-does-xt @ NIL I_CALL terminal inst-btrees-insert-end
     basic-exit
-    dup @ 2 lshift $1a asm-bitmask and swap $1a asm-bitmask invert and or
-    ih-cfsize + word-call
+    \ dup @ 2 lshift $1a asm-bitmask and swap $1a asm-bitmask invert and or
+    \ ih-cfsize + word-call
     basic-init ;
 is compile,-does
 
@@ -347,10 +346,7 @@ is compile,-does
 	dup >name .name
 	\ dup $10 - $40 dump
     [THEN]
-    \ dup hex. dup >name .name cr
-    dup ih-compile-xt @
-    \ dup $20 - $20 dump
-    execute
+    dup ih-compile-xt @ execute
     dup word-regs-read
     ?trace $0001 [IF]
 	\ word-regs-print
@@ -382,10 +378,9 @@ word-good 0 0 also vtarget :word compile, previous
     body>
     ." Vocabulary: "
     dup name.
-    \ dup $20 - $100 dump
     >body
     begin
-	@ dup 0<>
+	@ dup
     while
 	dup name>int hex.
 	dup .name
@@ -432,7 +427,13 @@ word-good 0 0 also vtarget :word compile, previous
 : >body ( cfa -- pfa )
     dup >code-address case
 	docode: of
-	ih-cfsize
+	dup 2cells + @ dup
+	>code-address dodefer: = if
+	    nip 2cells
+	else
+	    drop
+	    ih-cfsize
+	endif
 	endof
 	dodata: of
 	ih-cfsize
@@ -440,14 +441,7 @@ word-good 0 0 also vtarget :word compile, previous
 	docol: of
 	2cells
 	endof
-	dup >r
-	>code-address case
-	    dodoes: $3ffffff and of
-	    ih-cfsize
-	    endof
-	    >r 2cells r>
-	endcase 
-	r>
+	dup >r 2cells r>
     endcase
     + ;
 
@@ -485,6 +479,7 @@ cr ." Test for compiler.fs" cr
 finish
 [THEN]
 
+\ BBBUUUGGGYYY !!!
 ' also name>comp 2drop
 ' also >body body> drop
 
@@ -511,6 +506,7 @@ also vsource also Forth
  word-good 1 0 :word state
  word-good 0 0 :word printdebugdata
  word-good 0 -1 :word .name
+ word-good 1 -2 :word name>string
  word-good 0 0 :word .s
  word-good 0 -2 :word .r
  word-good 0 -1 :word ,
@@ -536,6 +532,7 @@ word-good 0 0 :word ((name>))
  word-good 2 -2 :word #
  word-good 2 -2 :word #s
  word-good 2 -2 :word #>
+ word-good 1 0 :word #bs
  word-good 1 0 :word #cr
  word-good 1 0 :word #ff
  word-good 1 0 :word #lf
@@ -572,6 +569,7 @@ word-good 0 0 :word dp
  word-good 1 0 :word dovar:
  word-good 0 -2 :word dump
  word-good 0 -2 :word d.
+ word-good 0 -2 :word d.r
  word-good 0 -1 :word emit
 word-good 0 0 :word erase
 word-good 0 0 :word evaluate
@@ -637,10 +635,10 @@ word-good 0 0 :word sm/rem
 word-good 0 0 :word source
 word-good 0 0 :word threading-method
 word-good 0 0 :word throw
- word-good 0 -2 :word type
  word-good 0 -1 :word u.
 word-good 0 0 :word um/mod
 word-good 0 0 :word um*
+word-good 0 0 :word within
 word-good 0 0 :word word
 word-good 0 0 :word wordlist
 word-good 0 -1 :word [IF]
@@ -664,7 +662,6 @@ previous
  word-good 0 0 :word ?trace
  word-good 0 -1 :word constant
  word-good 0 0 :word create
- word-good 0 0 :word defer
  word-good 0 -2 :word disasm-dump
  word-good 1 -1 :word field
  word-good 0 0 :word finish
@@ -691,7 +688,12 @@ previous
 does>
     context ! ;
 
-: is
+: defer ( xt "name" -- )
+    create 0 ,
+does>
+    @ execute ;
+
+: is ( xt "name" -- )
     ' >body ! ;
 
 : bye ( -- )
@@ -701,9 +703,9 @@ does>
 	    . loop
 	cr
     [THEN]
-    ?trace $0001 [IF]
-	vsource ['] voc-target vtarget >body vlist
-	vsource ['] vvv vtarget >body vlist
+    ?trace $4000 [IF]
+	\ vsource ['] voc-target vtarget >body vlist
+	\ vsource ['] vvv vtarget >body vlist
     [THEN]
     bye ;
 

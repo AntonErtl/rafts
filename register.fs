@@ -31,7 +31,7 @@ variable tos-register
 
 : freeable-reg ( reg -- flag )
 \ returns true if register is freeable
-     1 swap lshift regs-freeable-set and 0<> ;
+     1 swap lshift regs-freeable-set and ;
 
 : free-tos ( reg tos-reg -- )
     drop dup #tos - ds-init @
@@ -73,10 +73,10 @@ variable tos-register
 : register-allocation-func ( ml -- )
 \ register allocation for one instruction tree
     dup free-reg
-    dup ml-left @ ?dup 0<> if
+    dup ml-left @ ?dup if
 	alloc-reg
     endif
-    ml-right @ ?dup 0<> if
+    ml-right @ ?dup if
 	alloc-reg
     endif ;
 

@@ -25,7 +25,7 @@
     threading-method 0= ; immediate
 
 : ?word-mode-indirect ( -- flag )
-    threading-method 0<> ; immediate
+    threading-method ; immediate
 
 $0000 constant trace-const	\ no trace
 \ $0a71 constant trace-const	\ trace what you want
@@ -52,7 +52,7 @@ $0000 constant test-const	\ no test
     trace-const and ;
 
 : ?trace ( "n" -- flag )
-    name snumber? dup 0<> if
+    name snumber? dup if
 	drop trace
     endif ; immediate
 
@@ -61,7 +61,7 @@ $0000 constant test-const	\ no test
     test-const and ;
 
 : ?test ( "n" -- flag )
-    name snumber? dup 0<> if
+    name snumber? dup if
 	drop test
     endif ; immediate
 

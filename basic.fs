@@ -19,16 +19,21 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 \ variables for compile-time data stack
-$20 constant ds-size
-ds-size 2/ constant ds-tosstart
+$40 constant ds-size
+ds-size 2/ constant ds-tos-start
 variable ds-tos
+variable ds-tos-bottom
 \ compile-time data stack pointer
 ds-size array ds-data
 ds-size 2/ array ds-init
 
 \ functions for handling the compile-time data stack
 : #data@ ( n -- x )
-    ds-tos @ + ds-data @ ;
+    ds-tos-bottom @
+    ds-tos @ rot + tuck <= if
+	dup 1+ ds-tos-bottom !
+    endif
+    ds-data @ ;
 
 : #data! ( x n -- )
     ds-tos @ + ds-data ! ;
@@ -51,15 +56,23 @@ ds-size 2/ array ds-init
 
 \ variables for compile-time return stack
 $20 constant rs-size
-rs-size 2/ constant rs-tosstart
+rs-size 2/ constant rs-tos-start
 variable rs-tos
+variable rs-tos-bottom
 \ compile-time return stack pointer
 rs-size array rs-data
 rs-size 2/ array rs-init
 
 \ functions for handling the compile-time return stack
 : #return@ ( n -- x )
-    rs-tos @ + rs-data @ ;
+    rs-tos-bottom @
+    rs-tos @ rot + tuck <= if
+	dup 1+ rs-tos-bottom !
+    endif
+    rs-data @
+
+    \ rs-tos @ + rs-data @
+;
 
 : #return! ( x n -- )
     rs-tos @ + rs-data ! ;
@@ -128,6 +141,8 @@ cs-size 1- cs-tos !
     loop
     drop ;
 
+       variable basic-block
+
        variable basic-code-ptr
        variable basic-code-sav
 $20000 constant basic-code
@@ -148,49 +163,55 @@ variable inst-!-list
 \ contains the last !
 variable inst-@-list
 \ contains the last ! and all @ since the last !
-variable inst-s!-list
+variable inst-ds!-list
 \ contains all stores to the data stack (and all loads)
+variable inst-rs!-list
+\ contains all stores to the return stack (and all loads)
 
 include inst-selection.fs
 include inst-scheduling.fs
 include register.fs
 
-: data-init-stack ( register addr n -- )
-    swap
+: data-init-stack ( register addr -- )
     \ assign the top of stack elements to a register
     #tos tos-#register + #tos ?do
-	i register-terminal 2dup swap !
-	inst inst-s!-list @ slist-insert drop
+	i register-terminal over !
 	cell+
     loop
-    swap
-    tos-#register ?do ( register addr )
+    ds-tos-bottom @ ds-tos-start - tos-#register ?do ( register addr )
 	i cells 2 pick id@ ( register addr node )
-	dup inst inst-s!-list @ slist-insert drop
+	\ dup inst inst-ds!-list @ slist-insert drop
 	over !
 	cell+
     loop
     2drop ;
 
 : data-init ( -- )
-    ds-tosstart ds-tos !
-    NIL inst inst-s!-list !
-    #sp 0 ds-init ds-size 2/ data-init-stack
+    ds-tos-start ds-tos !
+    NIL inst inst-ds!-list !
+    #sp 0 ds-init data-init-stack
     0 ds-init ds-size 2/ dup ds-data swap cells move ;
+ds-size ds-tos-bottom !
+data-init
+ds-tos-start tos-#register + ds-tos-bottom !
 
-: return-init-stack ( register addr n -- )
-    0 ?do ( register addr )
+: return-init-stack ( register addr -- )
+    rs-tos-bottom @ rs-tos-start - 0 ?do ( register addr )
 	i cells 2 pick id@ ( register addr node )
-	dup inst inst-s!-list @ slist-insert drop
+	\ dup inst inst-rs!-list @ slist-insert drop
 	over !
 	cell+
     loop
     2drop ;
 
 : return-init ( -- )
-    rs-tosstart rs-tos !
-    #rp 0 rs-init rs-size 2/ return-init-stack
+    rs-tos-start rs-tos !
+    NIL inst inst-rs!-list !
+    #rp 0 rs-init return-init-stack
     0 rs-init rs-size 2/ dup rs-data swap cells move ;
+rs-size rs-tos-bottom !
+return-init
+rs-tos-start rs-tos-bottom !
 
 : control-init ( -- )
     0 cs-data cs-size cells NULL fill ;
@@ -199,7 +220,8 @@ control-init
 \ initial a basic block
 : basic-init ( -- )
     ?trace $0020 [IF]
-	." basic-init " here hex. cr
+	." BASIC-INIT{ " basic-block ? here hex. cr
+	1 basic-block +!
     [THEN]
     \ regs-reset
     here basic-head-sav !
@@ -216,33 +238,42 @@ control-init
 : (basic-stackupdate) ( val register -- )
     >r regs-unused I_LITS terminal
     0 r@ I_REG terminal
-    I_PLUS op inst-s!-list @ over il-depends !
+    r@ #sp = if
+	I_PLUS op inst-ds!-list @ over il-depends !
+    else
+	I_PLUS op inst-rs!-list @ over il-depends !
+    endif
     r> over il-reg ! inst-btrees-insert-end ;
 
 : basic-stackupdate ( register n -- )
     ?trace $0100 [IF]
 	." stack update:" 2dup . . cr
     [THEN]
-    dup 0<> if
+    dup if
 	cells swap (basic-stackupdate)
     else
 	2drop
     endif ;
 
 : basic-datastackdump-print ( -- )
-    ds-size 2/ 0 ?do
-	i ds-init @ dup hex.
-	inst-print-node
-    loop
-    cr
     ds-size 0 ?do
-	i ds-data @ dup hex. ?dup if
-	    inst-print-node
+	i ds-size 2/ >= if
+	    i ds-size 2/ - ds-init @
+	    i ds-data @ tuck = if
+		drop
+	    else
+		?dup if
+		    il-print
+		endif
+	    endif
 	else
-	    cr
+	    i ds-data @ ?dup if
+		il-print
+	    endif
 	endif
     loop
     cr
+    ." TOS-bottom:" ds-tos-bottom @ . cr
     ." TOS:" ds-tos @ . cr ;
 
 : basic-datastackdump-new ( il-addr n -- )
@@ -251,7 +282,7 @@ control-init
 	." STACKDUMP (new):" hex.s cr
     [THEN]
     cells #sp id!
-    dup inst inst-s!-list @ slist-insert drop
+    dup inst inst-ds!-list @ slist-insert drop
     inst-btrees-insert ;
 
 : basic-datastackdump-old ( il-addr n -- )
@@ -260,49 +291,42 @@ control-init
 	." STACKDUMP (old):" hex.s cr
     [THEN]
     tuck cells #sp id!
-    dup inst inst-s!-list @ slist-insert drop
+    dup inst inst-ds!-list @ slist-insert drop
     swap ds-init @ inst NULL inst tuck slist-insert drop
     over il-depends !
     inst-btrees-insert ;
 
 : basic-datastackdump ( -- )
-    ds-tos @ ds-tosstart - >r
+    ds-tos @ ds-tos-start - >r
     ?trace $0100 [IF]
 	basic-datastackdump-print
     [THEN]
 
+    \ dump the data stackregisters
     #tos tos-#register + #tos ?do
 	data>
-	false
-	tos-#register 0 ?do
-	    over i ds-init @ = or
-	loop
-	over il-reg @ regs-unused <> or if
-	    register-move
-	endif
-	i over il-reg !
-	dup inst inst-s!-list @ slist-insert drop
-	i #tos - ds-init @ inst
-	over il-depends
-	dup @ dup il-depends-init = if
-	    drop >r
-	    NULL inst tuck slist-insert drop
-	    r> !
+	dup i #tos - ds-init @ = if
+	    drop
 	else
-	    nip
-	    slist-insert drop
+	    dup il-op @ I_MOVE =
+	    over il-reg @ regs-unused = or if
+		register-move
+	    endif
+	    i over il-reg !
+	    dup
+	    i #tos - ds-init @ inst NIL inst tuck slist-insert drop
+	    swap il-depends !
+	    inst-btrees-insert
 	endif
-	inst-btrees-insert
     loop
-    
+
     \ dump the data stack
-    ds-size ds-tos @
-    ?do
+    ds-tos-bottom @ ds-tos-start - ds-tos @ ds-tos-start - ?do
 	?trace $0100 [IF]
-	    ." STACKDUMP (data):" i . hex.s cr
+	    ." STACKDUMP (data):" i ds-tos-start + . hex.s cr
 	[THEN]
 	data>
-	i ds-tosstart - dup 0< if
+	i dup 0< if
 	    \ new stackelements
 	    basic-datastackdump-new
 	else
@@ -322,19 +346,49 @@ control-init
 	    endif
 	endif
     loop
+
     \ update the data stackpointer
+    ds-tos-bottom @ ds-tos-start - tos-#register ?do
+	i ds-init @ inst inst-ds!-list @ slist-insert drop
+    loop
     #sp r> basic-stackupdate ;
 
+: basic-returnstackdump-print ( -- )
+    rs-size 0 ?do
+	i rs-size 2/ >= if
+	    i rs-size 2/ - rs-init @
+	    i rs-data @ tuck = if
+		drop
+	    else
+		?dup if
+		    il-print
+		endif
+	    endif
+	else
+	    i rs-data @ ?dup if
+		il-print
+	    endif
+	endif
+    loop
+    cr
+    ." TOR-bottom:" rs-tos-bottom @ . cr
+    ." TOR:" rs-tos @ . cr ;
+
 : basic-returnstackdump ( -- )
+    rs-tos @ rs-tos-start - >r
+    ?trace $0100 [IF]
+	basic-returnstackdump-print
+    [THEN]
+
     \ dump the return stack
-    rs-size rs-tos @ ?do
+    rs-tos-bottom @ rs-tos-start - rs-tos @ rs-tos-start - ?do
 	?trace $0100 [IF]
-	    ." STACKDUMP (return):" i . hex.s cr
+	    ." STACKDUMP (return):" i rs-tos-start + . hex.s cr
 	[THEN]
-	i rs-data @ i rs-tosstart - rs-init @ over <> if
-	    i rs-tosstart - cells #rp id!
-	    dup inst inst-s!-list @ slist-insert drop
-	    i rs-tosstart - dup 0>= if
+	return> i rs-init @ over <> if
+	    i cells #rp id!
+	    dup inst inst-rs!-list @ slist-insert drop
+	    i dup 0>= if
 		rs-init @ inst NULL inst tuck slist-insert drop
 		over il-depends !
 	    else
@@ -345,8 +399,12 @@ control-init
 	    drop
 	endif
     loop
+
     \ update the return stackpointer
-    #rp rs-tos @ rs-tosstart - basic-stackupdate ;
+    rs-tos-bottom @ rs-tos-start - 0 ?do
+	i rs-init @ inst inst-rs!-list @ slist-insert drop
+    loop
+    #rp r> basic-stackupdate ;
 
 : basic-stackdump ( -- )
     \ dump the data stack
@@ -373,13 +431,13 @@ constant nop-ml \ nop instruction, usable only after scheduling
 
 : basic-exit ( -- )
     ?trace $0020 [IF]
-	." BASIC-EXIT " hex.s cr
+	." BASIC-EXIT} " hex.s cr
     [THEN]
     basic-stackdump
 
     ?trace $0200 [IF]
 	basic-print
-	." }BASIC-EXIT " here hex. cr
+	." BASIC-EXIT} " here hex. cr
 	." INST SELECTION" hex.s cr
     [THEN]
     inst-selection

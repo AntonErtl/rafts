@@ -32,11 +32,11 @@
 
 \ stack primitives
 >source
-also vtarget
+also vtarget also Forth
 word-good 1 -1 :word pick
 word-good 1 -1 :word roll
 \ word-bad 1 -1 :word dup?
-previous
+previous previous
 
 : compile-drop					( addr -- ) ( D: x1 -- )
     drop
@@ -83,7 +83,7 @@ false [IF]
 : compile-?dups					 ( addr -- ) ( D: x -- 0 | x x )
     drop
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
-	dup il-val @ 0<> if
+	dup il-val @ if
 	    dup
 	    >data >data
 	else
@@ -435,7 +435,9 @@ create text-data
     2r> tuck - flush-icache ;
 >target
 
-word-good 0 0 also vtarget :word type previous
+also vtarget also Forth
+word-good 0 0 :word type
+previous previous
 
 >source
 : gforth-s" ( "string"<"> -- )
@@ -450,7 +452,7 @@ word-good 0 0 also vtarget :word type previous
 : compile,-." ( addr -- )
     count
     swap compile,-literal compile,-literal
-    ['] type compile,-interpreter ;
+    vtarget ['] type vsource compile,-interpreter ;
 : (compile,-abort") ( addr -- )
     "error !
     if
@@ -458,7 +460,9 @@ word-good 0 0 also vtarget :word type previous
     endif ;
 >target
 
-word-good 0 0 also vtarget :word (compile,-abort") previous
+also vtarget
+word-good 0 0 :word (compile,-abort")
+previous
 
 >source
 : compile,-abort" ( addr -- )
@@ -499,7 +503,9 @@ word-good 0 0 also vtarget :word (compile,-abort") previous
     printdebugdata cr ;
 >target
 
-word-good 0 0 also vtarget :word (~~) previous
+also vtarget
+word-good 0 0 :word (~~)
+previous
 
 : ~~ ( -- )
     sourcepos,
@@ -519,7 +525,9 @@ word-good 0 0 also vtarget :word (~~) previous
     endif ;
 >target
 
-word-good 0 0 also vtarget :word (endassert) previous
+also vtarget
+word-good 0 0 :word (endassert)
+previous
 
 : assert0( ( -- )
     0 assertn ; immediate

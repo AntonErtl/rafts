@@ -287,7 +287,7 @@ ls-size array ls-data
 
 : compile-leave-exit ( -- )
     begin
-	leave> dup 0<>
+	leave> dup
     while
 	0 0 >control
 	compile-then
@@ -296,7 +296,7 @@ ls-size array ls-data
 
 : intermediate-leave-exit ( -- )
     begin
-	leave> dup 0<>
+	leave> dup
     while
 	drop
 	intermediate-then
@@ -423,10 +423,21 @@ create does-addr
 : !does ( addr -- )
     word-regs-init dup word-regs-read lastih word-regs-write
     ?word-mode-direct [IF]
-	2 rshift $1a asm-bitmask and $08000000 or
+	j,-docode:
     [THEN]
     lastxt tuck !
-    3cells + ['] compile,-does swap !
+    over swap ih-does-xt !
+    here basic-code-sav !
+    basic-code-ptr @ dp !
+    basic-init
+    lastxt ih-cfsize + compile,-literal
+    ih-cfsize + 0 I_BRANCH terminal inst-btrees-insert-end
+    basic-exit
+    basic-code-ptr @ dup here over - flush-icache
+    here basic-code-ptr !
+    basic-code-sav @ dp !
+    lastxt 2cells + !
+    ['] compile,-does lastxt 3cells + !
     here lastxt tuck - flush-icache ;
 
 : dodoes, ( -- )
@@ -443,7 +454,9 @@ create does-addr
     !does ;
 >target
 
-word-good 0 0 also vtarget :word ;dodoes previous
+also vtarget
+word-good 0 0 :word ;dodoes
+previous
 
 >source
 : compile-does> ( -- )
