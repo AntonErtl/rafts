@@ -21,62 +21,51 @@
 : ?shared ( "name" -- flag )
   bl word find nip 0= ;
 
-$0001 constant func_mode_direct
-$0002 constant func_mode_indirect
-func_mode_direct constant func_mode_const
-\ func_mode_indirect constant func_mode_const
+: ?word-mode-direct ( -- flag )
+    threading-method 0= ; immediate
 
-: func_mode ( n -- flag )
-  func_mode_const and ;
+: ?word-mode-indirect ( -- flag )
+    threading-method 0<> ; immediate
 
-: ?func_mode_direct ( -- flag )
-  func_mode_direct func_mode ; immediate
+$0000 constant trace-const	\ no trace
+\ $0a71 constant trace-const	\ trace what you want
+\ $0001 constant trace-const	\ trace compiler
+\ $0002 constant trace-const	\ trace compiler
+\ $0003 constant trace-const	\ trace compiler (more)
+\ $0010 constant trace-const	\ trace controll
+\ $0020 constant trace-const	\ trace inst-selection
+\ $0040 constant trace-const	\ trace inst-scheduling
+\ $0500 constant trace-const	\ trace basics
+\ $0810 constant trace-const	\ trace disasambler
+\ $c000 constant trace-const	\ trace wordlists
+\ $ffff constant trace-const	\ trace all
 
-: ?func_mode_indirect ( -- flag )
-  func_mode_indirect func_mode ; immediate
-
-$0000 constant trace_const	\ no trace
-\ $0a71 constant trace_const	\ trace what you want
-\ $0001 constant trace_const	\ trace compiler
-\ $0002 constant trace_const	\ trace compiler
-\ $0003 constant trace_const	\ trace compiler (more)
-\ $0010 constant trace_const	\ trace controll
-\ $0020 constant trace_const	\ trace inst-selection
-\ $0040 constant trace_const	\ trace inst-scheduling
-\ $0500 constant trace_const	\ trace basics
-\ $0810 constant trace_const	\ trace disasambler
-\ $c000 constant trace_const	\ trace wordlists
-\ $ffff constant trace_const	\ trace all
-
-$0000 constant test_const	\ no test
-\ $0040 constant test_const	\ test what you want
-\ $0080 constant test_const	\ test asambler and disasambler
-\ $1f00 constant test_const	\ test stdlib
-\ $ffff constant test_const	\ test all
+$0000 constant test-const	\ no test
+\ $0040 constant test-const	\ test what you want
+\ $0080 constant test-const	\ test asambler and disasambler
+\ $1f00 constant test-const	\ test stdlib
+\ $ffff constant test-const	\ test all
 
 \ function to enable trace during execution
 : trace ( n -- flag )
-  trace_const and ;
+    trace-const and ;
 
 : ?trace ( "n" -- flag )
-  name snumber?  dup 0<> if
-    drop trace endif ; immediate
+    name snumber?  dup 0<> if
+	drop trace
+    endif ; immediate
 
 \ function to enable tests on compiler-files
 : test ( n -- flag )
-  test_const and ;
+    test-const and ;
 
 : ?test ( "n" -- flag )
-  name snumber?  dup 0<> if
-    drop test endif ; immediate
-
-bl word oooppp find nip 0<> [IF]
-." op.fs include" cr
-include op.fs
-[THEN]
+    name snumber? dup 0<> if
+	drop test
+    endif ; immediate
 
 ?test $0001 [IF]
 cr ." Test for options.fs" cr
 
-\ finish
+finish
 [THEN]

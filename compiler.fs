@@ -20,260 +20,317 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-vocabulary voc_source
+vocabulary voc-source
 \ basically the host-residing words, but may be called from target words
-vocabulary voc_target
+vocabulary voc-target
 \ all words compiled by the target, and a few more
-vocabulary voc_target_compile
+vocabulary voc-target-compile
 \ compilation semantics of "primitives" and other words visible in "compile state"
 
-voc_source also definitions
+voc-source also definitions
 
 include options.fs
 include stdlib/stdlib.fs
 
 : vForth ( -- )
-  Forth ; restrict immediate
+    Forth ; restrict immediate
 
 : vsource ( -- )
-  voc_source ; restrict immediate
-
+    voc-source ; restrict immediate
 : >source ( -- )
-  also voc_source definitions previous ;
-
+    also voc-source definitions previous ;
 : source> ( -- )
-  voc_source also ;
+    voc-source also ;
 
 : vtarget ( -- )
-  voc_target ; restrict immediate
-
+    voc-target ; restrict immediate
 : >target ( -- )
-  also voc_target definitions previous ;
-
+    also voc-target definitions previous ;
 : target> ( -- )
-  voc_target also ;
+    voc-target also ;
 
-: vtarget_compile ( -- )
-  voc_target_compile ; restrict immediate
+: vtarget-compile ( -- )
+    voc-target-compile ; restrict immediate
+: >target-compile ( -- )
+    also voc-target-compile definitions previous ;
+: target-compile> ( -- )
+    also voc-target-compile also ;
 
-: >target_compile ( -- )
-  also voc_target_compile definitions previous ;
-
-: target_compile> ( -- )
-  also voc_target_compile also ;
-
-include mips/r3000.asm.fs
-include mips/r3000.disasm.fs
+include asm.fs
+include disasm.fs
 include basic.fs
 
-: interpreter ( c_addr u -- )
-?trace $0002 [IF]
-  ." INTER:" 2dup type cr
-[THEN]
-  2dup sfind
-?trace $0001 [IF]
-  order cr
-  hex.s cr
-[THEN]
-  1 and if nip nip
-?trace $0001 [IF]
-    ." interpreter:" dup name.
-    dup hex. dup >code-address hex. cr
-[THEN]
-    execute 
-  else
-    snumber? 0= if
-      interpreter-notfound endif endif ;
+: interpreter-default ( c-addr u xt -- )
+    nip nip
+    ?trace $0001 [IF]
+	." interpreter:" dup name.
+	dup hex. dup >code-address hex. cr
+    [THEN]
+    execute ;
+
+: interpreter ( c-addr u -- )
+    ?trace $0002 [IF]
+	." INTER:" 2dup type cr
+    [THEN]
+    2dup sfind
+    ?trace $0001 [IF]
+	order cr
+	hex.s cr
+    [THEN]
+    1 and if
+	interpreter-default
+    else
+	snumber? 0= if
+	    interpreter-notfound
+	endif
+    endif ;
+
+: compile,-constant ( xt -- )
+    ?trace $0001 [IF]
+	." constant:" hex.s
+    [THEN]
+    execute vtarget-compile postpone literal vsource ;
+
+: compile,-variable ( xt -- )
+    ?trace $0001 [IF]
+	." variable:" hex.s cr
+    [THEN]
+    execute vtarget-compile postpone literal vsource ;
+
+: compile,-user ( xt -- )
+    ?trace $0001 [IF]
+	." user:" hex.s cr
+    [THEN]
+    execute vtarget-compile postpone literal vsource ;
+
+: compile,-interpreter ( xt -- )
+    ?trace $0001 [IF]
+	." FUNC-INTERPRETER:" hex.s cr
+    [THEN]
+    basic-exit
+    word-interpreter
+    basic-init ;
+
+: compile,-forth ( xt -- )
+    ?trace $0001 [IF]
+	." FUNC-INTERPRETER (FORTH):" hex.s cr
+    [THEN]
+    basic-exit
+    word-interpreter
+    basic-init ;
+
+: compile,-defer ( xt -- )
+    ?trace $0001 [IF]
+	." FUNC-DEFER:" hex.s cr
+    [THEN]
+    basic-exit
+    word-interpreter
+    basic-init ;
+
+: compile,-struct ( xt -- )
+    ?trace $0001 [IF]
+	." FUNC-STRUC:" hex.s cr
+    [THEN]
+    2 cells + @ vtarget-compile postpone literal vsource dostruc @
+    execute ;
+
+: compile,-native ( xt -- )
+    ?trace $0001 [IF]
+	." FUNC-NATIVE:" hex.s cr
+    [THEN]
+    basic-exit
+    word-native
+    basic-init ;
+
+: compile,-native-does ( xt ca -- )
+    ?trace $0001 [IF]
+	." FUNC-NATIVE (DOES>):" hex.s cr
+    [THEN]
+    swap 2 cells + vtarget-compile postpone literal vsource basic-exit
+    word-native
+    basic-init ;
+
+: compile,-interpreter-does ( xt ca -- )
+    drop
+    ?trace $0001 [IF]
+	." FUNC-INTERPRETER (DOES>):" hex.s cr
+    [THEN]
+    basic-exit
+    word-interpreter
+    basic-init ;
+
+: compile,-does ( xt ca -- )
+    over >does-code 0= if \ !! defaults to native-code does> handler, interpreter would be better
+	compile,-native-does
+    else
+	compile,-interpreter-does
+    endif ;
 
 : compile, ( xt -- )
-  dup forthstart u> if
-    dup >code-address
-    case
-      docon: of
-?trace $0001 [IF]
-        ." constant:" hex.s
-[THEN]
-        execute vtarget_compile postpone literal vsource endof
-      dovar: of
-?trace $0001 [IF]
-        ." variable:" hex.s cr
-[THEN]
-        execute vtarget_compile postpone literal vsource endof
-      douser: of
-?trace $0001 [IF]
-        ." user:" hex.s cr
-[THEN]
-        execute vtarget_compile postpone literal vsource endof
-      docol: of
-?trace $0001 [IF]
-        ." FUNC_INTERPRETER:" hex.s cr
-[THEN]
-        basic_exit
-        func_interpreter
-        basic_init endof
-      dodefer: of
-?trace $0001 [IF]
-        ." FUNC_DEFER:" hex.s cr
-[THEN]
-	basic_exit
-        func_interpreter
-        basic_init endof
-\	2 cells +
-\        vtarget_compile postpone literal vsource
-\	['] @ recurse
-\        ['] execute recurse endof
-      dofield: of
-?trace $0001 [IF]
-        ." FUNC_STRUC:" hex.s cr
-[THEN]
-	2 cells + @ vtarget_compile postpone literal vsource dostruc @
-	execute
-	endof
-      docode: of
-?trace $0001 [IF]
-        ." FUNC_NATIVE:" hex.s cr
-[THEN]
-        basic_exit
-        func_native
-        basic_init endof
-      dup >r
-      over >does-code 0= if \ !! defaults to native-code does> handler, interpreter would be better
-?trace $0001 [IF]
-        ." FUNC_NATIVE (DOES>):" hex.s cr
-[THEN]
-	swap 2 cells + vtarget_compile postpone literal vsource basic_exit
-        func_native
-        basic_init else
-	drop
-?trace $0001 [IF]
-        ." FUNC_INTERPRETER (DOES>):" hex.s cr
-[THEN]
-        basic_exit
-        func_interpreter
-        basic_init endif
-      r>
-    endcase else
-?trace $0001 [IF]
-    ." FUNC_INTERPRETER (FORTH):" hex.s cr
-[THEN]
-    basic_exit
-    func_interpreter
-    basic_init endif ;
+    dup forthstart u> if
+	dup >code-address case
+	    docon: of
+	    compile,-constant endof
+	    dovar: of
+	    compile,-variable endof
+	    douser: of
+	    compile,-user endof
+	    dofield: of
+	    compile,-struct endof
+	    dodefer: of
+	    compile,-defer endof
+	    docol: of
+	    compile,-interpreter endof
+	    docode: of
+	    compile,-native endof
+	    dup >r compile,-does r>
+	endcase
+    else
+	compile,-forth
+    endif ;
 
-: compiler ( c_addr u -- )
-?trace $0002 [IF]
-  ." COMP:" 2dup type cr
-[THEN]
-  2dup sfind
-?trace $0001 [IF]
-  order cr hex.s cr
-[THEN]
-  case
-    2 of nip nip
-?trace $0001 [IF]
-      ." compiler (restrict&immediate):" dup name.
-      dup hex. dup >code-address hex. cr
-[THEN]
-      execute endof
-    -2 of nip nip
-?trace $0001 [IF]
-      ." compiler (restrict):" dup name.
-      dup hex. dup >code-address hex. cr
-[THEN]
-      compile, endof
-    1 of nip nip
-?trace $0001 [IF]
-      ." compiler (immediate):" dup name.
-      dup hex. dup >code-address hex. cr
-[THEN]
-      execute endof
-    -1 of nip nip
-?trace $0001 [IF]
-      ." compiler:" dup name.
-      dup hex. dup >code-address hex. cr
-[THEN]
-      compile, endof
-    0 of
-      snumber? 0<> if
-?trace $0001 [IF]
-        ." number:" dup hex. cr
-[THEN]
-        vtarget_compile postpone literal vsource else
-        compiler-notfound endif endof
-  endcase ;
+: compiler-rest&imm ( c-addr u xt -- )
+    nip nip
+    ?trace $0001 [IF]
+	." compiler (restrict&immediate):" dup name.
+	dup hex. dup >code-address hex. cr
+    [THEN]
+    execute ;
+
+: compiler-rest ( c-addr u xt -- )
+    nip nip
+    ?trace $0001 [IF]
+	." compiler (restrict):" dup name.
+	dup hex. dup >code-address hex. cr
+    [THEN]
+    compile, ;
+
+: compiler-imm ( c-addr u xt -- )
+    nip nip
+    ?trace $0001 [IF]
+	." compiler (immediate):" dup name.
+	dup hex. dup >code-address hex. cr
+    [THEN]
+    execute ;
+
+: compiler-default ( c-addr u xt -- )
+    nip nip
+    ?trace $0001 [IF]
+	." compiler:" dup name.
+	dup hex. dup >code-address hex. cr
+    [THEN]
+    compile, ;
+
+: compiler-number ( n -- )
+    ?trace $0001 [IF]
+	." number:" dup hex. cr
+    [THEN]
+    vtarget-compile postpone literal vsource ;
+
+: compiler ( c-addr u -- )
+    ?trace $0002 [IF]
+	." COMP:" 2dup type cr
+    [THEN]
+    2dup sfind
+    ?trace $0001 [IF]
+	order cr hex.s cr
+    [THEN]
+    case
+	2 of
+	compiler-rest&imm endof
+	-2 of
+	compiler-rest endof
+	1 of
+	compiler-imm endof
+	-1 of
+	compiler-default endof
+	0 of
+	snumber? 0<> if
+	    compiler-number
+	else
+	    compiler-notfound
+	endif
+	endof
+    endcase ;
 
 : interpret ( -- )
-  begin
-    ?stack
-    name dup 0<> while
-    state @ 0= if
-      interpreter else
-      compiler endif repeat
-  2drop ;
+    begin
+	?stack
+	name dup 0<>
+    while
+	state @ 0= if
+	    interpreter
+	else
+	    compiler
+	endif
+    repeat
+    2drop ;
 
 : printok ( -- )
-  ."  ok"
-?trace $0001 [IF]
-  hex.s ." ay"
-[THEN]
-  ;
+    ."  o"
+    ?trace $0001 [IF]
+	hex.s
+    [THEN]
+    ." k" ;
 
 : printcompile ( -- )
-  ."  com"
-?trace $0001 [IF]
-  hex.s
-[THEN]
-  ." piled" ;
+    ."  com"
+    ?trace $0001 [IF]
+	hex.s
+    [THEN]
+    ." piled" ;
 
-include dataflow.fs
 include primitives.fs
-include source.fs
 include control.fs
-include primitives_ext.fs
+include primitives-ext.fs
 
 : quit ( -- )
-  loadfile off blk off
-  begin
-    cr refill while
-    interpret
-    state @ 0= if
-      printok else
-      printcompile endif
+    loadfile off blk off
+    begin
+	cr refill
+    while
+	interpret
+	state @ 0= if
+	    printok
+	else
+	    printcompile
+	endif
     repeat ;
 
 : cold ( -- )
-  argc @ 2 > if			\ 2, because compiler.fs is 1 in testmod !!!
-    begin
-      argc @ 2 > while
-      2 arg
-      -1 argc +!
-      1 cells argv +!
-      included repeat
+    \ 2, because compiler.fs is 1 in testmod !!!
+    argc @ 2 > if
+	begin
+	    argc @ 2 >
+	while
+	    2 arg
+	    -1 argc +!
+	    1 cells argv +!
+	    included
+	repeat
     endif
-  quit ;
+    quit ;
 
 >target
 : bye ( -- )
-?trace $8000 [IF]
-  finish
-  regs_print
-  text_print
-  order cr
-  \ ['] Root list
-  \ ['] Forth list
-  ['] voc_source list
-  ['] voc_target list
-  ['] voc_target_compile list
-[THEN]
-
-  finish
-
-?trace $4000 [IF]
-  depth 0 ?do
-    . loop
-  cr
-[THEN]
-  bye ;
+    ?trace $8000 [IF]
+	finish
+	regs-print
+	text-print
+	order cr
+	\ ['] Root list
+	\ ['] Forth list
+	['] voc-source list
+	['] voc-target list
+	['] voc-target-compile list
+    [THEN]
+    finish
+    ?trace $4000 [IF]
+	depth 0 ?do
+	    . loop
+	cr
+    [THEN]
+    bye ;
 
 ?test $0001 [IF]
 cr ." Test for compiler.fs" cr
@@ -284,5 +341,5 @@ finish
 \ ." START AGAIN: " here hex . decimal cr
 
 target>
-\ order .s cr
+order .s cr
 cold
