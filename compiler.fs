@@ -97,6 +97,10 @@ include stdlib/stdlib.fs
 : target> ( -- )
     >target get-current 1 set-order also ;
 
+>target
+' voc-source alias vvv
+>source
+
 : gforth-compile, ( xt -- )
     , ;
 
@@ -114,9 +118,13 @@ struct
     1 cells: field ih-regs-in
     1 cells: field ih-regs-out
     1 cells: field ih-regs-flag
-    9 cells: field ih-buffer1
+    1 cells: field ih-compile-xt
+    1 cells: field ih-xt-addr
+    1 cells: field ih-#xt
+    1 cells: field ih-#access
+    5 cells: field ih-buffer1
     1 cells: field ih-null
-    1 cells: field ih-buffer2
+    1 cells: field ih-status
 end-struct ih-struct
 ih-struct drop constant ih-cfsize
 ih-cfsize 2cells - constant ih-size
@@ -145,11 +153,65 @@ noname-state off
 		\ so, for patching the last branch to jump to x one would do:
 		\ x branch-info 2@ execute
 
+\ variables for compile-xt stack
+$40 constant xt-size
+variable xt-tos
+\ compile-xt stack pointer
+xt-size array xt-data
+
+\ functions for handling the compile-xt stack
+: #xt@ ( n -- x )
+    xt-data @ ;
+
+: #xt! ( x n -- )
+    xt-data ! ;
+
+: >xt ( x -- ) ( xt: -- x )
+    xt-tos @ #xt!
+    1 xt-tos +! ;
+
+: xt> ( -- x ) ( xt: x -- )
+    -1 xt-tos +!
+    xt-tos @  #xt@ ;
+
+: .xt ( -- )
+    ." <xt:" xt-tos @ 0 .r ." > "
+    xt-tos @ 0 ?do
+	i #xt@ hex.
+    loop ;
+
+: xt-init ( -- )
+    0 xt-tos !
+    0 xt-data xt-size cells NULL fill ;
+
+: xt-write ( cfa -- )
+    here over ih-xt-addr !
+    xt-tos @ tuck swap ih-#xt !
+    0 ?do
+	i #xt@ ,
+    loop ;
+
+: compile,-nativext ( xt -- xt )
+    ?trace $0001 [IF]
+	dup hex.
+	dup name.
+    [THEN]
+    dup >xt
+    1 over ih-#access
+    ?trace $0001 [IF]
+	dup @ hex. cr
+    [THEN]
+    +!
+;
+
+: compile,-nonativext ( xt -- xt )
+    ;
+
 include machine/asm.fs
 include machine/disasm.fs
 include basic.fs
 
-: imm-compile, ( xt -- )
+: compile,-now ( xt -- )
     ?trace $0001 [IF]
 	\ ~~
 	\ dup >name .name
@@ -285,12 +347,16 @@ is compile,-does
 	dup >name .name
 	\ dup $10 - $40 dump
     [THEN]
+    \ dup hex. dup >name .name cr
+    dup ih-compile-xt @
+    \ dup $20 - $20 dump
+    execute
     dup word-regs-read
     ?trace $0001 [IF]
 	\ word-regs-print
     [THEN]
-    dup [ also Forth ' lit previous ] literal gforth-compile, ,
-    ih-compiler @ gforth-compile, ;
+    [ also Forth ' lit previous ] literal gforth-compile, ,
+    ['] compile,-now gforth-compile, ;
 
 : wword-regs-print ( -- )
     word-regs-print ;
@@ -313,24 +379,52 @@ word-good 0 0 also vtarget :word compile, previous
     endif ;
 
 : vlist ( wid -- )
-    ." Vocabulary: " dup name. dup hex. cr
-    >body begin
+    body>
+    ." Vocabulary: "
+    dup name.
+    \ dup $20 - $100 dump
+    >body
+    begin
 	@ dup 0<>
     while
+	dup name>int hex.
 	dup .name
 	dup (name>x) swap ." ( " dup >code-address case
+	    docon: of
+	    ." gforth (docon) " endof
+	    dovar: of
+	    ." gforth (dovar) " endof
+	    douser: of
+	    ." gforth (douser) " endof
+	    dofield: of
+	    ." gforth (dofield) " endof
+	    dodefer: of
+	    ." gforth (dodefer) " endof
+	    docol: of
+	    ." gforth (docol) " endof
 	    docode: of
-	    ." docode " endof
+	    ." docode "
+	    \ dup $20 - $20 ih-cfsize + dump
+	    dup ih-xt-addr @
+	    over ih-#xt @ 0 ?do
+		dup @ hex.
+		cell+
+	    loop
+	    drop
+	    endof
+	    dodata: of
+	    ." dodata "
+	    \ dup $20 - $20 ih-cfsize + dump
+	    endof
 	    ." gforth "
 	endcase
-	>body hex. ." )"
+	drop ." )"
 	dup $40 and if
 	    ." [imm]"
 	endif
 	$20 and if
 	    ." [conly]"
 	endif
-	\ space
 	cr
     repeat
     drop cr ;
@@ -343,9 +437,12 @@ word-good 0 0 also vtarget :word compile, previous
 	dodata: of
 	ih-cfsize
 	endof
+	docol: of
+	2cells
+	endof
 	dup >r
 	>code-address case
-	    dodoes: of
+	    dodoes: $3ffffff and of
 	    ih-cfsize
 	    endof
 	    >r 2cells r>
@@ -374,6 +471,7 @@ word-good 0 0 also vtarget :word compile, previous
 >target
 
 also vtarget
+word-good 0 0 :word bye
 word-good 0 0 :word also
 word-good 0 0 :word previous
 word-good 0 0 :word Forth
@@ -387,13 +485,16 @@ cr ." Test for compiler.fs" cr
 finish
 [THEN]
 
+' also name>comp 2drop
+' also >body body> drop
+
 also
-vsource ' name>comp (')Forth name>comp replace-word
-vsource ' body> (')Forth body> replace-word
-vsource ' >body (')Forth >body replace-word
-vtarget ' compile, (')Forth compile, replace-word
-vsource ' postpone, (')Forth postpone, replace-word
-vtarget comp' literal drop (')Forth literal replace-word
+vsource     ' name>comp    (')Forth name>comp replace-word
+vsource     ' body>        (')Forth body>     replace-word
+vsource     ' >body        (')Forth >body     replace-word
+vtarget     ' compile,     (')Forth compile,  replace-word
+vsource     ' postpone,    (')Forth postpone, replace-word
+vtarget comp' literal drop (')Forth literal   replace-word
 previous
 
 target>
@@ -447,10 +548,9 @@ word-good 0 0 :word */mod
 word-good 0 0 :word align
 word-good 0 0 :word alias
  word-good 1 0 :word alias-mask
- word-good 0 0 :word also
+\ word-good 0 0 :word also
 word-good 0 0 :word aligned
 word-good 0 0 :word assert-level
- word-good 0 0 :word bye
  word-good 0 -1 :word c,
 word-good 0 0 :word cells:
 word-good 0 0 :word char
@@ -517,7 +617,8 @@ word-good 0 0 :word postpone
  word-good 1 0 :word restrict-mask
  word-good 0 0 :word reveal
  word-good 0 0 :word root
-word-good 0 0 :word rp@
+ word-good 1 0 :word rp@
+ word-good 1 0 :word r0
  word-good 0 0 :word savesystem
 word-good 0 0 :word see
 word-good 0 0 :word set-order
@@ -526,6 +627,8 @@ word-good 0 0 :word sign
  word-bad 1 -2 :word snumber?
 word-good 0 0 :word sourcefilename
 word-good 0 0 :word sourceline#
+ word-good 1 0 :word sp@
+ word-good 1 0 :word s0
  word-good 0 0 :word space
  word-good 0 -1 :word spaces
 word-good 0 0 :word struct-allot
@@ -598,16 +701,13 @@ does>
 	    . loop
 	cr
     [THEN]
+    ?trace $0001 [IF]
+	vsource ['] voc-target vtarget >body vlist
+	vsource ['] vvv vtarget >body vlist
+    [THEN]
     bye ;
 
 \ hex.s cr
 base !
-\ order hex.s cr
-\ also vsource
-\ ' voc-source
-\ ' voc-target
-\ previous
-\ vlist
-\ vlist
 
-\ ." START AGAIN: " here hex . decimal cr
+\ ." START AGAIN: " here hex. cr

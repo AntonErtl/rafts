@@ -403,8 +403,9 @@ ls-size array ls-data
 
 >source
 : compile-recurse ( -- )
-    basic-exit basic-init
-    lastxt ih-cfsize - imm-compile, ;
+    basic-exit
+    basic-code-ptr @ word-call
+    basic-init ;
 >target
 
 : recurse ( -- )
@@ -447,7 +448,7 @@ word-good 0 0 also vtarget :word ;dodoes previous
 >source
 : compile-does> ( -- )
     does-addr @ compile,-literal
-    vtarget ['] ;dodoes vsource imm-compile,
+    vtarget ['] ;dodoes vsource compile,-now
     compile-word-exit-check
     here does-addr dup @ + ! does-addr-inc
     lastih-init

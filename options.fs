@@ -37,13 +37,13 @@ $0000 constant trace-const	\ no trace
 \ $0020 constant trace-const	\ trace inst-selection
 \ $0040 constant trace-const	\ trace inst-scheduling
 \ $0500 constant trace-const	\ trace basics
-\ $0810 constant trace-const	\ trace disasambler
+\ $0810 constant trace-const	\ trace disassembler
 \ $c000 constant trace-const	\ trace wordlists
 \ $ffff constant trace-const	\ trace all
 
 $0000 constant test-const	\ no test
 \ $00ff constant test-const	\ test what you want
-\ $0080 constant test-const	\ test asambler and disasambler
+\ $0080 constant test-const	\ test assembler and disassembler
 \ $1f00 constant test-const	\ test stdlib
 \ $ffff constant test-const	\ test all
 

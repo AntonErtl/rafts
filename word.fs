@@ -32,50 +32,82 @@
     tuck ih-regs-in !
     ih-regs-out ! ;
 
-: :compile ( xt b -- xt xt )
+: :compile-gforth ( xt b -- xt xt xt )
+    case
+	docon: of
+	['] compile,-constant-gforth
+	['] compile,-nonativext swap rot endof
+	dovar: of
+	['] compile,-variable-gforth
+	['] compile,-nonativext swap rot endof
+	douser: of
+	['] compile,-user-gforth
+	['] compile,-nonativext swap rot endof
+	dofield: of
+	['] compile,-field-gforth
+	['] compile,-nonativext swap rot endof
+	dodefer: of
+	['] compile,-defer-gforth
+	['] compile,-nonativext swap rot endof
+	docol: of
+	['] compile,-interpreter
+	['] compile,-nonativext swap rot endof
+	>r dup >code-address
+	@ $1a asm-bitmask and 2 lshift case
+	    dodoes: $1a asm-bitmask and of
+	    \ dup ih-compile-xt @
+	    \ over ih-compiler @
+	    \ rot ih-interpreter @
+	    ['] compile,-interpreter
+	    ['] compile,-nonativext swap rot
+	    endof
+	    >r ['] compile,-interpreter
+	    ['] compile,-nonativext swap rot r>
+	endcase r>
+    endcase ;
+
+: :compile ( xt b -- xt xt xt )
     alias-mask and if
 	dup forthstart < over >does-code 0<> or if
-	    ['] compile,-interpreter swap
+	    ['] compile,-interpreter
+	    ['] compile,-nonativext swap rot
 	else
 	    dup >code-address case
-		docon: of
-		['] compile,-constant-gforth swap endof
-		dovar: of
-		['] compile,-variable-gforth swap endof
-		douser: of
-		['] compile,-user-gforth swap endof
-		dofield: of
-		['] compile,-field-gforth swap endof
-		dodefer: of
-		['] compile,-defer-gforth swap endof
-		docol: of
-		['] compile,-interpreter swap endof
+		dodata: of
+		dup ih-compile-xt @
+		over ih-compiler @
+		rot ih-interpreter @ endof
 		docode: of
 		2cells + @
 		dup forthstart < over >does-code 0<> or if
-		    ['] compile,-interpreter swap
+		    ['] compile,-interpreter
+		    ['] compile,-nonativext swap rot
 		else
 		    dup >code-address case
 			docon: of
-			['] compile,-constant-gforth swap endof
+			['] compile,-constant-gforth
+			['] compile,-nonativext swap rot endof
 			dovar: of
-			['] compile,-variable-gforth swap endof
+			['] compile,-variable-gforth
+			['] compile,-nonativext swap rot endof
 			douser: of
-			['] compile,-user-gforth swap endof
+			['] compile,-user-gforth
+			['] compile,-nonativext swap rot endof
 			dofield: of
-			['] compile,-field-gforth swap endof
+			['] compile,-field-gforth
+			['] compile,-nonativext swap rot endof
 			dodefer: of
-			['] compile,-defer-gforth swap endof
+			['] compile,-defer-gforth
+			['] compile,-nonativext swap rot endof
 			docol: of
-			['] compile,-interpreter swap endof
-			>r ['] compile,-native swap r>
+			['] compile,-interpreter
+			['] compile,-nonativext swap rot endof
+			>r ['] compile,-native
+			['] compile,-nativext swap rot r>
 		    endcase
 		endif
 		endof
-
-		dodata: of
-		['] compile,-interpreter swap endof
-		>r ['] compile,-interpreter swap r>
+		dup >r :compile-gforth r>
 	    endcase
 	endif
     else
@@ -92,13 +124,17 @@
     dup >r :compile
     \ interpreter xt, compiler xt
     a, a,
+    >r
     \ # in-register, # out-register
     a, a,
     \ word-flag
     a,
-    ih-size 5cells ?do
+    \ compile count xt
+    r> a,
+    ih-size 7cells ?do
 	0 a,
     cell +loop
+    true a,
     reveal
     r> dup
     restrict-mask and if
@@ -107,6 +143,21 @@
     immediate-mask and if
 	immediate
     endif ;
+
+>target
+also
+word-good 0 0 vtarget :word docode:
+word-good 0 0 vtarget :word dodata:
+word-good 0 0 vtarget :word dodoes:
+previous
+>source
+
+variable (lastih)
+: lastih ( -- addr )
+    (lastih) @ ;
+
+: lastih-init ( -- )
+    here (lastih) ! ;
 
 : word-call ( pfa -- )
     jal,
@@ -179,7 +230,9 @@
     docode: cfa,
     (word-init)
     word-regs-init
+    xt-init
     docol: cfa,
+    lastih lastcfa !
     [ also Forth ' lit previous ] literal gforth-compile, ,
     ['] compile-word-init gforth-compile, ;
 
@@ -218,38 +271,48 @@
     a, a,
     \ # in-register, # out-register
     a, a,
-    ih-size 4cells ?do
+    word-good a,
+    ['] compile,-nonativext a,
+    ih-size 7cells ?do
         0 a,
     cell +loop
+    true a,
     reveal ;
 
->target
-also
-word-good 0 0 vtarget :word docode:
-word-good 0 0 vtarget :word dodata:
-word-good 0 0 vtarget :word dodoes:
-previous
+: pass2 ( cfa -- )
+    dup ih-status @ 0= if
+	dup ih-xt-addr @
+	over ih-#xt @ 0 ?do
+	    dup @ recurse
+	    cell+
+	loop
+	drop
+	dup ih-cfsize + execute
+	true over ih-status !
+	['] compile,-native over ih-compiler !
+	j,-docode: @ over !
+	dup 2cells flush-icache
+    endif
+    drop ;
 
->source
-variable (lastih)
-: lastih ( -- addr )
-    (lastih) @ ;
-
-: lastih-init ( -- )
-    here (lastih) ! ;
 >target
 
 : :noname ( -- )
     noname-state on
     lastih-init
-    word-init
-    lastih lastcfa ! ] ;
+    word-init ]
+does>
+    body> dup pass2
+    execute ;
 
 : : ( "name" -- )
     noname-state off
     header
     lastih-init
-    word-init ] ;
+    word-init ]
+does>
+    body> dup pass2
+    execute ;
 
 : ; ( -- )
     ?trace $0800 [IF]
@@ -258,9 +321,10 @@ variable (lastih)
     postpone [
     word-exit
     lastih word-regs-write
-    \ generate the code
-    lastih 2cells + @ execute
-    \ here over - flush-icache
+    ?trace $0800 [IF]
+	.xt cr
+    [THEN]
+    lastih xt-write
     ?trace $0800 [IF]
 	\ Dump vom Info Header
 	lastih dup $10 - $20 dump
@@ -273,7 +337,9 @@ variable (lastih)
 	lastxt
     else
 	reveal
-    endif ; immediate
+    endif
+    noname-state off
+; immediate
 
 >source
 : (header) ( regs-out regs-in xt xt "name" -- )
@@ -284,9 +350,12 @@ variable (lastih)
     a, a,
     \ regs-in, regs-out
     a, a,
-    ih-size 4cells ?do
+    word-good a,
+    ['] compile,-nonativext a,
+    ih-size 7cells ?do
 	0 a,
     cell +loop
+    true a,
     reveal ;
 
 : (create-head)
@@ -370,6 +439,7 @@ dodefer: hex.
 dofield: hex.
 dodoes: hex.
 docode: hex. cr
+dodata: hex. cr
 
 finish
 [THEN]

@@ -42,7 +42,10 @@ constant regs-freeable-set
 : (word-init) ( -- )
     here ih-size tuck + a,
     ['] compile,-native a,
-    2cells ?do
+    0 a, 0 a,
+    word-good a,
+    ['] compile,-nativext a,
+    6cells ?do
 	0 a,
     cell +loop ;
 
@@ -100,7 +103,7 @@ create docode:
     [THEN]
 
 ?trace $0001 [IF]
-    ." docode" lastxt here over - disasm-dump
+    ." docode:" lastxt here over - disasm-dump
 [THEN]
 
 create dodata:
@@ -111,7 +114,7 @@ create dodata:
     nop,
     
 ?trace $0001 [IF]
-    ." dodata" lastxt here over - disasm-dump
+    ." dodata:" lastxt here over - disasm-dump
 [THEN]
 
 create dodoes:
@@ -159,10 +162,12 @@ create dodoes:
     [THEN]
     
 ?trace $0001 [IF]
-    ." dodoes" lastxt here over - disasm-dump
+    ." dodoes:" lastxt here over - disasm-dump
 [THEN]
 
 [THEN]
+
+here docode: cfa,   constant j,-docode:
 
 ?trace $0001 [IF]
     hex.s cr
@@ -176,3 +181,4 @@ cr ." Test for header.fs" cr
 
 finish
 [THEN]
+
