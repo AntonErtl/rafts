@@ -81,6 +81,9 @@
 : asm-sub ( ml-addr -- )
     dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ subu, ;
 
+: asm-subi ( ml-addr -- )
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ negate addiu, ;
+
 \ !! two instructions
 : asm-mul ( ml-addr -- )
     dup asm-lreg@ over asm-rreg@ multu,
@@ -154,6 +157,15 @@
 : asm-branch ( ml-addr -- )
     @zero @zero rot asm-val@
     here - cell- beq,-info ;
+
+: asm-call ( ml-addr -- )
+    asm-val@ 2cells + @ jal, ;
+
+: asm-execute ( ml-addr -- )
+    asm-lreg@
+    dup $0008 over lw,
+    nop,
+    @ra swap jalr, ;
 
 : asm-beq ( ml-addr -- )
     dup asm-lreg@ over asm-rreg@ rot asm-val@

@@ -41,6 +41,7 @@ cell constant 1cells
 6 cells constant 6cells
 7 cells constant 7cells
 8 cells constant 8cells
+9 cells constant 9cells
 cell negate constant -1cells
 -2 cells constant -2cells
 -3 cells constant -3cells
@@ -49,6 +50,7 @@ cell negate constant -1cells
 -6 cells constant -6cells
 -7 cells constant -7cells
 -8 cells constant -8cells
+-9 cells constant -9cells
 
 : char- ( addr -- addr )
 \ decrements addr by one char
@@ -60,7 +62,7 @@ cell negate constant -1cells
 
 : hexn. ( n x -- )
     base @ >r hex
-    s>d <# bl hold
+    s>d <#
     rot 0 ?do
 	#
     loop
@@ -70,7 +72,7 @@ cell negate constant -1cells
 
 : hex. ( x -- )
 \ prints x in hex with 2*cell digits (e.g. $12345678)
-    [ cell 2* ] literal swap hexn. ;
+    [ cell 2* ] literal swap hexn. space ;
 
 : hex? ( addr -- )
 \ prints the cell at addr in hex with 2*cell digits
@@ -83,7 +85,7 @@ cell negate constant -1cells
     loop
     drop ;
 
-\ ' hex.s is printdebugdata
+' hex.s is printdebugdata
 : hex.rs ( -- )
     ." <R: " r0 @ hex. rp@ hex. ." > "
     rp@ cell+ dup maxdepth-.s @ cells + ?do

@@ -23,28 +23,28 @@
     $1a rshift $6 asm-bitmask and ;
 
 : disasm-op ( code -- )
-    (disasm-op) 2 swap hexn. ;
+    (disasm-op) 2 swap hexn. space ;
 
 : (disasm-rs) ( code -- n )
     $15 rshift $5 asm-bitmask and ;
 
 : disasm-rs ( code -- )
-    (disasm-rs) 2 swap hexn. ;
+    (disasm-rs) 2 swap hexn. space ;
 
 : (disasm-rt) ( code -- n )
     $10 rshift $5 asm-bitmask and ;
 
 : disasm-rt ( code -- )
-    (disasm-rt) 2 swap hexn. ;
+    (disasm-rt) 2 swap hexn. space ;
 
 : (disasm-imm) ( code -- n )
     $10 asm-bitmask and ;
 
 : disasm-imm ( code -- )
-    (disasm-imm) 4 swap hexn. ;
+    (disasm-imm) 4 swap hexn. space ;
 
 : disasm-addr ( addr code -- n )
-    (disasm-imm) $2 lshift asm-expand dup 4 swap hexn. ." ( " + cell+ hex. ." ) " ;
+    (disasm-imm) $2 lshift asm-expand dup 4 swap hexn. space ." ( " + cell+ hex. ." ) " ;
 
 : (disasm-target) ( code -- n )
     $1a asm-bitmask and ;
@@ -56,13 +56,13 @@
     $b rshift $5 asm-bitmask and ;
 
 : disasm-rd ( code -- )
-    (disasm-rd) 2 swap hexn. ;
+    (disasm-rd) 2 swap hexn. space ;
 
 : (disasm-shamt) ( code -- n )
     $6 rshift $5 asm-bitmask and ;
 
 : disasm-shamt ( code -- )
-    (disasm-shamt) 2 swap hexn. ;
+    (disasm-shamt) 2 swap hexn. space ;
 
 ' disasm-shamt alias disasm-sa
 
@@ -226,7 +226,7 @@ $40 2 matrix disasm-opc-cop0
 : illegal-code ( -- ) ;
 
 : disasm-nop ( code -- )
-    @ 8 swap ." ( " hexn. ." ) " ;
+    @ 8 swap ." ( " hexn. space ." ) " ;
 
 : disasm-init ( xt n -- )
     0 ?do

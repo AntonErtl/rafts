@@ -66,7 +66,11 @@ include machine/assembling.fs
 
 : lit-inst ( n il-addr nt asm-xt -- ml )
     term-inst
-    tuck ml-val ! ;
+    tuck over if
+	ml-val !
+    else
+	ml-reg !
+    endif ;
 
 : store-inst ( left-ml right-ml n il-addr nt asm-xt -- ml )
     inst-ok
@@ -88,9 +92,21 @@ include machine/assembling.fs
     tuck ml-left !
     NIL over ml-right ! ;
 
+: call-inst ( il-addr nt asm-xt -- ml )
+    term-inst
+    dup ml-delay on
+    0 over ml-cost ! ;
+
+: execute-inst ( left-ml il-addr nt asm-xt -- ml )
+    inst-ok
+    tuck ml-left !
+    NIL over ml-right !
+    dup ml-delay on
+    0 over ml-cost ! ;
+
 %}
 
-%start stmt
+%start reg
 
 /* unary operators	*/
 %term I_INVERT
@@ -120,6 +136,8 @@ include machine/assembling.fs
 %term I_0BRANCH
 %term I_BRANCH
 %term I_MOVE
+%term I_CALL
+%term I_EXECUTE
 
 /* general		*/
 %term I_REG
@@ -145,7 +163,6 @@ reduced.
 
 The stack effects for our non-terminals are:
 reg	( -- ml )
-stmt	( -- ml )
 cons	( -- n )
 con	( -- n )
 addr	( -- ml n )
@@ -171,52 +188,54 @@ the stack effect ( ml -- ), where ml is the ml node of the instruction.
 
 %%
 
-addr: I_PLUS(reg, cons)		#0#	drop 2drop	#
-addr: reg			#0#	drop 2drop 0	#
+addr:	I_PLUS(reg, cons)	#0#	drop 2drop		#
+addr:	reg			#0#	drop 2drop 0		#
 
-reg:  I_REG			#0#	term-inst	#drop
-cons: I_LITS			#0#	drop drop il-val @ #
-con:  I_LIT			#0#	drop drop il-val @ #
-con:  cons			#0#	drop drop drop	#
-reg:  con			#1#	lit-inst	#asm-lit
+reg:	I_REG			#0#	term-inst		#drop
+cons:	I_LITS			#0#	drop drop il-val @	#
+con:	I_LIT			#0#	drop drop il-val @	#
+con:	cons			#0#	drop drop drop		#
+reg:	con			#1#	lit-inst		#asm-lit
 
-reg:  I_MOVE(reg)		#1#	move-inst	#asm-move
+reg:	I_MOVE(reg)		#0#	move-inst		#asm-move
 
-reg:  I_CFETCH(addr)		#1#	load-inst	#asm-fetchc
-reg:  I_FETCH(addr)		#1#	load-inst	#asm-fetchi
+reg:	I_CFETCH(addr)		#1#	load-inst		#asm-fetchc
+reg:	I_FETCH(addr)		#1#	load-inst		#asm-fetchi
 
-reg:  I_PLUS(reg, reg)		#1#	bin-inst	#asm-add
-reg:  I_PLUS(reg, cons)		#1#	binrc-inst	#asm-addi
-con:  I_PLUS(con, con)		#0#	drop drop drop + #
-reg:  I_MINUS(reg, reg)		#1#	bin-inst	#asm-sub
-con:  I_MINUS(con, con)		#0#	drop drop drop - #
-reg:  I_TIMES(reg, reg)		#1#	bin-inst	#asm-mul
-reg:  I_SLASH(reg, reg)		#1#	bin-inst	#asm-div
-reg:  I_MOD(reg, reg)		#1#	bin-inst	#asm-mod
-reg:  I_NEGATE(reg)		#1#	un-inst		#asm-neg
+reg:	I_PLUS(reg, reg)	#1#	bin-inst		#asm-add
+reg:	I_PLUS(reg, cons)	#1#	binrc-inst		#asm-addi
+con:	I_PLUS(con, con)	#0#	drop drop drop +	#
+reg:	I_MINUS(reg, reg)	#1#	bin-inst		#asm-sub
+reg:	I_MINUS(reg, cons)	#1#	binrc-inst		#asm-subi
+con:	I_MINUS(con, con)	#0#	drop drop drop -	#
+reg:	I_TIMES(reg, reg)	#1#	bin-inst		#asm-mul
+reg:	I_SLASH(reg, reg)	#1#	bin-inst		#asm-div
+reg:	I_MOD(reg, reg)		#1#	bin-inst		#asm-mod
+reg:	I_NEGATE(reg)		#1#	un-inst			#asm-neg
 
-reg:  I_AND(reg, reg)		#1#	bin-inst	#asm-and
-reg:  I_AND(reg, cons)		#1#	binrc-inst	#asm-andi
-reg:  I_OR(reg, reg)		#1#	bin-inst	#asm-or
-reg:  I_OR(reg, cons)		#1#	binrc-inst	#asm-ori
-reg:  I_XOR(reg, reg)		#1#	bin-inst	#asm-xor
-reg:  I_XOR(reg, cons)		#1#	binrc-inst	#asm-xori
-reg:  I_INVERT(reg)		#1#	un-inst		#asm-not
-reg:  I_LSHIFT(reg, reg)	#1#	bin-inst	#asm-lsh
-reg:  I_LSHIFT(reg, cons)	#1#	binrc-inst	#asm-lshi
-reg:  I_RSHIFT(reg, reg)	#1#	bin-inst	#asm-rshu
-reg:  I_SRSHIFT(reg, reg)	#1#	bin-inst	#asm-rsh
-reg:  I_RSHIFT(reg, cons)	#1#	binrc-inst	#asm-rshui
-reg:  I_SRSHIFT(reg, cons)	#1#	binrc-inst	#asm-rshi
+reg:	I_AND(reg, reg)		#1#	bin-inst		#asm-and
+reg:	I_AND(reg, cons)	#1#	binrc-inst		#asm-andi
+reg:	I_OR(reg, reg)		#1#	bin-inst		#asm-or
+reg:	I_OR(reg, cons)		#1#	binrc-inst		#asm-ori
+reg:	I_XOR(reg, reg)		#1#	bin-inst		#asm-xor
+reg:	I_XOR(reg, cons)	#1#	binrc-inst		#asm-xori
+reg:	I_INVERT(reg)		#1#	un-inst			#asm-not
+reg:	I_LSHIFT(reg, reg)	#1#	bin-inst		#asm-lsh
+reg:	I_LSHIFT(reg, cons)	#1#	binrc-inst		#asm-lshi
+reg:	I_RSHIFT(reg, reg)	#1#	bin-inst		#asm-rshu
+reg:	I_SRSHIFT(reg, reg)	#1#	bin-inst		#asm-rsh
+reg:	I_RSHIFT(reg, cons)	#1#	binrc-inst		#asm-rshui
+reg:	I_SRSHIFT(reg, cons)	#1#	binrc-inst		#asm-rshi
 
-reg:  I_LESS(reg, reg)		#1#	bin-inst	#asm-slt
-reg:  I_LESS(reg, cons)		#1#	binrc-inst	#asm-slti
-reg:  I_ULESS(reg, reg)		#1#	bin-inst	#asm-sltu
-reg:  I_ULESS(reg, cons)	#1#	binrc-inst	#asm-sltui
+reg:	I_LESS(reg, reg)	#1#	bin-inst		#asm-slt
+reg:	I_LESS(reg, cons)	#1#	binrc-inst		#asm-slti
+reg:	I_ULESS(reg, reg)	#1#	bin-inst		#asm-sltu
+reg:	I_ULESS(reg, cons)	#1#	binrc-inst		#asm-sltui
 
-stmt: reg			#0#	drop 2drop	#
-stmt: I_CSTORE(reg, addr)	#1#	store-inst	#asm-storec
-stmt: I_STORE(reg, addr)	#1#	store-inst	#asm-storei
-stmt: I_0BRANCH(reg)		#1#	0branch-inst	#asm-0branch
-stmt: I_BRANCH			#1#	branch-inst	#asm-branch
+reg:	I_CSTORE(reg, addr)	#1#	store-inst		#asm-storec
+reg:	I_STORE(reg, addr)	#1#	store-inst		#asm-storei
+reg:	I_0BRANCH(reg)		#1#	0branch-inst		#asm-0branch
+reg:	I_BRANCH		#1#	branch-inst		#asm-branch
+reg:	I_CALL			#1#	call-inst		#asm-call
+reg:	I_EXECUTE(reg)		#1#	execute-inst		#asm-execute
 %%
