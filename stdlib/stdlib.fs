@@ -83,9 +83,9 @@ cell negate constant -1cells
     loop
     drop ;
 
-' hex.s is printdebugdata
+\ ' hex.s is printdebugdata
 : hex.rs ( -- )
-    ." <R: " rp@ hex. ." > "
+    ." <R: " r0 @ hex. rp@ hex. ." > "
     rp@ cell+ dup maxdepth-.s @ cells + ?do
 	i @ hex.
     -1 cells +loop ;
