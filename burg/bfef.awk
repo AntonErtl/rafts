@@ -4,6 +4,12 @@ BEGIN {
   rule = 1;
 }
 
+/^%term / {
+  term++;
+  print $0"="term;
+  next;
+}
+
 /^%%$/ {
   part += 1;
   print $0;

@@ -116,38 +116,41 @@
 
 %start stmt
 
-%term I_LIT=1
-
+%term I_LIT
 /* unary operators	*/
-%term I_INVERT=2
-%term I_NEGATE=3
-
+%term I_INVERT
+%term I_NEGATE
 /* binary operators	*/
-%term I_PLUS=4
-%term I_MINUS=5
-%term I_TIMES=6
-%term I_SLASH=7
-%term I_MOD=8
-%term I_AND=9 I_OR=10 I_XOR=11
-%term I_LSHIFT=12 I_RSHIFT=13 I_SRSHIFT=14
-
+%term I_PLUS
+%term I_MINUS
+%term I_TIMES
+%term I_SLASH
+%term I_MOD
+%term I_AND
+%term I_OR
+%term I_XOR
+%term I_LSHIFT
+%term I_RSHIFT
+%term I_SRSHIFT
 /* fetch and store	*/
-%term I_CFETCH=15 I_FETCH=16
-%term I_CSTORE=17 I_STORE=18
-
+%term I_CFETCH
+%term I_FETCH
+%term I_CSTORE
+%term I_STORE
 /* compare		*/
-%term I_EQUALS=19 I_LESS=20 I_ULESS=21
-%term I_0BRANCH=22 I_BRANCH=23
-
-%term I_REG=24
-
-%term I_LITS=30 
+%term I_EQUALS
+%term I_LESS
+%term I_ULESS
+%term I_0BRANCH
+%term I_BRANCH
+%term I_REG
+%term I_LITS 
 
 /* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
    %term I_FFETCH=46  I_FSTORE=47
 */
 
-%term NOP=50
+%term NOP
 
 %%
 
