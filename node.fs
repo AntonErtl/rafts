@@ -69,7 +69,7 @@ NIL inst constant node_depends_init
   tuck node_reg !
   tuck node_val ! ;
 
-: node_dup ( node_addr -- node_addr )
+: node_dup ( node_addr1 -- node_addr2 )
   0 0 0 node tuck node_struct drop move ;
 \  dup node_copy @ over = if
 \    0 0 0 node 2dup node_struct drop move
