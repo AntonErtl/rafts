@@ -183,20 +183,11 @@ include node.fs
 : asm_mul ( node_addr -- )
   dup asm_lreg@ over asm_rreg@ @mult asm_reg@ @mflo drop ;
 
-: asm_mull ( node_addr -- )
-  asm_reg@ @mflo drop ;
-
-: asm_mulh ( node_addr -- )
-  asm_reg@ @mfhi drop ;
-
 : asm_div ( node_addr -- )
-  dup asm_lreg@ swap asm_rreg@ @div ;
+  dup asm_lreg@ over asm_rreg@ @div asm_reg@ @mflo drop ;
 
-: asm_divl ( node_addr -- )
-  asm_reg@ @mflo drop ;
-
-: asm_divh ( node_addr -- )
-  asm_reg@ @mfhi drop ;
+: asm_mod ( node_addr -- )
+  dup asm_lreg@ over asm_rreg@ @div asm_reg@ @mfhi drop ;
 
 : asm_neg ( node_addr -- )
   dup asm_reg@ swap asm_lreg@ @neg drop ;

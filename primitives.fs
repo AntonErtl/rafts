@@ -89,11 +89,35 @@
   vtarget_compile postpone swap postpone over vsource ; immediate restrict
 
 \ primitives
-: + ( D: addr addr -- addr )
-  data> data> I_PLUS op >data ; immediate restrict
+>source
+: binop-primitive ( op -- )
+    create , immediate restrict
+does> ( D: addr addr -- addr )
+    data> data> rot @ op >data ; 
 
-: - ( D: addr addr -- addr )
-  data> data> I_MINUS op >data ; immediate restrict
+: unop-primitive ( op -- )
+    create , immediate restrict
+does> ( D: addr -- addr )
+    data> swap @ uop >data ; 
+>target_compile
+
+I_PLUS	binop-primitive +
+I_MINUS	binop-primitive -
+I_TIMES binop-primitive *
+I_SLASH binop-primitive /
+I_MOD	binop-primitive mod
+I_LSHIFT binop-primitive lshift
+I_LSHIFT binop-primitive lshifta
+I_RSHIFT binop-primitive rshift
+I_SRSHIFT binop-primitive rshifta
+I_AND	binop-primitive and
+I_OR	binop-primitive or
+I_XOR	binop-primitive xor
+
+I_NEGATE unop-primitive negate
+I_INVERT unop-primitive invert
+
+\ I_ binop-primitive 
 
 : 1+ ( D: addr -- addr )
   vtarget_compile 1 postpone literal postpone + vsource ; immediate restrict
@@ -101,53 +125,11 @@
 : 1- ( D: addr -- addr )
   vtarget_compile -1 postpone literal postpone + vsource ; immediate restrict
 
-: * ( D: addr addr -- addr )
-  data> data> I_TIMES op >data ; immediate restrict
-
-: /mod ( D: addr addr -- addr addr )
-  data> data> I_SLASH op >data
-  vtarget_compile postpone dup vsource
-  data> DIVI uop
-  data> I_MOD uop >data >data ; immediate restrict
-
-: / ( D: addr addr -- addr )
-  vtarget_compile postpone /mod postpone nip vsource ; immediate restrict
-
-: mod ( D: addr addr -- addr )
-  vtarget_compile postpone /mod postpone drop vsource ; immediate restrict
-
-: lshift ( D: addr addr -- addr )
-  data> data> I_LSHIFT op >data ; immediate restrict
-
-: lshifta ( D: addr addr -- addr )
-  data> data> I_LSHIFT op >data ; immediate restrict
-
-: rshift ( D: addr addr -- addr )
-  data> data> I_RSHIFT op >data ; immediate restrict
-
-: rshifta ( D: addr addr -- addr )
-  data> data> I_SRSHIFT op >data ; immediate restrict
-
 : 2* ( D: addr -- addr )
   vtarget_compile 1 postpone literal postpone lshifta vsource ; immediate restrict
 
 : 2/ ( D: addr -- addr )
   vtarget_compile 1 postpone literal postpone rshifta vsource ; immediate restrict
-
-: negate ( D: addr -- addr )
-  data> I_NEGATE uop >data ; immediate restrict
-
-: invert ( D: addr -- addr )
-  data> I_INVERT uop >data ; immediate restrict
-
-: and ( D: addr addr -- addr )
-  data> data> I_AND op >data ; immediate restrict
-
-: or ( D: addr addr -- addr )
-  data> data> I_OR op >data ; immediate restrict
-
-: xor ( D: addr addr -- addr )
-  data> data> I_XOR op >data ; immediate restrict
 
 : = ( D: addr addr -- addr )
   data> data> I_XOR op

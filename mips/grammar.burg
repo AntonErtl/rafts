@@ -156,9 +156,8 @@ reg:  I_PLUS(reg, reg)		#1#	>r [\'] asm_add r> inst_ok
 reg:  I_PLUS(reg, cons)		#1#	>r [\'] asm_addi r> inst_ok
 reg:  I_MINUS(reg, reg)		#1#	>r [\'] asm_sub r> inst_ok
 reg: I_TIMES(reg, reg)		#1#	>r [\'] asm_mul r> inst_ok
-ldiv: I_SLASH(reg, reg)		#1#	>r [\'] asm_div r> inst_ok
-reg:  DIVI(ldiv)		#1#	>r NIL [\'] asm_divl r> inst_ok
-reg:  I_MOD(ldiv)		#1#	>r NIL [\'] asm_divh r> inst_ok
+reg: I_SLASH(reg, reg)		#1#	>r [\'] asm_div r> inst_ok
+reg: I_MOD(reg, reg)		#1#	>r [\'] asm_mod r> inst_ok
 reg:  I_NEGATE(reg)			#1#	>r NIL [\'] asm_neg r> inst_ok
 
 reg:  I_AND(reg, reg)		#1#	>r [\'] asm_and r> inst_ok
