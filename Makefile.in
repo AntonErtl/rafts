@@ -114,9 +114,9 @@ GEN_PRECIOUS = Makefile configure
 		$(BURG) -F $(BURGFLAGS) -o $@ $<
 .SUFFIXES:	.gr .fs
 
-all:
+all::
 		( cd burg; $(MAKE))
-all:		machine/grammar.fs machine/asm.fs machine/disasm.fs
+all::		machine/grammar.fs machine/asm.fs machine/disasm.fs
 machine/grammar.fs:	$(BURG)
 
 dmp:		$(DMP)
