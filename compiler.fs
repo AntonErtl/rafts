@@ -80,7 +80,8 @@ include basic.fs
     ." interpreter:" dup name.
     dup hex. dup >code-address hex. cr
 [THEN]
-    execute else
+    execute 
+  else
     snumber? 0= if
       interpreter-notfound endif endif ;
 

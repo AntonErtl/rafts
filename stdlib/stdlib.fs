@@ -73,8 +73,10 @@
 
 : name. ( cfa -- )
   look if
-    .name else
-    ." not defined" endif ;
+    .name
+  else
+    drop ." not defined"
+  endif ;
 
 : code. ( cfa n -- )
   over name.
