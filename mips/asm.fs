@@ -20,7 +20,7 @@
 
 $20 constant asm-registers
 
-: asm-register ( n n "name" ... "name -- )
+: asm-register ( n n "name" ... "name" -- )
     swap do
 	i constant
     loop ;

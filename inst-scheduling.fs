@@ -21,26 +21,27 @@
 : inst-next ( -- ml )
     \ find the best possible in inst-pnodes
     0 inst-pnodes
-    -1 over
+    -1
+    over inst-size 1- inst-pnodes swap
     begin
-	inst-size 1- inst-pnodes over >=
+	2dup >=
     while
-	dup @ 0<> if
-	    dup @ ?inst-done if		\ remove done nodes !
-		NULL over !
+	dup @ if
+	    tuck 2>r
+	    2dup @ ml-cost @ tuck < if
+		rot drop rot drop
 	    else
-		2dup @ ml-cost @ < if		\ search highest costs
-		    nip nip dup @ ml-cost @ over
-		endif
+		2drop
 	    endif
+	    2r>
 	endif
 	cell+
     repeat
-    2drop
-    dup @ 0<> if
-	dup @ NIL rot !
+    2drop drop
+    dup @ dup if
+	NIL rot !
     else					\ remove fetched node
-	drop NIL				\ no node found
+	2drop NIL				\ no node found
     endif ;
 
 : inst-depends-done-func ( inst-addr -- )
@@ -50,10 +51,9 @@
     true swap
     ml-depends @ ['] inst-depends-done-func maplist ;
 
-: ml-done? ( parent-ml flag1 ml -- parent-ml flag1 flag )
-    ?dup 0<> if
-	>r over r> tuck <> if		\ !! does it ever take the second branch?
-	    \ ~~ dup print-ml
+: ml-done? ( parent-ml ml -- parent-ml flag )
+    ?dup if
+	2dup <> if
 	    ?inst-done
 	else
 	    ." parent is child" cr
@@ -64,17 +64,23 @@
     endif ;
 
 : ?inst-kids-done ( ml -- flag )
-    \ ~~ dup print-ml
-    dup ?inst-depends-done ( ml flag )
-    over ml-left  @ ml-done? and
-    swap ml-right @ ml-done? and ;
+    dup ?inst-depends-done 0<> if
+	dup ml-left @ ml-done? 0<> if
+	    ml-right @ ml-done?
+	else
+	    drop false
+	endif
+    else
+	drop false
+    endif ;
 
 : inst-join ( -- )
+    inst-size 1- inst-nodes
     0 inst-nodes
     begin
-	inst-size 1- inst-nodes over >=
+	2dup >=
     while
-	dup @ ?dup 0<> if
+	dup @ ?dup if
 	    dup ?inst-kids-done if		\ check done kids
 		inst-pnodes-insert		\ add to pnodes
 		NULL over !			\ del from nodes
@@ -84,11 +90,11 @@
 	endif
 	cell+
     repeat
-    drop ;
+    2drop ;
 
 : inst-scheduling ( -- )
     begin
-	inst-join inst-next dup 0<>
+	inst-join inst-next dup
     while
 	dup inst-done inst-lists-insert
     repeat

@@ -18,91 +18,9 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: check-ra ( -- )
-    return>
-    dup il-reg @ @ra <> if
-	@ra over il-reg ! inst-btrees-insert
-    else
-	drop
-    endif ;
-
-: word-init-check ( -- )
-    (word-init)
-    basic-init
-    0 @ra I_REG terminal >return ;
-
-: word-exit-check ( -- )
-    check-ra
-    basic-exit
-    (word-exit) ;
-
-: word-init ( -- )
-    header docode: cfa,
-    word-init-check ;
-
-: word-exit ( -- )
-    word-exit-check
-    reveal ;
-
-: word-call ( pfa -- )
-    jal,
-    nop, ;
-
-: word-native ( cfa -- )
-    ?trace $0002 [IF]
-	dup >name hex. ." word-native:" dup name. cr
-    [THEN]
-    2cells + @ word-call ;
-
-: word-interpreter ( cfa -- )
-    ?trace $0002 [IF]
-	dup >name hex. ." word-interpreter:" dup name. cr
-    [THEN]
-    #cfa swap li,
-    ?word-mode-direct [IF]
-	#ip here 4cells + li,
-	#cfa jr,
-    [THEN]
-    ?word-mode-indirect [IF]
-	#ip here 5cells + li,
-	@t0 0 rot lw,
-	@t0 jr,
-    [THEN]
-    nop,
-    here cell+ a,
-    ?word-mode-indirect [IF]
-	here cell+ a,
-    [THEN] ;
-
-' word-init alias :code
-' word-exit alias ;code
-
-: comp, ( xt cfa -- )
-    3cells - ! ;
-
-: (::) ( "name" -- )
-    header docode: cfa,
-    last @ cell+ count $1f and
-    also Forth sfind previous 0= if
-	['] noop
-    endif
-    a,
-    info-head-size 1cells ?do
-        0 a,
-    cell +loop
-    reveal ;
-
-: :: ( "name" -- )
-    (::)
-    :noname
-    postpone drop ;
-
-: ;; ( -- )
-    postpone ; lastcfa @ comp, ; immediate compile-only
-
-: :compile ( xt -- xt xt )
+: :compile ( xt b -- xt xt )
     alias-mask and if
-	dup forthstart < if
+	dup forthstart < over >does-code 0<> or if
 	    ['] compile,-interpreter swap
 	else
 	    dup >code-address case
@@ -112,17 +30,32 @@
 		['] compile,-variable-gforth swap endof
 		douser: of
 		['] compile,-user-gforth swap endof
+		dofield: of
+		['] compile,-field-gforth swap endof
+		dodefer: of
+		['] compile,-defer-gforth swap endof
 		docol: of
 		['] compile,-interpreter swap endof
 		docode: of
-		dup 2cells + @ dup forthstart < if
-		    nip ['] compile,-interpreter swap
+		2cells + @
+		dup forthstart < over >does-code 0<> or if
+		    ['] compile,-interpreter swap
 		else
-		    over 2cells + info-head-size + over = if
-			nip ['] compile-native swap
-		    else
-			nip alias-mask recurse
-		    endif
+		    dup >code-address case
+			docon: of
+			['] compile,-constant-gforth swap endof
+			dovar: of
+			['] compile,-variable-gforth swap endof
+			douser: of
+			['] compile,-user-gforth swap endof
+			dofield: of
+			['] compile,-field-gforth swap endof
+			dodefer: of
+			['] compile,-defer-gforth swap endof
+			docol: of
+			['] compile,-interpreter swap endof
+			>r ['] compile,-native swap r>
+		    endcase
 		endif
 		endof
 
@@ -132,11 +65,7 @@
 	    endcase
 	endif
     else
-	dup forthstart < if
-	    ['] compile,-interpreter swap
-	else
-	    @ alias-mask recurse
-	endif
+	@ alias-mask recurse
     endif ;
 
 : :word ( "name" -- )
@@ -160,21 +89,120 @@
 	immediate
     endif ;
 
+: word-call ( pfa -- )
+    jal,
+    nop, ;
+
+: word-native ( cfa -- )
+    ?trace $0002 [IF]
+	dup >name hex. ." word-native:" dup name. cr
+    [THEN]
+    2cells + @ word-call ;
+
+: word-interpreter ( cfa -- )
+    ?trace $0002 [IF]
+	dup >name hex. ." word-interpreter:" dup name. cr
+    [THEN]
+    #cfa swap li,
+    ?word-mode-direct [IF]
+	#ip here 4cells + li,
+	#cfa jr,
+    [ELSE]
+	#ip here 5cells + li,
+	@t0 0 rot lw,
+	@t0 jr,
+    [THEN]
+    nop,
+    here cell+ a,
+    ?word-mode-indirect [IF]
+	here cell+ a,
+    [THEN] ;
+
+: check-ra ( -- )
+    return>
+    dup il-reg @ @ra <> if
+	@ra over il-reg ! inst-btrees-insert
+    else
+	drop
+    endif ;
+
+: compile,-word-init-check ( -- )
+    (word-init)
+    basic-init
+    0 @ra I_REG terminal >return ;
+
+: compile,-word-init ( -- )
+    here basic-code-sav !
+    basic-code-ptr @ dup dp !
+    swap 2cells + !
+    basic-init
+    0 @ra I_REG terminal >return ;
+
+: word-init ( -- )
+    here
+    docode: cfa,
+    (word-init)
+    docol: cfa,
+    [ also Forth ' lit previous ] literal gforth-compile, ,
+    ['] compile,-word-init gforth-compile, ;
+
+: compile,-word-exit-check ( -- )
+    check-ra
+    basic-exit
+    (word-exit) ;
+
+: compile,-word-exit ( -- )
+    check-ra
+    basic-exit
+    (word-exit)
+    basic-code-ptr @ here
+    dup basic-code-ptr !
+    basic-code-sav @ dp !
+    over -
+    ?trace $0800 [IF]
+	2dup disasm-dump
+    [THEN]
+    flush-icache ;
+
+: word-exit ( -- )
+    ['] compile,-word-exit gforth-compile,
+    [ also Forth ' ;s previous ] literal gforth-compile, ;
+
+: (:header:) ( "name" -- xt )
+    header
+    docode: cfa,
+    last @ cell+ count $1f and
+    also Forth sfind previous 0= if
+	['] noop
+    endif ;
+
+: :: ( xt "name" -- )
+    (:header:)
+    a, a,
+    info-head-size 2cells ?do
+        0 a,
+    cell +loop
+    reveal ;
+
 >target
-also vtarget :word docode: previous
-also vtarget :word dodata: previous
-also vtarget :word dodoes: previous
+also
+vtarget :word docode:
+vtarget :word dodata:
+vtarget :word dodoes:
+previous
+
+>source
+variable lastnoname
+>target
 
 : :noname ( -- )
     true noname-state !
-    docode: cfa,
-    word-init-check
-    ] ;
+    here lastnoname !
+    word-init ] ;
 
 : : ( "name" -- )
     false noname-state !
-    word-init
-    ] ;
+    header word-init ] ;
 
 : ; ( -- )
     ?trace $0008 [IF]
@@ -182,13 +210,16 @@ also vtarget :word dodoes: previous
     [THEN]
     postpone [
     noname-state @ if
-	word-exit-check
+	word-exit
+	lastnoname @
     else
 	word-exit
+	reveal
+	last @ ((name>))
     endif
     ?trace $0800 [IF]
 	noname-state @ 0<> if
-	    lastcfa @
+	    lastnoname @
 	else
 	    last @
 	endif
@@ -201,18 +232,22 @@ also vtarget :word dodoes: previous
 	hex.s swap
 	dup 2cells disasm-dump 2cells + swap
 	over - disasm-dump
+    [THEN]
+    noname-state @ 0<> if
+	lastnoname @
+    else
+	last @
+    endif
+    here over - flush-icache
+    \ generate the code
+    2cells + @ execute
+    ?trace $0800 [IF]
 	.cs cr
 	regs-print
     [THEN]
     cs-depth 0<> abort" unstructured"
     noname-state @ 0<> if
-	lastcfa @
-    else
-	last @
-    endif
-    here over - flush-icache
-    noname-state @ 0<> if
-	lastcfa @
+	lastnoname @
     endif ; immediate compile-only
 
 >source
@@ -225,31 +260,32 @@ also vtarget :word dodoes: previous
     reveal ;
 
 : (create-head)
-     [ 2cells info-head-size + ] literal + ;
+    info-cfhead-size + ;
 
 : (create) ( xt "name" -- )
     ['] (create-head) (header) ;
 
 : (constant-head)
-    [ 2cells info-head-size + ] literal + @ ;
+    info-cfhead-size + @ ;
 
 : (constant) ( xt "name" -- )
     ['] (constant-head) (header) ;
 
 : (2constant-head)
-    [ 2cells info-head-size + ] literal + 2@ ;
+    info-cfhead-size + 2@ ;
 
 : (2constant) ( xt "name" -- )
     ['] (2constant-head) (header) ;
 
 : (defer-head)
-    [ 2cells info-head-size + ] literal + @ execute ;
+    \ rdrop
+    info-cfhead-size + @ execute ;
 
 : (defer) ( xt "name" -- )
     ['] (defer-head) (header) ;
 
 : (field-head)
-    [ 2cells info-head-size + ] literal + @ + ;
+    info-cfhead-size + @ + ;
 
 : (field) ( xt "name" -- )
     ['] (field-head) (header) ;
@@ -267,16 +303,8 @@ also vtarget :word dodoes: previous
     vtarget create vsource
     0 , 0 , ;
 
-: user ( "name" -- )
-    ['] compile,-user (create)
-    0 , ;
-
-: 2user ( "name" -- )
-    ['] compile,-user (create)
-    0 , 0 , ;
-
-\ vtarget ' variable vsource alias user
-\ vtarget ' 2variable vsource alias 2user
+vtarget ' variable vsource alias user
+vtarget ' 2variable vsource alias 2user
 
 : constant ( n "name" -- )
     ['] compile,-constant (constant)
@@ -304,8 +332,6 @@ also vtarget :word dodoes: previous
 ?test $0008 [IF]
 cr ." Test for word.fs" cr
 
-' docode: >name &164 dump
-
 docol: hex.
 docon: hex.
 dovar: hex.
@@ -315,13 +341,6 @@ dofield: hex.
 dodoes: hex.
 docode: hex. cr
 
-here
-word-init foo
-\ $1234 word-native
-\ $5678 word-interpreter
-word-exit
-here 2dup over - dump
-swap cell+ dup c@ $1f and + char+ aligned swap over - disasm-dump
-
 finish
 [THEN]
+

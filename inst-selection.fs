@@ -244,11 +244,15 @@ include regs.fs
 	endif
     endif ;
 
+: compile,-literal ( x -- D: addr )
+    lit >data ; compile-only
 >target
-: literal ( x -- D: addr )
-    lit >data ; immediate compile-only
->source
 
+: literal ( x -- )
+    [ also Forth ' lit previous ] literal gforth-compile, ,
+    [comp'] compile,-literal drop gforth-compile, ; immediate compile-only
+
+>source
 : addr ( offset register -- il-addr )
     swap regs-unused I_LITS terminal
     NULL rot I_REG terminal
@@ -300,7 +304,8 @@ include regs.fs
     tuck il-slabel @ swap burm-rule ( node rule )
     dup 0= if
 	nip nip r> drop
-	burm-assert" no cover" cr
+	drop
+	\ burm-assert" no cover" cr
     else ( node rule )
 	2dup 2>r
 	dup burm-nts @ >r		( node rule; R: node rule nts-addr )

@@ -47,131 +47,194 @@ include stdlib/stdlib.fs
 : target> ( -- )
     >target get-current 1 set-order also ;
 
-: 'Forth ( "name" -- )
+: gforth-compile, ( xt -- )
+    , ;
+
+: 'Forth ( "name" -- cfa )
+    also Forth ' previous ; immediate
+: ['Forth] ( "name" -- cfa )
+    also Forth ' previous postpone literal ; immediate compile-only
+: (')Forth ( "name" -- nfa )
     also Forth (') previous ; immediate
 
-defer compile,-defer
-defer compile,-field
+struct
+    1 cells: field info-head-interpreter
+    1 cells: field info-head-compiler
+    8 cells: field info-head-buffer1
+    1 cells: field info-head-null
+    1 cells: field info-head-buffer2
+end-struct info-head
+info-head drop constant info-head-size
+info-head-size 2cells + constant info-cfhead-size
+
+defer compile,-constant-gforth
+defer compile,-variable-gforth
+defer compile,-user-gforth
+defer compile,-field-gforth
+defer compile,-defer-gforth
 defer compile,-interpreter
+
+defer compile,-constant
+defer compile,-2constant
+defer compile,-variable
+defer compile,-user
+defer compile,-field
+defer compile,-defer
 defer compile,-native
 defer compile,-does
-defer compile-native
-variable dostruc
+
 variable noname-state
 false noname-state !
-
-: compile,-constant-gforth ( xt -- )
-    ?trace $0001 [IF]
-	." constant (gforth): " dup name. hex.s cr
-    [THEN]
-    2cells + @ execute postpone literal ;
-
-: compile,-variable-gforth ( xt -- )
-    ?trace $0001 [IF]
-	." [2]variable (gforth): " dup name. hex.s cr
-    [THEN]
-    2cells + @ execute postpone literal ;
-
-: compile,-user-gforth ( xt -- )
-    ?trace $0001 [IF]
-	." [2]user (gforth): " dup name. hex.s cr
-    [THEN]
-    2cells + @ execute postpone literal ;
-
-: compile,-constant ( xt -- )
-    ?trace $0001 [IF]
-	." constant: " dup name. hex.s cr
-    [THEN]
-    dup 2cells + @ execute postpone literal ;
-
-: compile,-2constant ( xt -- )
-    ?trace $0001 [IF]
-	." 2constant: " dup name. hex.s cr
-    [THEN]
-    dup 2cells + @ execute swap postpone literal postpone literal ;
-
-: compile,-variable ( xt -- )
-    ?trace $0001 [IF]
-	." [2]variable: " dup name. hex.s cr
-    [THEN]
-    dup 2cells + @ execute postpone literal ;
-
-: compile,-user ( xt -- )
-    ?trace $0001 [IF]
-	." [2]user: " dup name. hex.s cr
-    [THEN]
-    dup 2cells + @ execute postpone literal ;
 
 include machine/asm.fs
 include machine/disasm.fs
 include basic.fs
 
+: imm-compile, ( xt -- )
+    \ ~~
+    \ dup >name .name
+    \ dup $10 - $40 dump
+    dup 3cells + @ execute ;
+
 include primitives.fs
 include control.fs
 
-: (compile,-field) ( xt -- )
-    ?trace $0001 [IF]
-	." compile,-field: " dup name. hex.s cr
-    [THEN]
-    2cells + info-head-size + @ postpone literal vtarget postpone + vsource ;
-' (compile,-field) is compile,-field
+>target
+also vtarget :word execute previous
+>source
 
-: (compile,-interpreter) ( xt -- )
+:noname ( xt -- )
     ?trace $0001 [IF]
-	." compile,-interpreter: " dup name. hex.s cr
+	." constant (gforth): " dup name. hex.s cr
+    [THEN]
+    2cells + @ execute compile,-literal ;
+is compile,-constant-gforth
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." [2]variable (gforth): " dup name. hex.s cr
+    [THEN]
+    2cells + @ execute compile,-literal ;
+is compile,-variable-gforth
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." [2]user (gforth): " dup name. hex.s cr
+    [THEN]
+    2cells + @ execute compile,-literal ;
+is compile,-user-gforth
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." compile,-field (gforth): " dup name. hex.s cr
+    [THEN]
+    2cells + @
+    2cells + @ compile,-literal 0 compile,-+ ;
+is compile,-field-gforth
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." compile,-defer (gforth): " dup name. hex.s cr
     [THEN]
     basic-exit
     2cells + @
     word-interpreter
-    basic-init ;
-' (compile,-interpreter) is compile,-interpreter
+    basic-init
+    
+    \ 2cells + @
+    \ 2cells +
+    \ postpone literal
+    \ vtarget postpone @ vsource 
+    \ vtarget postpone execute vsource
+;
+is compile,-defer-gforth
 
-: (compile,-defer) ( xt -- )
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." compile,-interpreter: " dup name. hex.s cr
+    [THEN]
+    basic-exit
+    2cells + @ word-interpreter
+    basic-init ;
+is compile,-interpreter
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." constant: " dup name. hex.s cr
+    [THEN]
+    info-cfhead-size + @ compile,-literal ;
+is compile,-constant
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." 2constant: " dup name. hex.s cr
+    [THEN]
+    dup info-cfhead-size + cell+ @ compile,-literal
+    info-cfhead-size + @ compile,-literal ;
+is compile,-2constant
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." [2]variable: " dup name. hex.s cr
+    [THEN]
+    info-cfhead-size + compile,-literal ;
+is compile,-variable
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." [2]user: " dup name. hex.s cr
+    [THEN]
+    info-cfhead-size + compile,-literal ;
+is compile,-user
+
+:noname ( xt -- )
+    ?trace $0001 [IF]
+	." compile,-field: " dup name. hex.s cr
+    [THEN]
+    info-cfhead-size + @ compile,-literal 0 compile,-+ ;
+is compile,-field
+
+:noname ( xt -- )
     ?trace $0001 [IF]
 	." compile,-defer: " dup name. hex.s cr
     [THEN]
-    2cells + @ postpone literal
+    info-cfhead-size + compile,-literal 0 compile,-@
     basic-exit
     ['] execute word-interpreter
     basic-init ;
-' (compile,-defer) is compile,-defer
+is compile,-defer
 
-: (compile,-native) ( xt -- )
+:noname ( xt -- )
     ?trace $0001 [IF]
 	." compile,-native: " dup name. hex.s cr
-    [THEN]
-    dup $10 - $40 dump
-    2cells + @
-    compile-native ;
-' (compile,-native) is compile,-native
-
-: (compile-native) ( xt -- )
-    ?trace $0001 [IF]
-	." compile-native: " dup name. hex.s cr
     [THEN]
     basic-exit
     word-native
     basic-init ;
-' (compile-native) is compile-native
+is compile,-native
 
-: (compile,-does) ( xt -- )
+:noname ( xt -- )
     ?trace $0001 [IF]
 	." compile,-native (does>): " hex.s cr
     [THEN]
-    dup 2cells + info-head-size + postpone literal basic-exit
+    dup info-cfhead-size + compile,-literal
+    basic-exit
     dup @ 2 lshift $1a asm-bitmask and swap $1a asm-bitmask invert and or
-    word-native
+    info-cfhead-size + word-call
     basic-init ;
-' (compile,-does) is compile,-does
+is compile,-does
 
 : compile, ( xt -- )
-    dup 3cells + @ execute ;
+    \ ~~
+    \ dup >name .name
+    \ dup $10 - $40 dump
+    dup [ also Forth ' lit previous ] literal gforth-compile, ,
+    3cells + @ gforth-compile, ;
 
 >target
-
 also vtarget :word compile, previous
-
 >source
+
 : name>comp ( nt -- w xt ) \ gforth
     \ @var{w xt} is the compilation token wor the word @var{nt}.
     (name>x) >r dup interpret/compile? if
@@ -209,15 +272,15 @@ also vtarget :word compile, previous
 : >body ( cfa -- pfa )
     dup >code-address case
 	docode: of
-	2cells info-head-size +
+	info-cfhead-size
 	endof
 	dodata: of
-	2cells info-head-size +
+	info-cfhead-size
 	endof
 	dup >r
 	>code-address case
 	    dodoes: of
-	    2cells info-head-size +
+	    info-cfhead-size
 	    endof
 	    >r 2cells r>
 	endcase 
@@ -226,7 +289,6 @@ also vtarget :word compile, previous
     + ;
 
 : body> ( pfa -- cfa )
-    dup hex.
     2cells - dup @ 0= if
 	info-head-size -
     endif ;
@@ -260,12 +322,12 @@ finish
 [THEN]
 
 also
-vsource ' name>comp 'Forth name>comp replace-word
-vsource ' body> 'Forth body> replace-word
-vsource ' >body 'Forth >body replace-word
-vtarget ' compile, 'Forth compile, replace-word
-vsource ' postpone, 'Forth postpone, replace-word
-vtarget comp' literal drop 'Forth literal replace-word
+vsource ' name>comp (')Forth name>comp replace-word
+vsource ' body> (')Forth body> replace-word
+vsource ' >body (')Forth >body replace-word
+vtarget ' compile, (')Forth compile, replace-word
+vsource ' postpone, (')Forth postpone, replace-word
+vtarget comp' literal drop (')Forth literal replace-word
 previous
 
 target>
@@ -285,6 +347,7 @@ also vsource also Forth
 :word .s
 :word .r
 :word ,
+:word ;s
 :word 2,
 :word '
 :word (')
@@ -295,7 +358,9 @@ also vsource also Forth
 :word (
 :word <#
 :word >body
+:word body>
 :word >code-address
+:word >does-code
 :word >in
 :word >number
 :word >name
@@ -336,6 +401,7 @@ also vsource also Forth
 :word docon:
 :word docol:
 :word dodefer:
+:word dofield:
 :word douser:
 :word dovar:
 :word dump
@@ -343,7 +409,6 @@ also vsource also Forth
 :word emit
 :word erase
 :word evaluate
-:word execute
 :word find
 :word find-name
 :word fill
@@ -365,6 +430,7 @@ also vsource also Forth
 :word loadfilename#
 :word lastcfa
 :word lastxt
+:word lit
 :word literal
 :word look
 :word max
@@ -417,17 +483,19 @@ previous
 :word ~~
 :word :
 :word :noname
-:word ;
+\ :word ;
 :word ?trace
 :word constant
 :word create
 :word defer
 :word disasm-dump
 :word info-head-size
+:word info-cfhead-size
 :word field
 :word finish
 :word hex.
 :word hex.s
+:word hex.rs
 :word text-print
 :word vlist
 :word variable

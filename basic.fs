@@ -114,8 +114,14 @@ cs-size 1- cs-tos !
     loop
     drop ;
 
-variable basic-head-ptr
-$2000 constant basic-code
+       variable basic-code-ptr
+       variable basic-code-sav
+$20000 constant basic-code
+here basic-code allot basic-code-ptr !
+       variable basic-head-ptr
+       variable basic-head-sav
+$10000 constant basic-head
+here basic-head allot basic-head-ptr !
 
 variable inst-!-list
 \ contains the last !
@@ -158,8 +164,8 @@ control-init
 	." basic-init " here hex. cr
     [THEN]
     \ regs-reset
-    here basic-head-ptr !
-    basic-code allot
+    here basic-head-sav !
+    basic-head-ptr @ dp !
     ?trace $0020 [IF]
 	." BASIC-INIT{ " here hex. cr
     [THEN]
@@ -202,48 +208,8 @@ control-init
     cr
     ." TOS:" ds-tos @ . cr ;
 
-: ---basic-datastackdump ( -- )
-    ds-tos @ ds-tosstart - >r
-
-    ?trace $0100 [IF]
-	basic-datastackdump-print
-    [THEN]
-
-    \ dump the data stack
-    ds-size ds-tos @ ?do
-	?trace $0100 [IF]
-	    ." STACKDUMP (data):" i . hex.s cr
-	[THEN]
-	data> i ds-tosstart - dup 0< if			\ new stackelements
-	    ?trace $0100 [IF]
-		." STACKDUMP (new):" hex.s cr
-	    [THEN]
-	    cells #sp id!
-	    dup inst inst-s!-list @ slist-insert drop
-	    inst-btrees-insert
-	else
-	    2dup ds-init @ <> if			\ old stackelements (changed)
-		?trace $0100 [IF]
-		    ." STACKDUMP (old):" hex.s cr
-		[THEN]
-		tuck cells #sp id!
-		dup inst inst-s!-list @ slist-insert drop
-		swap ds-init @ inst NULL inst tuck slist-insert drop
-		over il-depends !
-		inst-btrees-insert
-	    else
-		?trace $0100 [IF]
-		    ." STACKDUMP (nothing):" hex.s cr
-		[THEN]
-		2drop
-	    endif
-	endif
-    loop
-    \ update the data stackpointer
-    #sp r> basic-stackupdate ;
-
 : basic-datastackdump-new ( -- )
-    \ stackelements
+    \ new stackelements
     ?trace $0100 [IF]
 	." STACKDUMP (new):" hex.s cr
     [THEN]
@@ -368,17 +334,25 @@ constant nop-ml \ nop instruction, usable only after scheduling
 	regs-print
 	." ASSEMBLE" hex.s cr
     [THEN]
-    basic-head-ptr @ dp !
+    basic-head-sav @ dp !
     assemble ;
 
->target
-: cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
+: compile,-cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
     #control@ ;
 
-: cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
+: compile,-cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
     dup 1+ #control@ swap
     cs-tos @ cs-data cell+ dup cell+ rot cells move
     control> drop >control ;
+
+>target
+: cs-pick ( u -- )
+    [ also Forth ' lit previous ] literal gforth-compile, ,
+    ['] compile,-cs-pick gforth-compile, ;
+
+: cs-roll ( u -- )
+    [ also Forth ' lit previous ] literal gforth-compile, ,
+    ['] compile,-cs-roll gforth-compile, ;
 >source
 
 include word.fs

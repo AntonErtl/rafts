@@ -33,7 +33,7 @@ $0300FFFC constant regs-freeable-set
 
 : (word-init) ( -- )
     here info-head-size tuck + a,
-    ['] compile-native a,
+    ['] compile,-native a,
     2cells ?do
 	0 a,
     cell +loop ;
@@ -67,42 +67,31 @@ create docode:
     [THEN]
     nop,
 
+?trace $0001 [IF]
+    ." docode" lastxt here over - disasm-dump
+[THEN]
+
 create dodata:
     #cfa -1cells #sp sw,
-    #sp dup -1cells addiu,
-    #cfa 2cells over lw,
-    #ip -1cells #rp sw,
-    @ra #cfa jalr,
-    #rp dup -1cells addiu,
-
-    #ip 0 #rp lw,
-    #rp dup 1cells addiu,
-    #cfa 0 #ip lw,
-    #ip dup 1cells addiu,
-    ?word-mode-direct [IF]
-	#cfa jr,
-    [THEN]
-    ?word-mode-indirect [IF]
-	@t0 0 #cfa lw,
-	nop,
-	@t0 jr,
-    [THEN]
     nop,
+    #cfa 2cells over lw,
+    #cfa jr,
+    #sp dup -1cells addiu,
+    
+?trace $0001 [IF]
+    ." dodata" lastxt here over - disasm-dump
+[THEN]
 
 create dodoes:
-    @t0 0 #cfa lw,
-    #cfa dup 2cells info-head-size + addiu,
+    ?word-mode-indirect [IF]
+	@ra 0 #cfa lw,
+	nop,
+	@ra dup 2cells addiu,
+    [THEN]
+    #cfa dup info-cfhead-size addiu,
     #cfa -1cells #sp sw,
     #sp dup -1cells addiu,
-    ?word-mode-direct [IF]
-	@t1 $03ffffff li,
-	@t1 @t0 tuck and,
-	@t0 dup $02 sll,
-	@t1 $fc000000 li,
-	@t1 #cfa tuck and,
-	@t0 #cfa tuck or,
-    [THEN]
-    #cfa 2cells over lw,
+    #cfa 0 @ra lw,
     #ip -1cells #rp sw,
     @ra #cfa jalr,
     #rp dup -1cells addiu,
@@ -120,6 +109,10 @@ create dodoes:
 	@t0 jr,
     [THEN]
     nop,
+
+?trace $0001 [IF]
+    ." dodoes" lastxt here over - disasm-dump
+[THEN]
 
 [THEN]
 
