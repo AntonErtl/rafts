@@ -202,9 +202,9 @@ control_init
   ;
 
 : (basic_stackupdate) ( val register -- )
-  >r regs_unused LITS terminal dup inst_done
-  0 r@ VREGP terminal dup inst_done
-  ADDI op inst_s!_list @ over node_depends !
+  >r regs_unused I_LITS terminal dup inst_done
+  0 r@ I_REG terminal dup inst_done
+  I_PLUS op inst_s!_list @ over node_depends !
   r> dup regs_inc over node_reg ! inst_btrees_insert_end ;
 
 : basic_stackupdate ( register n -- )

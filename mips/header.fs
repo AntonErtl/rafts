@@ -72,10 +72,10 @@ create dodoes
 : (func_init) ( -- )
   \ \\ @ra -4 #rp @sw
   \ \\ #rp #rp -4 @addiu drop
-  \ -4 regs_unused LITI node
-  \ 0 #rp VREGP node
+  \ -4 regs_unused I_LIT node
+  \ 0 #rp I_REG node
   \ ADDU op #rp over node_reg ! inst_btrees_insert
-  \ 0 @ra VREGP node dup inst_done
+  \ 0 @ra I_REG node dup inst_done
   \ -4 #rp id! inst_btrees_insert
   ;
 

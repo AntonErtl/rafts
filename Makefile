@@ -44,6 +44,15 @@ COMPILER	= compiler.fs options.fs \
 		$(TIME) $(FORTH) $(FORTH_FILE.p) $< >$@ 2>&1
 %.diff:		%.p1 %.p2
 		-$(DIFF) $^ >$@
+BURG	= burg/burg
+BFEF	= burg/bfef
+BURGFLAGS = -d -= -I
+
+%.gr:	%.burg $(BFEF).awk
+	$(BFEF) $< >$@
+%.fs:	%.gr
+	$(BURG) -F $(BURGFLAGS) -o $@ $<
+
 .SUFFIXES:	.dmp .p1 .p2 .diff
 
 FILES		= $(wildcard $(DIR)/dmp*.fs) \
@@ -53,7 +62,7 @@ FILES.p1	= $(FILES:.fs=.p1)
 FILES.p2	= $(FILES:.fs=.p2)
 DIFFS		= $(FILES:.fs=.diff)
 
-all:		install_mips
+all:		mips/grammar.fs install_mips
 install_i486:
 		ln -sf i486/header.fs
 		ln -sf i486/grammar.fs

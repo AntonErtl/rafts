@@ -86,7 +86,7 @@
     @ dup 0<> while
     dup .name
     dup cell+ c@
-    over name> ." ( " hex. ." )"
+    over name>int ." ( " hex. ." )"
     dup $20 and if
       ." [imm]" endif
     $40 and if

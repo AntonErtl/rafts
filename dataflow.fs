@@ -51,7 +51,7 @@
     last @ endif
   here 2dup over - hex.s dump		\ Hexdump vom generierten Maschinencode
   noname_state @ 0= if
-    swap name> swap endif
+    swap name>int swap endif
   hex.s swap				\ disassemblierter Dump vom generierten Maschienencode
   dup 2 cells + tuck disasm_dump
   \ dup 2 cells + tuck disasm_dump

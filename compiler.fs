@@ -111,9 +111,9 @@ include basic.fs
         func_interpreter
         basic_init endof
       dodefer: of
-\ ?trace $0001 [IF]
+?trace $0001 [IF]
         ." FUNC_DEFER:" hex.s cr
-\ [THEN]
+[THEN]
 	basic_exit
         func_interpreter
         basic_init endof
@@ -125,7 +125,8 @@ include basic.fs
 ?trace $0001 [IF]
         ." FUNC_STRUC:" hex.s cr
 [THEN]
-	2 cells + @ vtarget_compile postpone literal vsource dostruc @ execute
+	2 cells + @ vtarget_compile postpone literal vsource dostruc @
+	execute
 	endof
       docode: of
 ?trace $0001 [IF]

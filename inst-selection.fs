@@ -181,7 +181,7 @@ include node.fs
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @sub drop ;
 
 : asm_mul ( node_addr -- )
-  dup asm_lreg@ swap asm_rreg@ @mult ;
+  dup asm_lreg@ over asm_rreg@ @mult asm_reg@ @mflo drop ;
 
 : asm_mull ( node_addr -- )
   asm_reg@ @mflo drop ;
@@ -332,13 +332,13 @@ NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
 
 : lit ( n -- node_addr )
   dup 0= if
-    0 LITS terminal \ !! warum 0 ?
+    0 I_LITS terminal \ !! warum 0 ?
   else dup $8000 >= if
-    regs_unused LITI terminal
+    regs_unused I_LIT terminal
   else dup $0000 < if
-    regs_unused LITI terminal
+    regs_unused I_LIT terminal
   else
-    regs_unused LITS terminal endif endif endif
+    regs_unused I_LITS terminal endif endif endif
   dup inst_done ;
 
 >target_compile
@@ -347,16 +347,16 @@ NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
 >source
 
 : addr ( offset register -- node_addr )
-  swap regs_unused LITS terminal dup inst_done
-  NULL rot VREGP terminal dup inst_done
-  ADDI op
+  swap regs_unused I_LITS terminal dup inst_done
+  NULL rot I_REG terminal dup inst_done
+  I_PLUS op
   dup inst_done ;
 
 : id@ ( offset register -- node_addr )
-  addr FETCHI uop ;
+  addr I_FETCH uop ;
 
 : id! ( node_addr offset register -- node_addr )
-  addr swap STOREI op ;
+  addr swap I_STORE op ;
 
 : inst_cover ( indent goal node_addr -- flag )
   dup hex.

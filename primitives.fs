@@ -49,12 +49,12 @@
   >data >data ; immediate restrict
 
 : pick ( D: xu ... x1 x0 u -- xu ... x1 x0 xu )
-  data> dup node_op @ dup LITS = swap LITI = or if
+  data> dup node_op @ dup I_LITS = swap I_LIT = or if
     node_val @ #data@ count+ >data else
     >data ['Forth] pick compile, endif ; immediate restrict
 
 : roll ( D: xu xu-1 ... x0 u -- xu-1 ... x0 xu )
-  data> dup node_op @ dup LITS = swap LITI = or if
+  data> dup node_op @ dup I_LITS = swap I_LIT = or if
     node_val @ dup #data@
     ds_tos@ rot ds_data dup cell+ rot cells move
     data> drop >data else
@@ -76,7 +76,7 @@
   vtarget_compile 3 postpone literal postpone roll 3 postpone literal postpone roll vsource ; immediate restrict
 
 : ?dup ( D: x -- 0 | x x )
-  data> dup node_op @ dup LITS = swap LITI = or if
+  data> dup node_op @ dup I_LITS = swap I_LIT = or if
     dup node_val @ 0<> if
       vForth dup vsource count+ >data >data else
       >data endif else
@@ -90,10 +90,10 @@
 
 \ primitives
 : + ( D: addr addr -- addr )
-  data> data> ADDI op >data ; immediate restrict
+  data> data> I_PLUS op >data ; immediate restrict
 
 : - ( D: addr addr -- addr )
-  data> data> SUBI op >data ; immediate restrict
+  data> data> I_MINUS op >data ; immediate restrict
 
 : 1+ ( D: addr -- addr )
   vtarget_compile 1 postpone literal postpone + vsource ; immediate restrict
@@ -102,13 +102,13 @@
   vtarget_compile -1 postpone literal postpone + vsource ; immediate restrict
 
 : * ( D: addr addr -- addr )
-  data> data> MUL op MULIL uop >data ; immediate restrict
+  data> data> I_TIMES op >data ; immediate restrict
 
 : /mod ( D: addr addr -- addr addr )
-  data> data> DIV op >data
+  data> data> I_SLASH op >data
   vtarget_compile postpone dup vsource
   data> DIVI uop
-  data> MODI uop >data >data ; immediate restrict
+  data> I_MOD uop >data >data ; immediate restrict
 
 : / ( D: addr addr -- addr )
   vtarget_compile postpone /mod postpone nip vsource ; immediate restrict
@@ -117,16 +117,16 @@
   vtarget_compile postpone /mod postpone drop vsource ; immediate restrict
 
 : lshift ( D: addr addr -- addr )
-  data> data> LSHU op >data ; immediate restrict
+  data> data> I_LSHIFT op >data ; immediate restrict
 
 : lshifta ( D: addr addr -- addr )
-  data> data> LSHU op >data ; immediate restrict
+  data> data> I_LSHIFT op >data ; immediate restrict
 
 : rshift ( D: addr addr -- addr )
-  data> data> RSHU op >data ; immediate restrict
+  data> data> I_RSHIFT op >data ; immediate restrict
 
 : rshifta ( D: addr addr -- addr )
-  data> data> RSHI op >data ; immediate restrict
+  data> data> I_SRSHIFT op >data ; immediate restrict
 
 : 2* ( D: addr -- addr )
   vtarget_compile 1 postpone literal postpone lshifta vsource ; immediate restrict
@@ -134,92 +134,89 @@
 : 2/ ( D: addr -- addr )
   vtarget_compile 1 postpone literal postpone rshifta vsource ; immediate restrict
 
-: abs ( D: addr -- addr )
-  data> ABSI uop >data ; immediate restrict
-
 : negate ( D: addr -- addr )
-  data> NEGI uop >data ; immediate restrict
+  data> I_NEGATE uop >data ; immediate restrict
 
 : invert ( D: addr -- addr )
-  data> BINVU uop >data ; immediate restrict
+  data> I_INVERT uop >data ; immediate restrict
 
 : and ( D: addr addr -- addr )
-  data> data> BANDU op >data ; immediate restrict
+  data> data> I_AND op >data ; immediate restrict
 
 : or ( D: addr addr -- addr )
-  data> data> BORU op >data ; immediate restrict
+  data> data> I_OR op >data ; immediate restrict
 
 : xor ( D: addr addr -- addr )
-  data> data> BXORU op >data ; immediate restrict
+  data> data> I_XOR op >data ; immediate restrict
 
 : = ( D: addr addr -- addr )
-  data> data> BXORU op
-  vtarget_compile 1 postpone literal vsource data> swap SLTU op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> data> I_XOR op
+  vtarget_compile 1 postpone literal vsource data> swap I_ULESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : <> ( D: addr addr -- addr )
-  data> data> BXORU op
-  vtarget_compile 0 postpone literal vsource data> SLTU op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> data> I_XOR op
+  vtarget_compile 0 postpone literal vsource data> I_ULESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : < ( D: addr addr -- addr )
-  data> data> SLTI op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> data> I_LESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : <= ( D: addr addr -- addr )
-  data> data> swap SLTI op
-  vtarget_compile -1 postpone literal vsource data> ADDI op >data ; immediate restrict
+  data> data> swap I_LESS op
+  vtarget_compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
 
 : > ( D: addr addr -- addr )
-  data> data> swap SLTI op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> data> swap I_LESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : >= ( D: addr addr -- addr )
-  data> data> SLTI op
-  vtarget_compile -1 postpone literal vsource data> ADDI op >data ; immediate restrict
+  data> data> I_LESS op
+  vtarget_compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
 
 : 0= ( D: addr -- addr )
-  data> vtarget_compile 1 postpone literal vsource data> swap SLTU op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> vtarget_compile 1 postpone literal vsource data> swap I_ULESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : 0<> ( D: addr -- addr )
-  data> vtarget_compile 0 postpone literal vsource data> SLTU op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> vtarget_compile 0 postpone literal vsource data> I_ULESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : 0< ( D: addr -- addr )
-  data> vtarget_compile 0 postpone literal vsource data> swap SLTI op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> vtarget_compile 0 postpone literal vsource data> swap I_LESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : 0<= ( D: addr -- addr )
-  data> vtarget_compile 0 postpone literal vsource data> SLTI op
-  vtarget_compile -1 postpone literal vsource data> ADDI op >data ; immediate restrict
+  data> vtarget_compile 0 postpone literal vsource data> I_LESS op
+  vtarget_compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
 
 : 0> ( D: addr -- addr )
-  data> vtarget_compile 0 postpone literal vsource data> SLTI op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> vtarget_compile 0 postpone literal vsource data> I_LESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : 0>= ( D: addr -- addr )
-  data> vtarget_compile 0 postpone literal vsource data> swap SLTI op
-  vtarget_compile -1 postpone literal vsource data> ADDI op >data ; immediate restrict
+  data> vtarget_compile 0 postpone literal vsource data> swap I_LESS op
+  vtarget_compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
 
 : u< ( D: addr addr -- addr )
-  data> data> SLTU op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> data> I_ULESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : u<= ( D: addr addr -- addr )
-  data> data> swap SLTU op
-  vtarget_compile -1 postpone literal vsource data> ADDI op >data ; immediate restrict
+  data> data> swap I_ULESS op
+  vtarget_compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
 
 : u> ( D: addr addr -- addr )
-  data> data> swap SLTU op
-  vtarget_compile 0 postpone literal vsource data> SUBI op >data ; immediate restrict
+  data> data> swap I_ULESS op
+  vtarget_compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
 
 : u>= ( D: addr addr -- addr )
-  data> data> SLTU op
-  vtarget_compile -1 postpone literal vsource data> ADDI op >data ; immediate restrict
+  data> data> I_ULESS op
+  vtarget_compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
 
 : cells ( D: addr -- addr )
-  vtarget_compile 4 postpone literal postpone * vsource ; immediate restrict
+  vtarget_compile 2 postpone literal postpone lshift vsource ; immediate restrict
 
 : cell+ ( D: addr -- addr )
   vtarget_compile 4 postpone literal postpone + vsource ; immediate restrict
@@ -237,14 +234,14 @@
   vtarget_compile postpone 1- vsource ; immediate restrict
 
 : @ ( D: addr -- addr )
-  data> FETCHI uop
+  data> I_FETCH uop
   true over node_delay !
   inst_!_list @ over node_depends !
   dup inst inst_@_list @ slist_insert drop
   >data ; immediate restrict
 
 : ! ( D: addr addr -- )
-  data> data> STOREI op
+  data> data> I_STORE op
   inst_@_list @ over node_depends !
   NIL inst inst_!_list !
   dup inst inst_!_list @ slist_insert drop
@@ -259,14 +256,14 @@
   vtarget_compile postpone swap postpone over postpone ! postpone cell+ postpone ! vsource ; immediate restrict
 
 : c@ ( D: addr -- addr )
-  data> FETCHC uop
+  data> I_CFETCH uop
   true over node_delay !
   inst_!_list @ over node_depends !
   dup inst inst_@_list @ slist_insert drop
   >data ; immediate restrict
 
 : c! ( D: addr addr -- )
-  data> data> STOREC op
+  data> data> I_CSTORE op
   inst_@_list @ over node_depends !
   NIL inst inst_!_list !
   dup inst inst_!_list @ slist_insert drop
@@ -350,7 +347,7 @@ create text_data
 
 : (dostruc) ( addr u - addr )
   vtarget_compile postpone + vsource ; immediate restrict
-' (dostruc) dostruc !
+comp' (dostruc) drop dostruc !
 
 ?test $0004 [IF]
 cr ." Test for primitives.fs" cr
