@@ -38,11 +38,17 @@ cell constant 1cells
 3 cells constant 3cells
 4 cells constant 4cells
 5 cells constant 5cells
+6 cells constant 6cells
+7 cells constant 7cells
+8 cells constant 8cells
 cell negate constant -1cells
 -2 cells constant -2cells
 -3 cells constant -3cells
 -4 cells constant -4cells
 -5 cells constant -5cells
+-6 cells constant -6cells
+-7 cells constant -7cells
+-8 cells constant -8cells
 
 : char- ( addr -- addr )
 \ decrements addr by one char

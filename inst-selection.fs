@@ -165,7 +165,10 @@ include node.fs
     1 over ml-count !
     dup ml-done off
     1 over ml-cost !
-    dup inst-nodes-insert-end ;
+    dup
+    inst-nodes-insert-end
+    \ inst-nodes-insert
+;
 
 include machine/grammar.fs
 include regs.fs

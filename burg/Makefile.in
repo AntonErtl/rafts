@@ -134,10 +134,10 @@ clean:		mostlyclean
 
 distclean:	clean
 		$(RM) Makefile
-
-realclean:	distclean
 		$(RM) $(GEN)
 		$(RM) *.dvi
+
+realclean:	distclean
 
 dist:		$(SOURCES) $(DOCDIST)
 

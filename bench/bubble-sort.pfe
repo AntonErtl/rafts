@@ -1,4 +1,4 @@
-.( Loading Bubble Sort benchmark...) cr
+." Loading Bubble Sort benchmark..." cr
 
 \ A classical benchmark of an O(n**2) algorithm; Bubble sort
 \

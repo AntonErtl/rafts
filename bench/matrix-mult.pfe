@@ -1,4 +1,4 @@
-.( Loading Matrix Multiplication benchmark...) cr
+." Loading Matrix Multiplication benchmark..." cr
 \ NOTE: This version needs 0.5MB data space
 
 \ A classical benchmark of an O(n**3) algorithm; Matrix Multiplication

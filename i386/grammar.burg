@@ -19,7 +19,8 @@
 \\	along with this program; if not, write to the Free Software
 \\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-include header.fs
+include machine/header.fs
+include machine/assembling.fs
 
 \' il-op alias OP-LABEL
 \' il-slabel alias STATE-LABEL
@@ -82,11 +83,15 @@ include header.fs
     NIL over ml-right !
     dup ml-delay on ;
 
+: move-inst ( left-ml il-addr nt asm-xt -- ml )
+    inst-ok
+    tuck ml-left !
+    NIL over ml-right ! ;
+
 %}
 
 %start stmt
 
-%term I_LIT
 /* unary operators	*/
 %term I_INVERT
 %term I_NEGATE
@@ -111,9 +116,14 @@ include header.fs
 /* %term I_EQUALS */
 %term I_LESS
 %term I_ULESS
+
 %term I_0BRANCH
 %term I_BRANCH
+%term I_MOVE
+
+/* general		*/
 %term I_REG
+%term I_LIT
 %term I_LITS
 %term NOP
 
@@ -169,6 +179,8 @@ cons: I_LITS			#0#	drop drop il-val @ #
 con:  I_LIT			#0#	drop drop il-val @ #
 con:  cons			#0#	drop drop drop	#
 reg:  con			#1#	lit-inst	#asm-lit
+
+reg:  I_MOVE(reg)		#1#	move-inst	#asm-move
 
 reg:  I_CFETCH(addr)		#1#	load-inst	#asm-fetchc
 reg:  I_FETCH(addr)		#1#	load-inst	#asm-fetchi

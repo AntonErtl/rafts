@@ -25,16 +25,19 @@
 \ @s4 constant #lp
 @s4 constant #cfa
 \ @s6 constant #up
+@v1 constant #tos
 \ @s5 constant #tos
 \ @s8 constant #ftos
 
-@at constant #tos
-\ @s5 constant #tos
-@v0 constant #sos
+$2 constant tos-#register
 
 \ initialize freeable registers
 \ $0300FFF8 constant regs-freeable-set
-$0300FFF8 constant regs-freeable-set
+$0300FFFC
+tos-#register 0 > [IF]
+    tos-#register asm-bitmask #tos lshift invert and
+[THEN]
+constant regs-freeable-set
 
 : (word-init) ( -- )
     here ih-size tuck + a,
@@ -50,44 +53,62 @@ $0300FFF8 constant regs-freeable-set
 : (word-lwexit) ( -- )
     @ra 0 #rp lw, ;
 
+: tos-load ( n to from -- )
+    ?do
+	i over #sp lw,
+	cell+
+    loop ;
+
+: tos-store ( n to from -- )
+    ?do
+	i over #sp sw,
+	cell+
+    loop ;
+    
 ?shared docode: [IF]
 
 create docode:
-    #tos 0 #sp lw,         \ load top of stack element
-    #sos 1cells #sp lw,    \ load second of stack element
+    \ load top of stack elements
+    tos-#register 0 > [IF]
+	$0000 #tos tos-#register + #tos tos-load drop
+    [THEN]
     #cfa 2cells over lw,
     #ip -1cells #rp sw,
     @ra #cfa jalr,
     #rp dup -1cells addiu,
 
-    #sos 1cells #sp sw,    \ save second of stack element
-    #tos 0 #sp sw,         \ save top of stack element
+    \ save top of stack elements (without tos)
+    tos-#register 0 > [IF]
+	$0000 #tos tos-#register + 1- #tos tos-store
+    [THEN]
     #ip 0 #rp lw,
     #rp dup 1cells addiu,
     #cfa 0 #ip lw,
-    #ip dup 1cells addiu,
     ?word-mode-direct [IF]
+	#ip dup 1cells addiu,
 	#cfa jr,
-    [THEN]
-    ?word-mode-indirect [IF]
+    [ELSE]
 	@t0 0 #cfa lw,
-	nop,
+	#ip dup 1cells addiu,
 	@t0 jr,
     [THEN]
-    nop,
+    \ save tos element
+    tos-#register 0 > [IF]
+	#tos tos-#register + 1- swap #sp sw,
+    [ELSE]
+	nop,
+    [THEN]
 
 ?trace $0001 [IF]
     ." docode" lastxt here over - disasm-dump
 [THEN]
 
 create dodata:
-    #tos #cfa @zero addiu,          \ load top of stack element
-    #sos 0 #sp lw,                  \ load top of stack element0
     #cfa -1cells #sp sw,
-    nop,
     #cfa 2cells over lw,
-    #cfa jr,
     #sp dup -1cells addiu,
+    #cfa jr,
+    nop,
     
 ?trace $0001 [IF]
     ." dodata" lastxt here over - disasm-dump
@@ -99,42 +120,56 @@ create dodoes:
 	nop,
 	@ra dup 2cells addiu,
     [THEN]
-    #cfa dup ih-cfsize addiu,
-    \ #cfa -1cells #sp sw,
-    #tos #cfa @zero addiu,          \ load top of stack element
-    #sos 0 #sp lw,                  \ load second of stack element
+    tos-#register 0 > [IF]
+	#tos #cfa ih-cfsize addiu,
+    [ELSE]
+	#cfa dup ih-cfsize addiu,
+	#cfa -1cells #sp sw,
+    [THEN]
+    \ load top of stack elements
+    tos-#register 0 > [IF]
+	$0000 #tos tos-#register + #tos 1+ tos-load drop
+    [THEN]
     #sp dup -1cells addiu,
     #cfa 0 @ra lw,
     #ip -1cells #rp sw,
     @ra #cfa jalr,
     #rp dup -1cells addiu,
 
-    #sos 1cells #sp sw,    \ save second of stack element
-    #tos 0 #sp sw,         \ save top of stack element
+    \ save top of stack elements (without tos)
+    tos-#register 0 > [IF]
+	$0000 #tos tos-#register + 1- #tos tos-store
+    [THEN]
     #ip 0 #rp lw,
     #rp dup 1cells addiu,
     #cfa 0 #ip lw,
-    #ip dup 1cells addiu,
     ?word-mode-direct [IF]
+	#ip dup 1cells addiu,
 	#cfa jr,
-    [THEN]
-    ?word-mode-indirect [IF]
+    [ELSE]
 	@t0 0 #cfa lw,
-	nop,
+	#ip dup 1cells addiu,
 	@t0 jr,
     [THEN]
-    nop,
-
+    \ save tos element
+    tos-#register 0 > [IF]
+	#tos tos-#register + 1- swap #sp sw,
+    [ELSE]
+	nop,
+    [THEN]
+    
 ?trace $0001 [IF]
     ." dodoes" lastxt here over - disasm-dump
 [THEN]
 
 [THEN]
 
-\ hex.s cr
-\ ." DOCODE:" docode: hex. cr
-\ ." DODATA:" dodata: hex. cr
-\ ." DODOES:" dodoes: hex. cr
+?trace $0001 [IF]
+    hex.s cr
+    ." DOCODE:" docode: hex. cr
+    ." DODATA:" dodata: hex. cr
+    ." DODOES:" dodoes: hex. cr
+[THEN]
 
 ?test $0002 [IF]
 cr ." Test for header.fs" cr

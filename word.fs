@@ -122,26 +122,37 @@
     ?trace $0002 [IF]
 	dup >name hex. ." word-interpreter:" dup name. cr
     [THEN]
-    #tos $0000 #sp sw,
-    #sos $0004 #sp sw,
+    tos-#register 0 > if
+	$0000 #tos tos-#register + 1- #tos tos-store
+	swap
+    endif
     #cfa swap li,
     ?word-mode-direct [IF]
 	#ip here 4cells + li,
 	#cfa jr,
+	tos-#register 0 > if
+	    #tos tos-#register + 1- swap #sp sw,
+	else
+	    nop,
+	endif
     [ELSE]
+	@t0 0 #cfa lw,
 	#ip here 5cells + li,
-	@t0 0 rot lw,
 	@t0 jr,
+	tos-#register 0 > if
+	    #tos tos-#register + 1- swap #sp sw,
+	else
+	    nop,
+	endif
     [THEN]
-    nop,
     here cell+ a,
     ?word-mode-indirect [IF]
 	here cell+ a,
     [THEN]
-    #tos $0000 #sp lw,
-    #sos $0004 #sp lw,
-    nop,
-;
+    tos-#register 0 > if
+	$0000 #tos tos-#register + #tos tos-load drop
+	nop,
+    endif ;
 
 : check-ra ( -- )
     return>
@@ -151,12 +162,12 @@
 	drop
     endif ;
 
-: compile,-word-init-check ( -- )
+: compile-word-init-check ( -- )
     (word-init)
     basic-init
     0 @ra I_REG terminal >return ;
 
-: compile,-word-init ( -- )
+: compile-word-init ( -- )
     here basic-code-sav !
     basic-code-ptr @ dup dp !
     swap 2cells + !
@@ -170,14 +181,14 @@
     word-regs-init
     docol: cfa,
     [ also Forth ' lit previous ] literal gforth-compile, ,
-    ['] compile,-word-init gforth-compile, ;
+    ['] compile-word-init gforth-compile, ;
 
-: compile,-word-exit-check ( -- )
+: compile-word-exit-check ( -- )
     check-ra
     basic-exit
     (word-exit) ;
 
-: compile,-word-exit ( -- )
+: compile-word-exit ( -- )
     check-ra
     basic-exit
     (word-exit)
@@ -191,7 +202,7 @@
     flush-icache ;
 
 : word-exit ( -- )
-    ['] compile,-word-exit gforth-compile,
+    ['] compile-word-exit gforth-compile,
     [ also Forth ' ;s previous ] literal gforth-compile, ;
 
 : (:header:) ( "name" -- xt )
@@ -224,25 +235,20 @@ variable (lastih)
 : lastih ( -- addr )
     (lastih) @ ;
 
-: set-lastih ( -- )
-    noname-state @ if
-	lastxt
-    else
-	last @
-	dup ((name>))
-    endif ;
+: lastih-init ( -- )
+    here (lastih) ! ;
 >target
 
 : :noname ( -- )
     noname-state on
-    here (lastih) !
+    lastih-init
     word-init
     lastih lastcfa ! ] ;
 
 : : ( "name" -- )
     noname-state off
     header
-    here (lastih) !
+    lastih-init
     word-init ] ;
 
 : ; ( -- )
@@ -251,9 +257,9 @@ variable (lastih)
     [THEN]
     postpone [
     word-exit
+    lastih word-regs-write
     \ generate the code
     lastih 2cells + @ execute
-    lastih word-regs-write
     \ here over - flush-icache
     ?trace $0800 [IF]
 	\ Dump vom Info Header
@@ -272,7 +278,7 @@ variable (lastih)
 >source
 : (header) ( regs-out regs-in xt xt "name" -- )
     header
-    here (lastih) !
+    lastih-init
     dodata: cfa,
     \ interpreter xt-addr, compiler xt-addr,
     a, a,

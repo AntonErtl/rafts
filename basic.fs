@@ -18,7 +18,6 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-
 \ variables for compile-time data stack
 $20 constant ds-size
 ds-size 2/ constant ds-tosstart
@@ -158,15 +157,14 @@ include register.fs
 
 : data-init-stack ( register addr n -- )
     swap
-    \ assign the top and second of stack element
-    \ to a register
-    #tos register-terminal 2dup swap !
-    inst inst-s!-list @ slist-insert drop
-    cell+
-    #sos register-terminal 2dup swap !
-    inst inst-s!-list @ slist-insert drop
-    cell+ swap
-    2 ?do ( register addr )
+    \ assign the top of stack elements to a register
+    #tos tos-#register + #tos ?do
+	i register-terminal 2dup swap !
+	inst inst-s!-list @ slist-insert drop
+	cell+
+    loop
+    swap
+    tos-#register ?do ( register addr )
 	i cells 2 pick id@ ( register addr node )
 	dup inst inst-s!-list @ slist-insert drop
 	over !
@@ -272,44 +270,31 @@ control-init
     ?trace $0100 [IF]
 	basic-datastackdump-print
     [THEN]
-    data>
-    dup 0 ds-init @ = over 1 ds-init @ = or
-    \ over il-op @ I_LIT over = swap I_LITS = or or
-    over il-reg @ regs-unused <> or if
-	register-move
-    endif
-    #tos over il-reg !
-    dup inst inst-s!-list @ slist-insert drop
-    0 ds-init @ inst
-    over il-depends
-    dup @ dup il-depends-init = if
-	drop >r
-	NULL inst tuck slist-insert drop
-	r> !
-    else
-	nip
-	slist-insert drop
-    endif
-    inst-btrees-insert
-    data>
-    dup 0 ds-init @ = over 1 ds-init @ = or
-    \ over il-op @ I_LIT over = swap I_LITS = or or
-    over il-reg @ regs-unused <> or if
-	register-move
-    endif
-    #sos over il-reg !
-    dup inst inst-s!-list @ slist-insert drop
-    1 ds-init @ inst
-    over il-depends
-    dup @ dup il-depends-init = if
-	drop >r
-	NULL inst tuck slist-insert drop
-	r> !
-    else
-	nip
-	slist-insert drop
-    endif
-    inst-btrees-insert
+
+    #tos tos-#register + #tos ?do
+	data>
+	false
+	tos-#register 0 ?do
+	    over i ds-init @ = or
+	loop
+	over il-reg @ regs-unused <> or if
+	    register-move
+	endif
+	i over il-reg !
+	dup inst inst-s!-list @ slist-insert drop
+	i #tos - ds-init @ inst
+	over il-depends
+	dup @ dup il-depends-init = if
+	    drop >r
+	    NULL inst tuck slist-insert drop
+	    r> !
+	else
+	    nip
+	    slist-insert drop
+	endif
+	inst-btrees-insert
+    loop
+    
     \ dump the data stack
     ds-size ds-tos @
     ?do
@@ -325,8 +310,8 @@ control-init
 		\ old stackelements (changed)
 		basic-datastackdump-old
 	    else
-		0 over = over 1 = or if
-		    \ tos and sos stackelements (changed)
+		tos-#register over > if
+		    \ top of stack elements (changed)
 		    basic-datastackdump-old
 		else
 		    ?trace $0100 [IF]
@@ -421,10 +406,10 @@ constant nop-ml \ nop instruction, usable only after scheduling
     basic-head-sav @ dp !
     assemble ;
 
-: compile,-cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
+: compile-cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
     #control@ ;
 
-: compile,-cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
+: compile-cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
     dup 1+ #control@ 2>r >r
     cs-tos @ 1+ dup cs-dsize cs-data swap 1+ cs-dsize cs-data rot cs-dsize cells move
     control> 2drop drop
@@ -432,14 +417,14 @@ constant nop-ml \ nop instruction, usable only after scheduling
 
 >target
 : cs-pick ( u -- )
-    dup compile,-cs-pick
+    dup compile-cs-pick
     [ also Forth ' lit previous ] literal gforth-compile, ,
-    ['] compile,-cs-pick gforth-compile, ;
+    ['] compile-cs-pick gforth-compile, ;
 
 : cs-roll ( u -- )
-    dup compile,-cs-roll
+    dup compile-cs-roll
     [ also Forth ' lit previous ] literal gforth-compile, ,
-    ['] compile,-cs-roll gforth-compile, ;
+    ['] compile-cs-roll gforth-compile, ;
 >source
 
 include word.fs

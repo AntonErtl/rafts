@@ -150,10 +150,12 @@ include machine/disasm.fs
 include basic.fs
 
 : imm-compile, ( xt -- )
-    \ ~~
-    \ dup >name .name
-    \ dup $10 - $40 dump
-    dup 3cells + @ execute ;
+    ?trace $0001 [IF]
+	\ ~~
+	\ dup >name .name
+	\ dup $10 - $40 dump
+    [THEN]
+    dup ih-compiler @ execute ;
 
 include primitives.fs
 include control.fs
@@ -188,7 +190,7 @@ is compile,-user-gforth
 	." compile,-field (gforth): " dup name. hex.s cr
     [THEN]
     2cells + @
-    2cells + @ compile,-literal 0 compile,-+ ;
+    2cells + @ compile,-literal 0 compile-+ ;
 is compile,-field-gforth
 
 :noname ( xt -- )
@@ -198,14 +200,7 @@ is compile,-field-gforth
     basic-exit
     2cells + @
     word-interpreter
-    basic-init
-    
-    \ 2cells + @
-    \ 2cells +
-    \ postpone literal
-    \ vtarget postpone @ vsource 
-    \ vtarget postpone execute vsource
-;
+    basic-init ;
 is compile,-defer-gforth
 
 :noname ( xt -- )
@@ -250,14 +245,14 @@ is compile,-user
     ?trace $0001 [IF]
 	." compile,-field: " dup name. hex.s cr
     [THEN]
-    ih-cfsize + @ compile,-literal 0 compile,-+ ;
+    ih-cfsize + @ compile,-literal 0 compile-+ ;
 is compile,-field
 
 :noname ( xt -- )
     ?trace $0001 [IF]
 	." compile,-defer: " dup name. hex.s cr
     [THEN]
-    ih-cfsize + compile,-literal 0 compile,-@
+    ih-cfsize + compile,-literal 0 compile-@
     basic-exit
     ['] execute word-interpreter
     basic-init ;
@@ -286,15 +281,16 @@ is compile,-does
 : compile, ( xt -- )
     ?trace $0001 [IF]
 	\ ~~
-	\ dup >name .name
+	dup hex.
+	dup >name .name
 	\ dup $10 - $40 dump
     [THEN]
     dup word-regs-read
     ?trace $0001 [IF]
-	word-regs-print
+	\ word-regs-print
     [THEN]
     dup [ also Forth ' lit previous ] literal gforth-compile, ,
-    3cells + @ gforth-compile, ;
+    ih-compiler @ gforth-compile, ;
 
 : wword-regs-print ( -- )
     word-regs-print ;
@@ -451,7 +447,7 @@ word-good 0 0 :word */mod
 word-good 0 0 :word align
 word-good 0 0 :word alias
  word-good 1 0 :word alias-mask
-word-good 0 0 :word also
+ word-good 0 0 :word also
 word-good 0 0 :word aligned
 word-good 0 0 :word assert-level
  word-good 0 0 :word bye
@@ -522,6 +518,7 @@ word-good 0 0 :word postpone
  word-good 0 0 :word reveal
  word-good 0 0 :word root
 word-good 0 0 :word rp@
+ word-good 0 0 :word savesystem
 word-good 0 0 :word see
 word-good 0 0 :word set-order
 word-good 0 0 :word sfind
@@ -549,6 +546,7 @@ word-good 0 0 :word [ENDIF]
 word-good 0 0 :word [THEN]
 
  word-bad 1 -1 :word ?dup
+
 previous
 
 \ rafts word useable in target

@@ -1,21 +1,39 @@
 #!/bin/sh
 
+usage="usage: `basename $0` file nr"
+exist=": file does not exist"
+
+if [ $# -ne 2 ]
+then
+	echo $usage
+	exit 1
+fi
+
+if [ ! -r $1 ]
+then
+	echo $1$exist
+	exit 2
+fi
+
 host="`hostname`"
 hostbase="`basename $host .complang.tuwien.ac.at`"
-file="`basename $1 .fs`"
-dmp="$file.$hostbase.dmp"
+dmp="`basename $1 .fs`.$hostbase.dmp-$2"
 
-xnorun $1 >$dmp 2>&1
+echo -n >$dmp 2>&1
+
+./bench/xnorun $1 >>$dmp 2>&1
 echo >>$dmp 2>&1
 
-xrun $1 >>$dmp 2>&1
+./bench/xrun $1 >>$dmp 2>&1
 echo >>$dmp 2>&1
 
-xgnorun $1 >>$dmp 2>&1
+./bench/xgnorun $1 >>$dmp 2>&1
 echo >>$dmp 2>&1
 
-xgrun $1 >>$dmp 2>&1
+./bench/xgrun $1 >>$dmp 2>&1
 echo >>$dmp 2>&1
 
-xcrun $1 >>$dmp 2>&1
+./bench/xcrun $1 >>$dmp 2>&1
 echo >>$dmp 2>&1
+
+exit 0

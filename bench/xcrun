@@ -1,6 +1,28 @@
-#!/bin/csh -f
+#!/bin/sh
 
-setenv file `basename $1 .fs`
+usage="usage: `basename $0` file"
+exist=": file does not exist"
+
+if [ $# -ne 1 ]
+then
+	echo $usage
+	exit 1
+fi
+
+file=./bench/`basename $1 .fs`
+
+if [ ! -r $file.opt ]
+then
+	echo $file.opt $exist
+	exit 2
+fi
+
+if [ ! -r $file.noopt ]
+then
+	echo $exist
+	exit 2
+fi
+
 echo time $file.opt
 time $file.opt
 

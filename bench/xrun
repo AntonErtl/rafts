@@ -1,5 +1,21 @@
-#!/bin/csh -f
+#!/bin/sh
 
-setenv file bench/`basename $0`.fs
-echo time gforth compiler.fs bench/$1 $file bye.fs
-time gforth compiler.fs bench/$1 $file bye.fs
+usage="usage: `basename $0` file"
+exist=": file does not exist"
+
+if [ $# -ne 1 ]
+then
+	echo $usage
+	exit 1
+fi
+
+if [ ! -r $1 ]
+then
+	echo $1$exist
+	exit 2
+fi
+
+file=./bench/`basename $0`.fs
+
+echo time gforth -m 4M compiler.fs $1 $file -e bye
+time gforth -m 4M compiler.fs $1 $file -e bye

@@ -18,7 +18,7 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-variable tos,sos-reg
+variable tos-register
 
 \ local register allocation
 : alloc-reg ( ml -- )
@@ -33,38 +33,32 @@ variable tos,sos-reg
 \ returns true if register is freeable
      1 swap lshift regs-freeable-set and 0<> ;
 
+: free-tos ( reg tos-reg -- )
+    drop dup #tos - ds-init @
+    \ fetch the ml address of the register nonterminal
+    il-nt-insts burm-reg-NT cells + @ dup if
+	ml-reg dup @ regs-unused = if
+	    !
+	else
+	    2drop
+	endif
+    else
+	2drop
+    endif ;
+
 : free-reg ( ml -- )
 \ return the register to the free ones
 \ (except 0, which stands for "no result register")
     ml-reg @ dup freeable-reg if
 	regs-free
     else
-	#sos over =
-	over #tos = or if
-	    tos,sos-reg @
-	    2dup and if
-		drop dup 1- ds-init @
-		il-nt-insts burm-reg-NT cells + @ dup if
-		    ml-reg dup @ regs-unused = if
-			!
-		    else
-			2drop
-		    endif
-		else
-		    2drop
-		endif
+	#tos over <=
+	over #tos tos-#register + < and if
+	    tos-register @ 2dup = if
+		free-tos
 	    else
-		2dup or tos,sos-reg !
-		drop dup 1- ds-init @
-		il-nt-insts burm-reg-NT cells + @ dup if
-		    ml-reg dup @ regs-unused = if
-			!
-		    else
-			2drop
-		    endif
-		else
-		    2drop
-		endif
+		2dup or tos-register !
+		free-tos
 	    endif
 	else
 	    drop
@@ -88,7 +82,7 @@ variable tos,sos-reg
 
 : register-allocation ( -- )
 \ register allocation for the whole instructions list
-    0 tos,sos-reg !
+    0 tos-register !
     ['] register-allocation-func 0 inst-lists inst-sequence-reverse ;
 
 ?test $0020 [IF]

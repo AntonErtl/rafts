@@ -67,14 +67,14 @@ $00 constant asm-init-code
     swap $6 asm-bitmask and or ;
 
 \ ***** I-types
-: (asm-I-type) ( code -- )
+: asm-I-type ( code -- )
     a, ;
 
 : (asm-I-rt,imm) ( rt imm addr -- )
     @ asm-imm asm-rt a, ;
 
 : asm-I-rt,imm
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-rt,imm) ;
 
@@ -82,7 +82,7 @@ does>
     @ swap 2 rshift swap asm-imm asm-rs a, ;
 
 : asm-I-rs,imm
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-rs,imm) ;
 
@@ -90,7 +90,7 @@ does>
     @ asm-imm asm-rs asm-rt a, ;
 
 : asm-I-rt,rs,imm
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-rt,rs,imm) ;
 
@@ -98,7 +98,7 @@ does>
     @ swap 2 rshift swap asm-imm asm-rt asm-rs a, ;
 
 : asm-I-rs,rt,imm
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-rs,rt,imm) ;
 
@@ -106,7 +106,7 @@ does>
     @ asm-rs asm-offset asm-rt a, ;
 
 : asm-I-rt,offset,rs
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-rt,offset,rs) ;
 
@@ -119,7 +119,7 @@ does>
     @ swap asm-op or swap 2 rshift swap asm-imm a, ;
 
 : asm-I-imm,z
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-imm,z) ;
 
@@ -130,7 +130,7 @@ does>
     @ swap asm-op or asm-rs asm-offset asm-rt a, ;
 
 : asm-I-rt,offset,rs,z
-    create (asm-I-type)
+    create asm-I-type
 does>
     (asm-I-rt,offset,rs,z) ;
 
@@ -148,26 +148,26 @@ $00 constant asm-copz-BCF
 $01 constant asm-copz-BCT
 
 \ ***** J-types
-: (asm-J-type) ( code -- )
+: asm-J-type ( code -- )
     a, ;
 
 : (asm-J-target) ( target addr -- )
     @ asm-target a, ;
 
 : asm-J-target
-    create (asm-J-type)
+    create asm-J-type
 does>
     (asm-J-target) ;
 
 \ ***** R-types
-: (asm-R-type) ( code -- )
+: asm-R-type ( code -- )
     a, ;
 
 : (asm-R-nothing) ( addr -- )
     @ a, ;
 
 : asm-R-nothing
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-nothing) ;
 
@@ -175,7 +175,7 @@ does>
     @ asm-rd a, ;
 
 : asm-R-rd
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rd) ;
 
@@ -183,7 +183,7 @@ does>
     @ asm-rs a, ;
 
 : asm-R-rs
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rs) ;
 
@@ -191,7 +191,7 @@ does>
     @ asm-rs asm-rd a, ;
 
 : asm-R-rd,rs
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rd,rs) ;
 
@@ -199,7 +199,7 @@ does>
     @ asm-rt asm-rs a, ;
 
 : asm-R-rs,rt
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rs,rt) ;
 
@@ -207,7 +207,7 @@ does>
     @ asm-rt asm-rs asm-rd a, ;
 
 : asm-R-rd,rs,rt
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rd,rs,rt) ;
 
@@ -215,7 +215,7 @@ does>
     @ asm-rs asm-rt asm-rd a, ;
 
 : asm-R-rd,rt,rs
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rd,rt,rs) ;
 
@@ -223,7 +223,7 @@ does>
     @ asm-sa asm-rt asm-rd a, ;
 
 : asm-R-rd,rt,sa
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rd,rt,sa) ;
 
@@ -260,7 +260,7 @@ does>
     @ swap asm-op or asm-rd asm-rt a, ;
 
 : asm-R-rt,rd,z
-    create (asm-R-type)
+    create asm-R-type
 does>
     (asm-R-rt,rd,z) ;
 

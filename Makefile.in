@@ -149,11 +149,11 @@ distclean:	clean
 		( cd burg; $(MAKE) $@)
 		$(RM) machine/grammar.gr machine/grammar.fs machine
 		$(RM) config.cache config.log config.status $(GEN_PRECIOUS) 
+		$(RM) $(GEN)
+		$(RM) *.dvi
 
 realclean:	distclean
 		( cd burg; $(MAKE) $@)
-		$(RM) $(GEN)
-		$(RM) *.dvi
 
 dist:		$(SOURCES) $(DOCDIST)
 		( cd burg; $(MAKE) $@)

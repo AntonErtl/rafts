@@ -38,7 +38,7 @@ dead-code off
     [THEN]
     basic-init ;
 
-: compile,-if ( flag -- ) ( C: -- orig )
+: compile-if ( flag -- ) ( C: -- orig )
     data> I_0BRANCH uop
     compile-forward-branch ;
 
@@ -51,7 +51,7 @@ dead-code off
     [THEN]
     ;
 
-: compile,-ahead ( -- ) ( C: -- orig )
+: compile-ahead ( -- ) ( C: -- orig )
     0 0 I_BRANCH terminal
     compile-forward-branch ;
 
@@ -64,7 +64,7 @@ dead-code off
     [THEN]
     ;
 
-: compile,-then ( -- ) ( C: orig -- )
+: compile-then ( -- ) ( C: orig -- )
     basic-exit
     ?trace $0010 [IF]
 	." then " hex.s .cs cr
@@ -104,15 +104,15 @@ dead-code off
 
 : if ( flag -- )
     intermediate-if
-    ['] compile,-if gforth-compile, ; immediate compile-only
+    ['] compile-if gforth-compile, ; immediate compile-only
 
 : ahead ( -- )
     intermediate-ahead
-    ['] compile,-ahead gforth-compile, ; immediate compile-only
+    ['] compile-ahead gforth-compile, ; immediate compile-only
 
 : then ( -- )
     intermediate-then
-    ['] compile,-then gforth-compile, ; immediate compile-only
+    ['] compile-then gforth-compile, ; immediate compile-only
 
 : endif ( -- )
     vtarget
@@ -125,7 +125,7 @@ dead-code off
     vsource ; immediate compile-only
 
 >source
-: compile,-begin ( -- ) ( C: -- dest )
+: compile-begin ( -- ) ( C: -- dest )
     basic-exit
     here 0 0 >control
     ?trace $0010 [IF]
@@ -141,7 +141,7 @@ dead-code off
     [THEN]
     ;
 
-: compile,-again ( -- ) ( C: dest -- )
+: compile-again ( -- ) ( C: dest -- )
     ?trace $0010 [IF]
 	." again " .cs cr
     [THEN]
@@ -180,7 +180,7 @@ dead-code off
     unreachable
     ;
 
-: compile,-until ( flag -- ) ( C: dest -- )
+: compile-until ( flag -- ) ( C: dest -- )
     ?trace $0010 [IF]
 	." until " .cs cr
     [THEN]
@@ -222,15 +222,15 @@ dead-code off
 
 : begin ( -- )
     intermediate-begin
-    ['] compile,-begin gforth-compile, ; immediate compile-only
+    ['] compile-begin gforth-compile, ; immediate compile-only
 
 : again ( -- )
     intermediate-again
-    ['] compile,-again gforth-compile, ; immediate compile-only
+    ['] compile-again gforth-compile, ; immediate compile-only
 
 : until ( flag -- )
     intermediate-until
-    ['] compile,-until gforth-compile, ; immediate compile-only
+    ['] compile-until gforth-compile, ; immediate compile-only
 
 : while ( flag -- ) ( C: dest -- \rig dest )
     ?trace $0010 [IF]
@@ -251,7 +251,7 @@ dead-code off
     vsource ; immediate compile-only
 
 >source
-: compile,-exit ( -- ) ( C: -- )
+: compile-exit ( -- ) ( C: -- )
     check-ra
     basic-exit
     (word-exit)
@@ -260,7 +260,7 @@ dead-code off
 
 : exit ( -- )
     unreachable
-    ['] compile,-exit gforth-compile, ; immediate compile-only
+    ['] compile-exit gforth-compile, ; immediate compile-only
 
 >source
 $20 constant ls-size
@@ -276,21 +276,21 @@ ls-size array ls-data
     -1 ls-tos +!
     ls-tos @ ls-data @ ;
 
-: compile,-leave ( -- ) ( C: -- ) ( L: -- orig )
+: compile-leave ( -- ) ( C: -- ) ( L: -- orig )
     control> 2drop >leave ;
 
-: compile,-leave-init ( -- )
+: compile-leave-init ( -- )
     0 >leave ;
 
 : intermediate-leave-init ( -- )
     0 >leave ;
 
-: compile,-leave-exit ( -- )
+: compile-leave-exit ( -- )
     begin
 	leave> dup 0<>
     while
 	0 0 >control
-	compile,-then
+	compile-then
     repeat
     drop ;
 
@@ -309,15 +309,15 @@ ls-size array ls-data
     vtarget
     postpone ahead
     vsource
-    ['] compile,-leave gforth-compile, ; immediate compile-only
+    ['] compile-leave gforth-compile, ; immediate compile-only
 
 : leave-init ( -- )
     intermediate-leave-init
-    ['] compile,-leave-init gforth-compile, ; immediate compile-only
+    ['] compile-leave-init gforth-compile, ; immediate compile-only
 
 : leave-exit ( -- )
     intermediate-leave-exit
-    ['] compile,-leave-exit gforth-compile, ; immediate compile-only
+    ['] compile-leave-exit gforth-compile, ; immediate compile-only
 
 : do ( to from -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- to from )
     vtarget
@@ -402,13 +402,13 @@ ls-size array ls-data
     loop ; immediate compile-only
 
 >source
-: compile,-recurse ( -- )
+: compile-recurse ( -- )
     basic-exit basic-init
     lastxt ih-cfsize - imm-compile, ;
 >target
 
 : recurse ( -- )
-    ['] compile,-recurse gforth-compile, ; immediate compile-only
+    ['] compile-recurse gforth-compile, ; immediate compile-only
 
 >source
 $200 constant does-size
@@ -445,21 +445,21 @@ create does-addr
 word-good 0 0 also vtarget :word ;dodoes previous
 
 >source
-: compile,-does> ( -- )
+: compile-does> ( -- )
     does-addr @ compile,-literal
     vtarget ['] ;dodoes vsource imm-compile,
-    compile,-word-exit-check
+    compile-word-exit-check
     here does-addr dup @ + ! does-addr-inc
-    here (lastih) !
+    lastih-init
     dodoes,
-    compile,-word-init-check ;
+    compile-word-init-check ;
 >target
 
 : does> ( -- )
     lastih word-regs-write
     word-regs-init
     1 0 word-good word-regs-adjust
-    ['] compile,-does> gforth-compile, ; immediate compile-only
+    ['] compile-does> gforth-compile, ; immediate compile-only
 
 >source
 
