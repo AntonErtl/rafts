@@ -20,123 +20,131 @@
 
 \ data allocation and definitions
 struct
-  1 cells: field btree_left
-  1 cells: field btree_right
-end-struct btree_struct
+    1 cells: field btree-left
+    1 cells: field btree-right
+end-struct btree-struct
 
 : btree ( addr -- addr )
-  NIL over btree_left !
-  NIL over btree_right ! ;
+    NIL over btree-left !
+    NIL over btree-right ! ;
 
+: btree-preorder ( xt addr -- )
 \ executes a function for all elements
-: btree_preorder ( xt addr -- )
-  dup NIL <> if
-    2>r 2r@ swap execute 2r>
-    2>r 2r@ btree_left @ recurse 2r>
-    2>r 2r@ btree_right @ recurse 2r>
+    dup NIL <> if
+	2>r 2r@ swap execute 2r>
+	2>r 2r@ btree-left @ recurse 2r>
+	2>r 2r@ btree-right @ recurse 2r>
     endif
-  2drop ;
+    2drop ;
 
-: btree_inorder ( xt addr -- )
-  dup NIL <> if
-    2>r 2r@ btree_left @ recurse 2r>
-    2>r 2r@ swap execute 2r>
-    2>r 2r@ btree_right @ recurse 2r>
+: btree-inorder ( xt addr -- )
+    dup NIL <> if
+	2>r 2r@ btree-left @ recurse 2r>
+	2>r 2r@ swap execute 2r>
+	2>r 2r@ btree-right @ recurse 2r>
     endif
-  2drop ;
+    2drop ;
 
-: btree_postorder ( xt addr -- )
-  dup NIL <> if
-    2>r 2r@ btree_left @ recurse 2r>
-    2>r 2r@ btree_right @ recurse 2r>
-    2>r 2r@ swap execute 2r>
+: btree-postorder ( xt addr -- )
+    dup NIL <> if
+	2>r 2r@ btree-left @ recurse 2r>
+	2>r 2r@ btree-right @ recurse 2r>
+	2>r 2r@ swap execute 2r>
     endif
-  2drop ;
+    2drop ;
 
+: btree-print-func ( addr -- )
 \ print function
-: btree_print_func ( addr -- )
-  hex. ;
+    hex. ;
 
-: btree_print_preorder ( addr -- )
-  ['] btree_print_func swap btree_preorder ;
+: btree-print-preorder ( addr -- )
+    ['] btree-print-func swap btree-preorder ;
 
-: btree_print_inorder ( addr -- )
-  ['] btree_print_func swap btree_inorder ;
+: btree-print-inorder ( addr -- )
+    ['] btree-print-func swap btree-inorder ;
 
-: btree_print_postorder ( addr -- )
-  ['] btree_print_func swap btree_postorder ;
+: btree-print-postorder ( addr -- )
+    ['] btree-print-func swap btree-postorder ;
 
 ?test $1000 [IF]
 cr ." Test for btree.fs" cr
 
-btree_struct
-  1 cells: field bdata_value
-end-struct bdata_struct
+btree-struct
+    1 cells: field bdata-value
+end-struct bdata-struct
 
 : bdata ( -- addr )
-  bdata_struct struct-allot btree
-  NIL over bdata_value ! ;
+    bdata-struct struct-allot btree
+    NIL over bdata-value ! ;
 
-: bdata_init ( x -- addr )
-  bdata
-  tuck bdata_value ! ;
+: bdata-init ( x -- addr )
+    bdata
+    tuck bdata-value ! ;
 
-: bdata_print_func ( addr -- )
-  ." ( " dup hex. ." ) " bdata_value @ emit space ;
+: bdata-print-func ( addr -- )
+    ." ( " dup hex. ." ) " bdata-value @ emit space ;
 
-: bdata_print ( addr -- )
-  bdata_value @ emit space ;
+: bdata-print ( addr -- )
+    bdata-value @ emit space ;
 
-: bdata_print_preorder ( addr -- )
-  ['] bdata_print swap btree_preorder ;
+: bdata-print-preorder ( addr -- )
+    ['] bdata-print swap btree-preorder ;
 
-: bdata_print_inorder ( addr -- )
-  ['] bdata_print swap btree_inorder ;
+: bdata-print-inorder ( addr -- )
+    ['] bdata-print swap btree-inorder ;
 
-: bdata_print_postorder ( addr -- )
-  ['] bdata_print swap btree_postorder ;
+: bdata-print-postorder ( addr -- )
+    ['] bdata-print swap btree-postorder ;
 
-variable bdata_root
+variable bdata-root
 
-." bdata_init: " char + bdata_init bdata_root ! .s cr
-." bdata_init: " char * bdata_init bdata_root @ btree_left ! .s cr
-." bdata_init: " char 3 bdata_init bdata_root @ btree_right ! .s cr
-." bdata_init: " char 1 bdata_init bdata_root @ btree_left @ btree_left ! .s cr
-." bdata_init: " char 2 bdata_init bdata_root @ btree_left @ btree_right ! .s cr
+." bdata-init: " char + bdata-init bdata-root ! .s cr
+." bdata-init: " char * bdata-init bdata-root @ btree-left ! .s cr
+." bdata-init: " char 3 bdata-init bdata-root @ btree-right ! .s cr
+." bdata-init: " char 1 bdata-init bdata-root @ btree-left @ btree-left ! .s cr
+." bdata-init: " char 2 bdata-init bdata-root @ btree-left @ btree-right ! .s cr
 
-." bdata_print_preorder: " bdata_root @ bdata_print_preorder .s cr
-." bdata_print_inorder: " bdata_root @ bdata_print_inorder .s cr
-." bdata_print_postorder: " bdata_root @ bdata_print_postorder .s cr
+." bdata-print-preorder: " bdata-root @ bdata-print-preorder .s cr
+." bdata-print-inorder: " bdata-root @ bdata-print-inorder .s cr
+." bdata-print-postorder: " bdata-root @ bdata-print-postorder .s cr
 
-: bdata_foo1_func ( u addr -- u )
-  drop 1+ ;
-: bdata_foo1 ( addr -- u )
-  0 ['] bdata_foo1_func rot btree_postorder ;
-." btree_postorder: " bdata_root @ bdata_foo1 . cr
+: bdata-foo1-func ( u addr -- u )
+    drop 1+ ;
+: bdata-foo1 ( addr -- u )
+    0 ['] bdata-foo1-func rot btree-postorder ;
+." btree-postorder: " bdata-root @ bdata-foo1 . cr
 
-: bdata_foo2_func ( addr u addr -- addr u )
-  2>r dup NIL = 2r> rot if
-    2dup bdata_value @ = if
-      rot drop swap else
-      drop endif else
-    drop endif ;
-: bdata_foo2 ( addr -- addr )
-  NIL [char] r rot ['] bdata_foo2_func swap btree_postorder drop ;
-: bdata_foo02 ( -- )
-  ." btree_postorder: " bdata_root @ bdata_foo2 dup NIL <> if
-    bdata_print_func else
-    ." not found " drop endif
-  .s cr ;
-bdata_foo02
+: bdata-foo2-func ( addr u addr -- addr u )
+    2>r dup NIL = 2r> rot if
+	2dup bdata-value @ = if
+	    rot drop swap
+	else
+	    drop
+	endif
+    else
+	drop
+    endif ;
+: bdata-foo2 ( addr -- addr )
+    NIL [char] r rot ['] bdata-foo2-func swap btree-postorder drop ;
+: bdata-foo02 ( -- )
+    ." btree-postorder: " bdata-root @ bdata-foo2 dup NIL <> if
+	bdata-print-func
+    else
+	." not found " drop
+    endif
+    .s cr ;
+bdata-foo02
 
-: bdata_foo3 ( addr -- addr )
-  NIL [char] 1 rot ['] bdata_foo2_func swap btree_preorder drop ;
-: bdata_foo03 ( -- )
-  ." btree_preorder: " bdata_root @ bdata_foo3 dup NIL <> if
-    bdata_print_func else
-    ." not found " drop endif
-  .s cr ;
-bdata_foo03
+: bdata-foo3 ( addr -- addr )
+    NIL [char] 1 rot ['] bdata-foo2-func swap btree-preorder drop ;
+: bdata-foo03 ( -- )
+    ." btree-preorder: " bdata-root @ bdata-foo3 dup NIL <> if
+	bdata-print-func
+    else
+	." not found " drop
+    endif
+    .s cr ;
+bdata-foo03
 
 finish
 [THEN]

@@ -20,135 +20,147 @@
 
 \ data allocation and definitions
 struct
-  1 cells: field slist_next
-end-struct slist_struct
+    1 cells: field slist-next
+end-struct slist-struct
 
-\ init function
 : slist ( slistp -- slistp )
-  \ initialize slist node
-  NIL over slist_next ! ;
+\ init function
+    NIL over slist-next ! ;
 
+: slist-insert ( new old -- new )
 \ insert an element
-: slist_insert ( new old -- new )
-  \ inserts new node right after old node
-  slist_next dup @ rot ( old old-next new )
-  tuck slist_next !				\ set next (new)
-  tuck swap ! ;					\ set next (old)
+    \ inserts new node right after old node
+    slist-next dup @ rot ( old old-next new )
+    \ set next (new)
+    tuck slist-next !
+    \ set next (old)
+    tuck swap ! ;
 
+: slist-delete ( slist-node -- )
 \ deletes an element
-: slist_delete ( slist-node -- )
-  \ delete the node after slist-node
-  slist_next dup @ slist_next @ swap ! ;	\ set next
+    \ delete the node after slist-node
+    slist-next dup @ slist-next @ swap ! ;
 
+: slist-exit ( addr -- )
 \ exit function
-: slist_exit ( addr -- )
-  begin
-    dup slist_next @ NIL <> while
-    dup slist_delete repeat
-  drop ;
+    begin
+	dup slist-next @ NIL <>
+    while
+	dup slist-delete
+    repeat
+    drop ;
 
 : maplist ( addr xt -- )
-  \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
-  swap
-  begin
-    dup NIL <> while
-    2>r 2r@ swap execute 2r>
-    slist_next @ repeat
-  2drop ;
+    \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
+    swap
+    begin
+	dup NIL <>
+    while
+	2>r 2r@ swap execute 2r>
+	slist-next @
+    repeat
+    2drop ;
 
+: slist-forall ( xt addr -- )
 \ executes a function for all elements
-: slist_forall ( xt addr -- )
-  \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
-  slist_next @ swap maplist ;
+    \ xt must be of the form ( x1 ... xi slist -- y1 ... yi )
+    slist-next @ swap maplist ;
 
+: slist-find ( xt addr -- addr )
 \ executes a function for all elements until it is true
-: slist_find ( xt addr -- addr )
-  slist_next @
-  begin
-    dup NIL <> while
-    2>r 2r@ swap execute 2r> rot if
-      nip exit endif
-    slist_next @ repeat
-  2drop NIL ;
+    slist-next @
+    begin
+	dup NIL <>
+    while
+	2>r 2r@ swap execute 2r> rot if
+	    nip exit
+	endif
+	slist-next @
+    repeat
+    2drop NIL ;
 
+: slist-size-func ( u addr -- u )
 \ size function
-: slist_size_func ( u addr -- u )
-  drop 1+ ;
+    drop 1+ ;
 
-: slist_size ( addr -- u )
-  0 ['] slist_size_func rot slist_forall ;
+: slist-size ( addr -- u )
+    0 ['] slist-size-func rot slist-forall ;
 
+: slist-print-func ( addr -- )
 \ print function
-: slist_print_func ( addr -- )
-  hex. ;
+    hex. ;
 
-: slist_print ( addr -- )
-  ['] slist_print_func swap slist_forall ;
+: slist-print ( addr -- )
+    ['] slist-print-func swap slist-forall ;
 
 ?test $0800 [IF]
 cr ." Test for slist.fs" cr
 
-slist_struct
-  1 cells: field sdata_value
-end-struct sdata_struct
+slist-struct
+    1 cells: field sdata-value
+end-struct sdata-struct
 
 : sdata ( -- addr )
-  sdata_struct struct-allot slist
-  NIL over sdata_value ! ;
+    sdata-struct struct-allot slist
+    NIL over sdata-value ! ;
 
-: sdata_init ( x -- addr )
-  sdata
-  tuck sdata_value ! ;
+: sdata-init ( x -- addr )
+    sdata
+    tuck sdata-value ! ;
 
-: sdata_print_func ( addr -- )
-  ." ( " dup hex. ." ) " sdata_value ? ;
+: sdata-print-func ( addr -- )
+    ." ( " dup hex. ." ) " sdata-value ? ;
 
-: sdata_print ( addr -- )
-  ['] sdata_print_func swap slist_forall ;
+: sdata-print ( addr -- )
+    ['] sdata-print-func swap slist-forall ;
 
-variable sdata_head
+variable sdata-head
 
-." sdata: " sdata sdata_head ! .s cr
+." sdata: " sdata sdata-head ! .s cr
 
-." slist_insert: " 123 sdata_init sdata_head @ slist_insert
-  sdata_print_func .s cr
-." slist_insert: " 456 sdata_init sdata_head @ slist_insert
-  sdata_print_func .s cr
-." slist_insert: " 789 sdata_init sdata_head @ slist_next @ slist_insert
-  sdata_print_func .s cr
-." slist_size: " sdata_head @ slist_size . .s cr
-." sdata_print: " sdata_head @ sdata_print .s cr
+." slist-insert: " 123 sdata-init sdata-head @ slist-insert
+sdata-print-func .s cr
+." slist-insert: " 456 sdata-init sdata-head @ slist-insert
+sdata-print-func .s cr
+." slist-insert: " 789 sdata-init sdata-head @ slist-next @ slist-insert
+sdata-print-func .s cr
+." slist-size: " sdata-head @ slist-size . .s cr
+." sdata-print: " sdata-head @ sdata-print .s cr
 
-: sdata_foo1 ( addr -- )
-  -100 swap sdata_value +! ;
-." slist_forall: " ' sdata_foo1 sdata_head @ slist_forall .s cr
-." sdata_print: " sdata_head @ sdata_print .s cr
+: sdata-foo1 ( addr -- )
+    -100 swap sdata-value +! ;
+." slist-forall: " ' sdata-foo1 sdata-head @ slist-forall .s cr
+." sdata-print: " sdata-head @ sdata-print .s cr
 
-: sdata_foo2 ( addr -- flag )
-  sdata_value @ 456 = ;
-: sdata_foo02 ( -- )
-  ." slist_find: " ['] sdata_foo2 sdata_head @ slist_find dup NIL <> if
-    sdata_print_func else
-    ." not found " drop endif
+: sdata-foo2 ( addr -- flag )
+    sdata-value @ 456 = ;
+: sdata-foo02 ( -- )
+    ." slist-find: " ['] sdata-foo2 sdata-head @ slist-find dup NIL <> if
+	sdata-print-func
+    else
+	." not found " drop
+    endif
     .s cr ;
-sdata_foo02
+sdata-foo02
 
-: sdata_foo3 ( addr -- flag )
-  sdata_value @ 356 = ;
-: sdata_foo03 ( -- )
-  ." slist_find: " ['] sdata_foo3 sdata_head @ slist_find dup NIL <> if
-    sdata_print_func else
-    ." not found " drop endif
+: sdata-foo3 ( addr -- flag )
+    sdata-value @ 356 = ;
+: sdata-foo03 ( -- )
+    ." slist-find: " ['] sdata-foo3 sdata-head @ slist-find dup NIL <> if
+	sdata-print-func
+    else
+	." not found " drop
+    endif
     .s cr ;
-sdata_foo03
+sdata-foo03
 
-." slist_delete: " sdata_head @ slist_next @ dup slist_next @ sdata_print_func
-  slist_delete .s cr
-." slist_size: " sdata_head @ slist_size . .s cr
-." sdata_print: " sdata_head @ sdata_print .s cr
+." slist-delete: " sdata-head @ slist-next @ dup slist-next @ sdata-print-func
+slist-delete .s cr
+." slist-size: " sdata-head @ slist-size . .s cr
+." sdata-print: " sdata-head @ sdata-print .s cr
 
-." slist_exit: " sdata_head @ slist_exit .s cr
-." sdata_print: " sdata_head @ sdata_print .s cr
+." slist-exit: " sdata-head @ slist-exit .s cr
+." sdata-print: " sdata-head @ sdata-print .s cr
 
 finish
 [THEN]

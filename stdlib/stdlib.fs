@@ -19,103 +19,97 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 0 constant NIL
+0 constant NULL
 1 negate 1 rshift constant MAXC
 
-0 constant NULL
-
-: th		( addr1 n -- addr2 )
- cells + ;
+: th ( addr1 n -- addr2 )
+    cells + ;
 
 : ? ( addr -- )
-  @ . ;
+\ prints the cell at addr
+    @ . ;
 
 : c? ( c-addr -- )
-  c@ . ;
-
-: ndup ( xn ... x1 n -- )
-  dup 0 ?do
-    dup pick swap loop
-  drop ;
-
-: ndrop ( xn ... x1 n -- )
-  0 ?do
-    drop loop ;
-
-: 4dup ( d1 d2 -- d1 d2 d1 d2 )
-  2over 2over ;
+\ prints the char at addr
+    c@ . ;
 
 : char- ( addr -- addr )
-  1 chars - ;
+\ decrements addr by one char
+    1 chars - ;
 
 : cell- ( addr -- addr )
-  1 cells - ;
+\ decrements addr by one cell
+    1 cells - ;
 
 : hexn. ( n x -- )
-  base @ rot rot hex
-  s>d <# bl hold rot 0 ?do
-    # loop
-  [char] $ hold #>
-  type base ! ;
+    base @ >r hex
+    s>d <# bl hold
+    rot 0 ?do
+	#
+    loop
+    [char] $ hold #>
+    type
+    r> base ! ;
 
 : hex. ( x -- )
-  8 swap hexn. ;
+\ prints x in hex with 8 digits (e.g. $12345678)
+    8 swap hexn. ;
 
 : hex? ( addr -- )
-  @ hex. ;
+\ prints the cell at addr in hex with 8 digits
+    @ hex. ;
 
 : hex.s ( -- )
-  ." <" depth 0 .r ." > "
-  depth 0 max maxdepth-.s @ min dup 0 ?do
-    dup i - pick hex. loop
-  drop ;
+    ." <" depth 0 .r ." > "
+    depth 0 max maxdepth-.s @ min dup 0 ?do
+	dup i - pick hex.
+    loop
+    drop ;
+
 
 \ ' hex.s IS printdebugdata
-
 : hex.rs ( -- )
-  ." <R: " rp@ hex. ." > "
-  rp@ cell+ dup maxdepth-.s @ cells + swap ?do
-    i @ hex. 1 cells +loop ;
+    ." <R: " rp@ hex. ." > "
+    rp@ cell+ dup maxdepth-.s @ cells + swap ?do
+	i @ hex.
+    1 cells +loop ;
 
 : name. ( cfa -- )
-  look if
-    .name
-  else
-    drop ." not defined"
-  endif ;
+    look if
+	.name
+    else
+	drop ." not defined"
+    endif ;
 
 : code. ( cfa n -- )
-  over name.
-  dump ;
+    over name.
+    dump ;
 
 : list ( wid -- )
-  ." Vocabulary: " dup name. dup hex. cr
-  >body begin
-    @ dup 0<> while
-    dup .name
-    dup cell+ c@
-    over name>int ." ( " hex. ." )"
-    dup $20 and if
-      ." [imm]" endif
-    $40 and if
-      ." [rest]" endif
-    space repeat
-  drop cr ;
+    ." Vocabulary: " dup name. dup hex. cr
+    >body begin
+	@ dup 0<>
+    while
+	dup .name
+	dup cell+ c@
+	over name>int ." ( " hex. ." )"
+	dup $20 and if
+	    ." [imm]"
+	endif
+	$40 and if
+	    ." [rest]"
+	endif
+	space
+    repeat
+    drop cr ;
 
 : finish ( -- )
-  ." stack: " hex.s cr ;
+    ." stack: " hex.s cr ;
 
-\ include struct.fs
-include stdlib/marray.fs
 include stdlib/array.fs
-include stdlib/2array.fs
+include stdlib/matrix.fs
 include stdlib/slist.fs
-\ include stdlib/stack.fs
-\ include stdlib/dlist.fs
-\ include stdlib/queue.fs
-
 include stdlib/btree.fs
-
-\ include stdlib/string.fs
 
 ?test $0100 [IF]
 cr ." Test for stdlib.fs" cr
