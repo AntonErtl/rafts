@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.5 1996/11/14 20:12:28 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.6 1996/12/02 20:16:59 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -986,11 +986,11 @@ void DEFUN_VOID(startBurm)
     SOURCE(("\n#ifndef %s_PANIC\n", prefix),
 	("\nbl word %s-PANIC\" find nip 0= [IF]\n", prefix));
     SOURCE(("#define %s_PANIC\tPANIC\n", prefix),
-	(": %s-PANIC\" ( -- )\n  .\" PANIC\" ; immediate restrict\n", prefix));
+	(": %s-PANIC\" ( -- )\n  .\" PANIC\" ; immediate compile-only\n", prefix));
     SOURCE(("#endif /* %s_PANIC */\n", prefix),
 	("[ENDIF]\n"));
     SOURCE(("#define %s_assert(x, y)\tif(!(x)) {y; abort();}\n\n", prefix),
-	(": %s-assert\" ( \"string\"<\"> -- )\n  postpone abort\" ; immediate restrict\n\n", prefix));
+	(": %s-assert\" ( \"string\"<\"> -- )\n  postpone abort\" ; immediate compile-only\n\n", prefix));
 }
 
 void DEFUN_VOID(reportDiagnostics)
