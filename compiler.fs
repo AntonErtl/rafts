@@ -341,5 +341,5 @@ finish
 \ ." START AGAIN: " here hex . decimal cr
 
 target>
-order .s cr
+\ order .s cr
 cold
