@@ -1,4 +1,4 @@
-CFLAGS = -I/usr/users/pirky/diplom/gforth2c-0.1alpha
+CFLAGS = -I../../../../public/gforth2c-0.1alpha/
 
 .c.opt:
 	$(CC) $(CFLAGS) -O2 -o $@ $<
