@@ -151,53 +151,53 @@
 
 %%
 
-stmt: reg			#0#	2drop
-addr: I_PLUS(reg, cons)		#0#	[\'] asm_addr addr-inst
+stmt: reg			#0#	drop 2drop	#
+addr: I_PLUS(reg, cons)		#0#	addr-inst	#asm_addr
 
-reg:  I_REG			#0#	
-cons: I_LITS			#0#	dup inst_done
-con:  I_LIT			#0#	dup inst_done
-reg:  cons			#1#	[\'] asm_lit li-inst
-reg:  con			#1#	[\'] asm_lit li-inst
+reg:  I_REG			#0#	drop		#
+cons: I_LITS			#0#	drop dup inst_done #
+con:  I_LIT			#0#	drop dup inst_done #
+reg:  cons			#1#	li-inst		#asm_lit
+reg:  con			#1#	li-inst		#asm_lit
 
-reg:  I_CFETCH(addr)		#1#	[\'] asm_fetchc load-inst
-reg:  I_CFETCH(reg)		#1#	[\'] asm_fetchregc load-inst
-reg:  I_FETCH(addr)		#1#	[\'] asm_fetchi load-inst
-reg:  I_FETCH(reg)		#1#	[\'] asm_fetchregi load-inst
-stmt: I_CSTORE(reg, addr)	#1#	[\'] asm_storec store-inst
-stmt: I_CSTORE(reg, reg)	#1#	[\'] asm_storeregc store-inst
-stmt: I_STORE(reg, addr)	#1#	[\'] asm_storei store-inst
-stmt: I_STORE(reg, reg)		#1#	[\'] asm_storeregi store-inst
+reg:  I_CFETCH(addr)		#1#	load-inst	#asm_fetchc
+reg:  I_CFETCH(reg)		#1#	load-inst	#asm_fetchregc
+reg:  I_FETCH(addr)		#1#	load-inst	#asm_fetchi
+reg:  I_FETCH(reg)		#1#	load-inst	#asm_fetchregi
+stmt: I_CSTORE(reg, addr)	#1#	store-inst	#asm_storec
+stmt: I_CSTORE(reg, reg)	#1#	store-inst	#asm_storeregc
+stmt: I_STORE(reg, addr)	#1#	store-inst	#asm_storei
+stmt: I_STORE(reg, reg)		#1#	store-inst	#asm_storeregi
 
-reg:  I_PLUS(reg, reg)		#1#	[\'] asm_add bin-inst
-reg:  I_PLUS(reg, cons)		#1#	[\'] asm_addi bin-inst
-reg:  I_MINUS(reg, reg)		#1#	[\'] asm_sub bin-inst
-reg:  I_TIMES(reg, reg)		#1#	[\'] asm_mul bin-inst
-reg:  I_SLASH(reg, reg)		#1#	[\'] asm_div bin-inst
-reg:  I_MOD(reg, reg)		#1#	[\'] asm_mod bin-inst
-reg:  I_NEGATE(reg)		#1#	[\'] asm_neg un-inst
+reg:  I_PLUS(reg, reg)		#1#	bin-inst	#asm_add
+reg:  I_PLUS(reg, cons)		#1#	bin-inst	#asm_addi
+reg:  I_MINUS(reg, reg)		#1#	bin-inst	#asm_sub
+reg:  I_TIMES(reg, reg)		#1#	bin-inst	#asm_mul
+reg:  I_SLASH(reg, reg)		#1#	bin-inst	#asm_div
+reg:  I_MOD(reg, reg)		#1#	bin-inst	#asm_mod
+reg:  I_NEGATE(reg)		#1#	un-inst		#asm_neg
 
-reg:  I_AND(reg, reg)		#1#	[\'] asm_and bin-inst
-reg:  I_AND(reg, cons)		#1#	[\'] asm_andi bin-inst
-reg:  I_OR(reg, reg)		#1#	[\'] asm_or bin-inst
-reg:  I_OR(reg, cons)		#1#	[\'] asm_ori bin-inst
-reg:  I_XOR(reg, reg)		#1#	[\'] asm_xor bin-inst
-reg:  I_XOR(reg, cons)		#1#	[\'] asm_xori bin-inst
-reg:  I_INVERT(reg)		#1#	[\'] asm_not un-inst
-reg:  I_LSHIFT(reg, reg)	#1#	[\'] asm_lsh bin-inst
-reg:  I_LSHIFT(reg, cons)	#1#	[\'] asm_lshi bin-inst
-reg:  I_RSHIFT(reg, reg)	#1#	[\'] asm_rshu bin-inst
-reg:  I_SRSHIFT(reg, reg)	#1#	[\'] asm_rsh bin-inst
-reg:  I_RSHIFT(reg, cons)	#1#	[\'] asm_rshui bin-inst
-reg:  I_SRSHIFT(reg, cons)	#1#	[\'] asm_rshi bin-inst
+reg:  I_AND(reg, reg)		#1#	bin-inst	#asm_and
+reg:  I_AND(reg, cons)		#1#	bin-inst	#asm_andi
+reg:  I_OR(reg, reg)		#1#	bin-inst	#asm_or
+reg:  I_OR(reg, cons)		#1#	bin-inst	#asm_ori
+reg:  I_XOR(reg, reg)		#1#	bin-inst	#asm_xor
+reg:  I_XOR(reg, cons)		#1#	bin-inst	#asm_xori
+reg:  I_INVERT(reg)		#1#	un-inst		#asm_not
+reg:  I_LSHIFT(reg, reg)	#1#	bin-inst	#asm_lsh
+reg:  I_LSHIFT(reg, cons)	#1#	bin-inst	#asm_lshi
+reg:  I_RSHIFT(reg, reg)	#1#	bin-inst	#asm_rshu
+reg:  I_SRSHIFT(reg, reg)	#1#	bin-inst	#asm_rsh
+reg:  I_RSHIFT(reg, cons)	#1#	bin-inst	#asm_rshui
+reg:  I_SRSHIFT(reg, cons)	#1#	bin-inst	#asm_rshi
 
-flag:  I_EQUALS(reg, reg)	#2#	[\'] asm_seq bin-inst
-reg:  I_LESS(reg, reg)		#1#	[\'] asm_slt bin-inst
-reg:  I_LESS(reg, cons)		#1#	[\'] asm_slti bin-inst
-reg:  I_ULESS(reg, reg)		#1#	[\'] asm_sltu bin-inst
-reg:  I_ULESS(reg, cons)	#1#	[\'] asm_sltui bin-inst
-stmt: I_0BRANCH(reg)		#1#	[\'] asm_0branch 0branch-inst
-stmt: I_BRANCH			#1#	[\'] asm_branch branch-inst
+flag:  I_EQUALS(reg, reg)	#2#	bin-inst	#asm_seq
+reg:  I_LESS(reg, reg)		#1#	bin-inst	#asm_slt
+reg:  I_LESS(reg, cons)		#1#	bin-inst	#asm_slti
+reg:  I_ULESS(reg, reg)		#1#	bin-inst	#asm_sltu
+reg:  I_ULESS(reg, cons)	#1#	bin-inst	#asm_sltui
+stmt: I_0BRANCH(reg)		#1#	0branch-inst	#asm_0branch
+stmt: I_BRANCH			#1#	branch-inst	#asm_branch
 %%
 : burm_reduce ( goal node-addr -- )
   ( ." printReduce1" hex.s cr )

@@ -9,8 +9,10 @@ BEGIN {
   print $0;
   if (part!=2)
     next;
-  for (i=rule-1; i>0; i--)
-    print ":noname", action[i], ";";
+  for (i=rule-1; i>0; i--) {
+    print ": asm-"i" "asm[i]" ;";
+    print ":noname [\\'] asm-"i" "action[i]" ;";
+  }
   printf "%d array_noallot [burm_reduce]\n", rule;
   print "  0 ,"
   for (i=1; i<rule; i++) {
@@ -30,6 +32,7 @@ part == 1 && NF>0 {
     printf " (%s)", $2;
   print ";";
   action[rule] = $3;
+  asm[rule] = $4;
   rule++;
   next;
 }
