@@ -25,8 +25,8 @@
 \ @s4 constant #lp
 @s4 constant #cfa
 \ @s6 constant #up
-@v0 constant #tos
-\ @s5 constant #tos
+\ @v0 constant #tos
+@s5 constant #tos
 \ @s8 constant #ftos
 
 \ $2 constant tos-#register

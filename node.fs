@@ -21,28 +21,28 @@
 7 constant max-NT \ !! machine dependent
 
 btree-struct
-    1 cells: field il-op	\ operation (intermediate language)
-    1 cells: field il-slabel	\ state label
-    1 cells: field il-val	\ literal value (alias: il-offset)
-    1 cells: field il-reg	\ used register
-    1 cells: field il-depends	\ list of dependencies
-    -1 cells: field il-unpad	\ next field starts at offset 1
-    max-NT cells: field il-nt-insts \ for each nt, the ml for this node
+    cell% field il-op	\ operation (intermediate language)
+    cell% field il-slabel	\ state label
+    cell% field il-val	\ literal value (alias: il-offset)
+    cell% field il-reg	\ used register
+    cell% field il-depends	\ list of dependencies
+    cell% -1 * field il-unpad	\ next field starts at offset 1
+    cell% max-NT * field il-nt-insts \ for each nt, the ml for this node
 end-struct il-struct
 
 ' btree-left alias il-left
 ' btree-right alias il-right
 
 btree-struct \ !! machine dep: is it really a *binary* tree?
-    1 cells: field ml-asm	\ xt of the assembler word for the instruction
-    1 cells: field ml-count	\ use count (# of parents)
-    1 cells: field ml-val	\ literal value
-    1 cells: field ml-reg	\ used register
-    1 cells: field ml-depends	\ list of dependencies
-    1 cells: field ml-delay	\ true: create a delay slot nop for the instruction
-    1 cells: field ml-latency	\ latency of node
-    1 cells: field ml-pathlength \ path length to start of bb
-    1 cells: field ml-let	\ path length to end of bb
+    cell% field ml-asm	\ xt of the assembler word for the instruction
+    cell% field ml-count	\ use count (# of parents)
+    cell% field ml-val	\ literal value
+    cell% field ml-reg	\ used register
+    cell% field ml-depends	\ list of dependencies
+    cell% field ml-delay	\ true: create a delay slot nop for the instruction
+    cell% field ml-latency	\ latency of node
+    cell% field ml-pathlength \ path length to start of bb
+    cell% field ml-let	\ path length to end of bb
 end-struct ml-struct
 
 ' btree-left alias ml-left

@@ -98,6 +98,20 @@ cell negate constant -1cells
 	i @ hex.
     -1 cells +loop ;
 
+: cfaligned ( addr1 -- addr2 )
+    7 + -8 and ;
+
+here constant ???
+
+: rafts->head ( cfa -- nt )
+    \ more lax than normal >HEAD, also works for hidden words
+    $21 cell do
+	dup i - count $9F and + cfaligned over alias-mask + = if
+	    i - cell - unloop exit
+	then
+	cell +loop
+    drop ??? ;
+
 : name. ( cfa -- )
     look if
 	.name

@@ -20,8 +20,8 @@
 
 \ data allocation and definitions
 struct
-    1 cells: field btree-left
-    1 cells: field btree-right
+    cell% field btree-left
+    cell% field btree-right
 end-struct btree-struct
 
 : btree ( addr -- addr )
@@ -70,11 +70,11 @@ end-struct btree-struct
 cr ." Test for btree.fs" cr
 
 btree-struct
-    1 cells: field bdata-value
+    cell% field bdata-value
 end-struct bdata-struct
 
 : bdata ( -- addr )
-    bdata-struct struct-allot btree
+    bdata-struct %allot btree
     NIL over bdata-value ! ;
 
 : bdata-init ( x -- addr )

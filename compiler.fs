@@ -115,26 +115,27 @@ include stdlib/stdlib.fs
     also Forth (') previous ; immediate
 
 struct
-    2 cells: field ih-cfa
-    1 cells: field ih-interpreter
-    1 cells: field ih-compiler
-    1 cells: field ih-regs-in
-    1 cells: field ih-regs-out
-    1 cells: field ih-regs-flag
-    1 cells: field ih-compile-xt
-    1 cells: field ih-xt-addr
-    1 cells: field ih-#xt
-    1 cells: field ih-#ixt
-    1 cells: field ih-#access
-    3 cells: field ih-buffer1
-    1 cells: field ih-does-xt
-    1 cells: field ih-null
-    1 cells: field ih-status
+    cell% 2 * field ih-cfa
+    cell% field ih-interpreter
+    cell% field ih-compiler
+    cell% field ih-regs-in
+    cell% field ih-regs-out
+    cell% field ih-regs-flag
+    cell% field ih-compile-xt
+    cell% field ih-xt-addr
+    cell% field ih-#xt
+    cell% field ih-#ixt
+    cell% field ih-#access
+    cell% 3 * field ih-buffer1
+    cell% field ih-does-xt
+    cell% field ih-null
+    cell% field ih-status
 end-struct ih-struct
-ih-struct drop constant ih-cfsize
+ih-struct %size constant ih-cfsize
 ih-cfsize 2cells - constant ih-size
 
 defer compile,-constant-gforth
+
 defer compile,-field-gforth
 defer compile,-interpreter
 
@@ -169,7 +170,7 @@ variable (lastnfa)
     (lastnfa) @ ;
 
 : lastnfa-init ( -- )
-    lastih look drop (lastnfa) ! ;
+    last @ (lastnfa) ! ;
 
 \ variables for native-xt stack
 $40 constant native-xt-size
@@ -243,10 +244,15 @@ include basic.fs
 
 : compile,-now ( xt -- )
     ?trace $0002 [IF]
-	dup >name .name
+	." compile,-now "
+	dup rafts->head .name
 	dup $10 - $40 dump
     [THEN]
-    dup ih-compiler @ execute ;
+    dup ih-compiler @
+    ?trace $0002 [IF]
+	." compile,-now executes " dup rafts->head .name hex.s cr
+    [THEN]
+    execute ;
 
 include primitives.fs
 include control.fs
@@ -278,6 +284,10 @@ is compile,-field-gforth
 	." compile,-interpreter: " dup name. hex.s cr
     [THEN]
     basic-exit
+    ?trace $0002 [IF]
+	." after basic-exit in compile,-defer (gforth) or "
+	." compile,-interpreter: " dup name. hex.s cr
+    [THEN]
     2cells + @ word-interpreter
     basic-init ;
 is compile,-interpreter
@@ -340,7 +350,7 @@ is compile,-does
 : compile, ( xt -- )
     ?trace $0002 [IF]
 	dup hex.
-	dup >name .name
+	dup rafts->head .name
     [THEN]
     dup ih-compile-xt @ execute
     dup word-regs-read
@@ -522,7 +532,7 @@ word-good 0 0 :word >code-address
 word-good 0 0 :word >does-code
 word-good 0 0 :word >in
 word-good 0 0 :word >number
-word-good 0 0 :word >name
+\ word-good 0 0 :word >name
 word-good 0 0 :word ((name>))
  word-good 2 -1 :word (name>x)
  word-good 2 -2 :word #
@@ -545,7 +555,7 @@ word-good 0 0 :word alias
 word-good 0 0 :word aligned
 word-good 0 0 :word assert-level
  word-good 0 -1 :word c,
-word-good 0 0 :word cells:
+word-good 2 0 :word cell%
 word-good 0 0 :word char
 word-good 0 0 :word cfa,
  word-good 0 -3 :word cmove
@@ -625,7 +635,7 @@ word-good 0 0 :word sourceline#
  word-good 1 0 :word s0
  word-good 0 0 :word space
  word-good 0 -1 :word spaces
-word-good 0 0 :word struct-allot
+word-good 0 0 :word %allot
  word-good 2 -1 :word s>d
 word-good 0 0 :word sm/rem
 word-good 0 0 :word source
@@ -704,6 +714,9 @@ does>
 	\ vsource ['] vvv vtarget >body vlist
     [THEN]
     bye ;
+
+: %size ( align size -- size )
+    nip ;
 
 \ hex.s cr
 base !

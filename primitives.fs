@@ -488,41 +488,41 @@ previous
     ['] compile,-abort" gforth-compile, ; immediate compile-only
 
 >source
-: sourcepos, ( -- )
+: rafts-sourcepos, ( -- )
     sourceline# postpone literal
     loadfilename# @ postpone literal ;
-: print-sourcepos ( n n -- )
+: rafts-print-sourcepos ( n n -- )
     2* cells included-files 2@ drop + 2@ type
     ." :" 0 .r ;
-: (~~) ( n n -- )
-    cr print-sourcepos ." :"
+: rafts-(~~) ( n n -- )
+    cr rafts-print-sourcepos ." :"
     printdebugdata cr ;
 >target
 
 also vtarget
-word-good 0 0 :word (~~)
+word-good 0 0 :word rafts-(~~)
 previous
 
 : ~~ ( -- )
-    sourcepos,
-    vtarget postpone (~~) vsource ;  immediate
+    rafts-sourcepos,
+    vtarget postpone rafts-(~~) vsource ;  immediate
 
 >source
 : assertn ( -- )
     assert-level @ > if
 	postpone (
     endif ;
-: (endassert) ( -- )
+: rafts-(endassert) ( -- )
     rot if
 	2drop
     else
-	cr print-sourcepos ." : failed assertion"
+	cr rafts-print-sourcepos ." : failed assertion"
 	true abort" assertion failed"
     endif ;
 >target
 
 also vtarget
-word-good 0 0 :word (endassert)
+word-good 0 0 :word rafts-(endassert)
 previous
 
 : assert0( ( -- )
@@ -536,8 +536,8 @@ previous
 : assert( ( -- )
     vtarget postpone assert1( vsource ; immediate
 : ) ( -- )
-    sourcepos,
-    vtarget postpone (endassert) vsource ; immediate
+    rafts-sourcepos,
+    vtarget postpone rafts-(endassert) vsource ; immediate
 
 >source
 

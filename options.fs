@@ -47,7 +47,7 @@
 \  ||\-----------------> slist functions
 \  |\------------------> array functions
 \  \-------------------> btree functions
-$0000 constant trace-const	\ no trace
+ $0000 constant trace-const	\ no trace
 \ $0a71 constant trace-const	\ trace what you want
 \ $0001 constant trace-const	\ trace compiler
 \ $0002 constant trace-const	\ trace compiler (more)
@@ -62,7 +62,7 @@ $0000 constant trace-const	\ no trace
 \ $0800 constant trace-const	\ trace code-generation (assembler, disassembler)
 \ $ffff constant trace-const	\ trace all
 
-$0000 constant test-const	\ no test
+ $0000 constant test-const	\ no test
 \ $f800 constant test-const	\ test what you want
 \ $0800 constant test-const	\ test assembler and disassembler
 \ $f000 constant test-const	\ test stdlib

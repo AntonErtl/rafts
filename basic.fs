@@ -441,12 +441,19 @@ control-init
 	    inst-lists-end @ inst-size 1- <> if
 		code-emission
 	    endif
+	    ?trace $0008 [IF]
+		." after CODE EMISSION" hex.s cr
+	    [THEN]
 	else
 	    basic-data-sav @ dp !
 	endif
     else
 	basic-data-sav @ dp !
-    endif ;
+    endif
+    ?trace $0008 [IF]
+	." after basic-exit " hex.s cr
+    [THEN]
+;
 
 : compile-cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
     #control@ ;

@@ -19,12 +19,12 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 slist-struct
-    1 cells: field inst-node
+    cell% field inst-node
 end-struct inst-struct
 
 \ allocate and initial a inst
 : inst ( il -- inst-addr )
-    inst-struct struct-allot	\ allocate
+    inst-struct %allot	\ allocate
     slist			\ initial values
     tuck inst-node ! ;
 
@@ -55,7 +55,7 @@ include node.fs
 
 \ allocate and initialize a node
 : make-il ( val reg op -- il )
-    il-struct struct-allot	\ allocate
+    il-struct %allot	\ allocate
     btree
     tuck il-op !		\ initial values
     tuck il-reg !
@@ -80,6 +80,7 @@ include node.fs
     rdrop 2drop ;
 
 : inst-sequence-code-emission ( xt addr n -- )
+    \ cr ." inst-sequence-code-emission" hex.s
     rot >r
     cells over + swap
     begin ( to-addr from-addr )
@@ -121,7 +122,7 @@ include node.fs
     -1 inst-lists-end +! ;
 
 : make-ml ( -- ml )
-    ml-struct struct-allot	\ allocate
+    ml-struct %allot	\ allocate
     btree
     dup ml-delay off            \ initial values
 ;
@@ -301,6 +302,7 @@ burm-max-rule 1+ array burm-reduce-rules
     nip
     burm-assert" no cover" cr ;
 0 burm-reduce-rules !
+
 gen-all-reduce-rules
 
 : mls-pr ( -- )
@@ -379,7 +381,7 @@ is ml-translate
 
 : code-emission-func ( ml -- )
     last-load @ here = if
-	~~
+\	~~
 	nop,
     endif
     dup dup ml-asm @ execute			\ assemble the instruction

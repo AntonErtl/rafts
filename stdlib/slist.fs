@@ -20,7 +20,7 @@
 
 \ data allocation and definitions
 struct
-    1 cells: field slist-next
+    cell% field slist-next
 end-struct slist-struct
 
 : slist ( slistp -- slistp )
@@ -71,11 +71,11 @@ end-struct slist-struct
 cr ." Test for slist.fs" cr
 
 slist-struct
-    1 cells: field sdata-value
+    cell% field sdata-value
 end-struct sdata-struct
 
 : sdata ( -- addr )
-    sdata-struct struct-allot slist
+    sdata-struct ~~ %allot slist
     NIL over sdata-value ! ;
 
 : sdata-init ( x -- addr )

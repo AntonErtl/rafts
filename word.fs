@@ -139,13 +139,13 @@ previous
 
 : word-native ( cfa -- )
     ?trace $0020 [IF]
-	dup >name hex. ." word-native:" dup name. cr
+	dup rafts->head hex. ." word-native:" dup name. cr
     [THEN]
     2cells + @ word-call ;
 
 : word-interpreter ( cfa -- )
     ?trace $0020 [IF]
-	dup >name hex. ." word-interpreter:" dup name. cr
+	dup rafts->head hex. ." word-interpreter:" dup name. cr
     [THEN]
     tos-#register 0> if
 	$0000 #tos tos-#register + 1- #tos tos-store
@@ -153,24 +153,23 @@ previous
     endif
     #cfa swap li,
     ?word-mode-direct [IF]
-	#ip here 4cells + li,
+	#ip here 4cells + tuck li,
 	#cfa jr,
-	tos-#register 0> if
-	    #tos tos-#register + 1- swap #sp sw,
-	else
-	    nop,
-	endif
     [ELSE]
 	@t0 0 #cfa lw,
-	#ip here 5cells + li,
+	#ip here 5cells + tuck li,
 	@t0 jr,
-	tos-#register 0> if
-	    #tos tos-#register + 1- swap #sp sw,
-	else
-	    nop,
-	endif
     [THEN]
-    here cell+ a,
+    tos-#register 0> if
+	#tos tos-#register + 1- swap #sp sw,
+    else
+	nop,
+    endif
+    dup here <> if
+	." word-interpreter here difference: " dup hex. here hex. cr
+    endif
+    dp ! \ make sure we put the xt where it is expected (by the #ip .. li,)
+    here cell+ a, \ put an xt here for reentering native code
     ?word-mode-indirect [IF]
 	here cell+ a,
     [THEN]
@@ -336,7 +335,6 @@ does>
     word-exit
     lastih word-regs-write
     \ here lastih - ih-cfsize - lastih ih-thread-size !
-    \ ~~
     ?trace $0020 [IF]
 	.native-xt cr
     [THEN]
@@ -424,15 +422,20 @@ vtarget ' 2variable vsource alias 2user
     ['] compile,-2constant (2constant)
     2, ;
 
-: field ( offset1 allign1 size align "name" -- offset2 align2 )
+\ : field ( offset1 allign1 size align "name" -- offset2 align2 )
+\     ['] compile,-field (field)
+\     >r rot r@ nalign dup ,
+\     + swap r> nalign ;
+
+: field ( align1 offset1 align size "name" --  align2 offset2 )
     ['] compile,-field (field)
-    >r rot r@ nalign dup ,
-    + swap r> nalign ;
+    swap rot over nalign dup , ( align1 size align offset )
+    rot + >r nalign r> ;
 
 : end-struct ( offset allign "name" -- )
     vtarget 2constant vsource ;
 
-0 1 chars vtarget end-struct struct vsource
+1 chars 0 vtarget end-struct struct vsource
 >source
 
 ?test $0020 [IF]

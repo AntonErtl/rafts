@@ -133,7 +133,7 @@ il-print-flag print-flag !
     endif ;
 
 : il-print ( il -- )
-    dup il-struct drop dump
+    dup il-struct %size dump
     dup dup il-left @ print-edge
     dup dup il-right @ print-edge
 
@@ -154,7 +154,7 @@ il-print-flag print-flag !
     ['] il-print swap btree-postorder cr ;
 
 : ml-print-rule ( cfa -- )
-    >name cell+
+    rafts->head cell+
     count $1f and cell- swap cell+ swap snumber? if
 	burm-string
     else
@@ -176,7 +176,7 @@ defer ml-print-all
     endif ;
 
 : ml-print ( ml -- )
-    dup ml-struct drop dump
+    dup ml-struct %size dump
     dup dup ml-left @ print-edge
     dup dup ml-right @ print-edge
 
@@ -210,7 +210,7 @@ defer ml-print-all
     endif ;
 
 : ml-asm-print ( ml ml -- )
-    dup ml-struct drop dump
+    dup ml-struct %size dump
     swap ?dup if
 	over swap print-edge
     endif
