@@ -1,0 +1,200 @@
+# Makefile.in
+#
+# Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+#
+# This file is part of RAFTS.
+#
+#	RAFTS is free software; you can redistribute it and/or
+#	modify it under the terms of the GNU General Public License
+#	as published by the Free Software Foundation; either version 2
+#	of the License, or (at your option) any later version.
+#
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, write to the Free Software
+#	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# To change the values of `make' variables: instead of editing Makefiles,
+# (1) if the variable is set in `config.status', edit `config.status'
+#     (which will cause the Makefiles to be regenerated when you run `make');
+# (2) otherwise, pass the desired values on the `make' command line.
+
+#To do:
+#use $(srcdir) to make compilation in a non-srcdir possible
+
+VERSION	= 0.2.0#gforth version
+SHELL	= /bin/sh
+RM	= rm -f
+CP	= cp
+INSTALL	= @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_DIR = ./install-sh -d
+LN_S	= @LN_S@
+GCC	= @CC@
+CC	= $(GCC)
+STRIP	= strip
+TEXI2DVI = texi2dvi
+DVI2PS	= dvips -D300
+#you can get texi2html from http://asis01.cern.ch/infohtml/texi2html.html
+TEXI2HTML = texi2html
+MAKEINFO = makeinfo
+XCFLAGS	= @CFLAGS@
+XDEFINES = @DEFS@
+SWITCHES = $(XCFLAGS) $(XDEFINES) #-DNDEBUG #turn off assertions
+DEBUGFLAG = @DEBUGFLAG@
+CFLAGS	= $(DEBUGFLAG) $(SWITCHES) -I. -O2 # -Wall # -Wshadow -Wcast-qual -Wcast-align -Wstrict-prototypes -Winline
+#CFLAGS	= $(DEBUGFLAG) $(SWITCHES) -O
+#CFLAGS	= $(DEBUGFLAG) $(SWITCHES) -O -DNOLEX
+#CFLAGS	= $(DEBUGFLAG) $(SWITCHES) -g -DDEBUG
+#CFLAGS	= $(DEBUGFLAG) $(SWITCHES) -g -DNOLEX -DDEBUG
+
+XLDFLAGS = @LDFLAGS@
+GCCLDFLAGS = @GCCLDFLAGS@
+LDFLAGS	= -s $(DEBUGFLAG) $(XLDFLAGS) $(GCCLDFLAGS)
+LDLIBS	= @LIBS@
+
+VPATH	= @srcdir@
+prefix	= @prefix@
+exec_prefix = @exec_prefix@
+srcdir	= @srcdir@
+bindir	= $(exec_prefix)/bin
+#read-only architecture-independent files
+datadir	= $(prefix)/share
+#read-only architecture-dependent non-ascii files
+libdir	= $(prefix)/lib
+infodir	= $(prefix)/info
+mandir	= $(prefix)/man
+man1dir	= $(mandir)/man1
+man1ext	= .1
+#older emacses have their site-lisp in $(libdir)/emacs/
+emacssitelispdir = $(datadir)/emacs/site-lisp
+
+YFLAGS	= -d
+YACC	= bison -y
+LEX	= flex -l
+
+BURG	= burg
+BURGFLAGS = -d -I -=
+
+INCLUDES = b.h fe.h
+
+BU_SRCS = burs.c closure.c delta.c item.c list.c map.c nonterminal.c \
+	operator.c pattern.c queue.c rule.c table.c trim.c zalloc.c
+
+FE_SRCS = be.c fe.c lex.c burg.c plank.c string.c symtab.c gram.y
+
+BU_OBJS = $(BU_SRCS:.c=.o) @getopt@
+FE1_OBJS = $(FE_SRCS:.c=.o)
+FE_OBJS = $(FE1_OBJS:.y=.o)
+
+OBJECTS	= $(BU_OBJS) $(FE_OBJS)
+SOURCES	= CVS Makefile.in configure.in configure config.sub config.guess \
+	$(INCLUDES) $(BU_SRCS) $(FE_SRCS)
+
+#distributed documentation
+DOCDIST = doc.tex 
+
+GEN	= $(BURG)
+GEN_PRECIOUS = $(GEN) doc.tex doc.dvi doc.ps Makefile configure
+
+#standards.info recommends this:
+
+%.c:	%.gr
+	./$(BURG) -C $(BURGFLAGS) -o $@ $<
+%.fs:	%.gr
+	./$(BURG) -F $(BURGFLAGS) -o $@ $<
+.SUFFIXES:	.fs .c
+
+all: $(GEN)
+
+$(GEN): $(OBJECTS)
+
+$(BU_OBJS):	b.h
+$(FE_OBJS):	b.h fe.h
+
+lex.o:		y.tab.h
+y.tab.h:	gram.c
+gram.c:		gram.y
+
+#from the gcc Makefile: 
+#"Deletion of files made during compilation.
+# There are four levels of this:
+#   `mostlyclean', `clean', `distclean' and `realclean'.
+# `mostlyclean' is useful while working on a particular type of machine.
+# It deletes most, but not all, of the files made by compilation.
+# It does not delete libgcc.a or its parts, so it won't have to be recompiled.
+# `clean' deletes everything made by running `make all'.
+# `distclean' also deletes the files made by config.
+# `realclean' also deletes everything that could be regenerated automatically."
+
+mostlyclean:
+		$(RM) sample sample.c tsample.c
+		$(RM) *.aux *.log
+
+clean:		mostlyclean
+		$(RM) *.o y.tab.h gram.c core
+
+distclean:	clean
+		$(RM) config.cache config.log config.status Makefile
+
+realclean:	distclean
+		$(RM) $(GEN)
+		$(RM) *.dvi
+
+dist:		$(SOURCES) $(DOCDIST)
+
+install:	all
+
+uninstall:
+
+dvi:		doc.dvi
+
+doc.dvi:	doc.tex
+		latex doc; latex doc
+
+	# ./$(BURG) -F -I     <xx.gr   >xx.fs && $(CC) $(CFLAGS) $(LDFLAGS) -o xx xx.fs && ./xx
+	# ./$(BURG) -F -I      xx.gr   >txx.fs && cmp txx.fs xx.fs
+	# ./$(BURG) -F -I     <xx.gr -o txx.fs && cmp txx.fs xx.fs
+	# ./$(BURG) -F -I      xx.gr -o txx.fs && cmp txx.fs xx.fs
+	# ./$(BURG) -F -I -O0 <xx.gr   >txx.fs && cmp txx.fs xx.fs
+	# ./$(BURG) -F -I -=  <xx.gr   >txx.fs && cmp txx.fs xx.fs
+
+test: all xx.gr
+	./$(BURG) -F -d -= -I      xx.gr   >txx.fs && diff -u txx.fs xx.fs >txx.diff
+
+sample:	sample.gr
+	./$(BURG) -C -d -= -I     <sample.gr   >sample.c && $(CC) $(CFLAGS) $(LDFLAGS) -o sample sample.c
+
+test1: all sample.gr
+	./$(BURG) -C -d -= -I     <sample.gr   >sample.c && $(CC) $(CFLAGS) $(LDFLAGS) -o sample sample.c && ./sample
+	./$(BURG) -C -d -= -I      sample.gr   >tsample.c && cmp tsample.c sample.c
+	./$(BURG) -C -d -= -I     <sample.gr -o tsample.c && cmp tsample.c sample.c
+	./$(BURG) -C -d -= -I      sample.gr -o tsample.c && cmp tsample.c sample.c
+	./$(BURG) -C -d -= -I -O0 <sample.gr   >tsample.c && cmp tsample.c sample.c
+	./$(BURG) -C -d -= -I -=  <sample.gr   >tsample.c && cmp tsample.c sample.c
+
+# For an explanation of the following Makefile rules, see node
+# `Automatic Remaking' in GNU Autoconf documentation.
+$(srcdir)/configure: configure.in 
+		cd $(srcdir) && autoconf
+     
+# autoheader might not change config.h.in, so touch a stamp file.
+$(srcdir)/config.h.in: stamp-h.in
+$(srcdir)/stamp-h.in: configure.in  acconfig.h
+		cd $(srcdir) && autoheader
+		echo timestamp > $(srcdir)/stamp-h.in
+
+config.h: stamp-h
+stamp-h: config.h.in config.status
+		CONFIG_FILES=$@ CONFIG_HEADERS=config.h ./config.status
+		echo > stamp-h
+Makefile: Makefile.in config.status
+		CONFIG_FILES=$@ CONFIG_HEADERS=config.h ./config.status
+     
+config.status: configure
+		./config.status --recheck
