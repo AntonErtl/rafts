@@ -235,7 +235,7 @@ include node.fs
   dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @sra drop ;
 
 : asm_eq ( node_addr -- )
-  dup asm_lreg@ swap dup asm_rreg@ swap asm_val@
+  dup asm_lreg@ @zero rot asm_val@
   here - cell- @beq ;
 
 : asm_slt ( node_addr -- )
@@ -353,7 +353,8 @@ NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
   dup hex.
   tuck burm_STATE_LABEL@ swap burm_rule dup 0= if
     nip nip
-    ." no cover" cr else
+    ." no cover" cr
+  else
     >r over 0 ?do
       ." ." loop
     ." ( " r@ . ." ) " r@ burm_string cr

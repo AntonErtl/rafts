@@ -92,37 +92,38 @@
 
 %start stmt
 
-%term I_LITS=1 I_LIT=2 I_LITF=4
+%term I_LIT=1
 
 /* unary operators	*/
-%term I_INVERT=11
-%term I_NEGATE=18 I_FNEGATE=20
+%term I_INVERT=2
+%term I_NEGATE=3
 
 /* binary operators	*/
-%term I_PLUS=26 I_FPLUS=28
-%term I_MINUS=98 I_FMINUS=100
-%term I_TIMES=81 I_FTIMES=84
-%term I_SLASH=56 DIVI=58 I_FSLASH=60
-%term I_MOD=74
-%term I_AND=35 I_OR=43 I_XOR=51
-%term I_LSHIFT=66 LSHI=67 I_RSHIFT=90 I_SRSHIFT=91
+%term I_PLUS=4
+%term I_MINUS=5
+%term I_TIMES=6
+%term I_SLASH=7
+%term I_MOD=8
+%term I_AND=9 I_OR=10 I_XOR=11
+%term I_LSHIFT=12 I_RSHIFT=13 I_SRSHIFT=14
 
 /* fetch and store	*/
-%term I_CFETCH=105 I_FETCH=106 I_FFETCH=108
-%term I_CSTORE=113 I_STORE=114 I_FSTORE=116
+%term I_CFETCH=15 I_FETCH=16
+%term I_CSTORE=17 I_STORE=18
 
 /* compare		*/
-%term I_LESS=120 I_ULESS=121 SLTF=122
-%term BEQI=130 BEQF=132
-%term BGEI=138 BGEU=139 BGEF=140
-%term BGTI=146 BGTU=147 BGTF=148
-%term BLEI=154 BLEU=155 BLEF=156
-%term BLTI=162 BLTU=163 BLTF=164
-%term BNEI=170 BNEF=172
+%term I_EQUALS=19 I_LESS=20 I_ULESS=21
+%term I_0BRANCH=22 I_BRANCH=23
 
-%term I_REG=182
+%term I_REG=24
 
-%term NOP=200
+%term I_LITS=30 
+
+/* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
+   %term I_FFETCH=46  I_FSTORE=47
+*/
+
+%term NOP=50
 
 /*
 addr: I_PLUS(cons, reg)		#0#	>r swap dup node_val @ r@ node_val ! [\'] asm_addr r> inst_ok
@@ -168,9 +169,7 @@ reg:  I_XOR(reg, reg)		#1#	>r [\'] asm_xor r> inst_ok
 reg:  I_XOR(reg, cons)		#1#	>r [\'] asm_xori r> inst_ok
 reg:  I_INVERT(reg)		#1#	>r NIL [\'] asm_not r> inst_ok
 reg:  I_LSHIFT(reg, reg)		#1#	>r [\'] asm_lsh r> inst_ok
-reg:  LSHI(reg, reg)		#1#	>r [\'] asm_lsh r> inst_ok
 reg:  I_LSHIFT(reg, cons)		#1#	>r [\'] asm_lshi r> inst_ok
-reg:  LSHI(reg, cons)		#1#	>r [\'] asm_lshi r> inst_ok
 reg:  I_RSHIFT(reg, reg)		#1#	>r [\'] asm_rshu r> inst_ok
 reg:  I_SRSHIFT(reg, reg)		#1#	>r [\'] asm_rsh r> inst_ok
 reg:  I_RSHIFT(reg, cons)		#1#	>r [\'] asm_rshui r> inst_ok
@@ -180,48 +179,6 @@ reg:  I_LESS(reg, reg)		#1#	>r [\'] asm_slt r> inst_ok
 reg:  I_LESS(reg, cons)		#1#	>r [\'] asm_slti r> inst_ok
 reg:  I_ULESS(reg, reg)		#1#	>r [\'] asm_sltu r> inst_ok
 reg:  I_ULESS(reg, cons)		#1#	>r [\'] asm_sltui r> inst_ok
-stmt: BEQI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGEI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGEI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGEI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGEU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGEU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGEU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGTI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGTI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGTI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGTU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGTU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BGTU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLEI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLEI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLEI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLEU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLEU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLEU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLTI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLTI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLTI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLTU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLTU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BLTU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BNEI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BNEI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-stmt: BNEI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
-
-reg:  I_FFETCH(addr)		#1#
-stmt: I_FSTORE(reg, addr)		#1#	drop
-reg:  I_FPLUS(reg, reg)		#1#
-reg:  I_FMINUS(reg, reg)		#1#
-reg:  I_FTIMES(reg, reg)		#1#
-reg:  I_FSLASH(reg, reg)		#1#
-reg:  I_FNEGATE(reg)			#1#
-
-stmt: BEQF(reg, reg)		#1#	drop
-stmt: BGEF(reg, reg)		#1#	drop
-stmt: BGTF(reg, reg)		#1#	drop
-stmt: BLEF(reg, reg)		#1#	drop
-stmt: BLTF(reg, reg)		#1#	drop
-stmt: BNEF(reg, reg)		#1#	drop
-
+stmt: I_0BRANCH(reg)		#1#	>r NIL [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: NOP
 %%

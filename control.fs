@@ -20,8 +20,8 @@
 
 >target_compile
 : if ( flag -- ) ( C: -- orig )
-  NULL vtarget_compile postpone literal vsource data>
-  data> BEQI op 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
+  vtarget_compile vsource
+  data> I_0BRANCH uop 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
   basic_exit
   here 2 cells - >control
 ?trace $0010 [IF]
@@ -30,8 +30,8 @@
   basic_init ; immediate restrict
 
 : ahead ( -- ) ( C: -- orig )
-  NULL vtarget_compile postpone literal vsource data> dup
-  BEQI op 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
+  NULL vtarget_compile postpone literal vsource data>
+  I_0BRANCH uop 0 over node_reg ! true over node_delay ! NULL over node_val ! inst_btrees_insert_end
   basic_exit
   here 2 cells - >control
 ?trace $0010 [IF]
@@ -74,8 +74,8 @@ lastxt alias endif immediate restrict
 ?trace $0010 [IF]
   ." again " .cs cr
 [THEN]
-  NULL vtarget_compile postpone literal vsource data> dup
-  BEQI op 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
+  NULL vtarget_compile postpone literal vsource data>
+  I_0BRANCH uop 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
   basic_exit
   basic_init ; immediate restrict
 
@@ -83,8 +83,8 @@ lastxt alias endif immediate restrict
 ?trace $0010 [IF]
   ." until " .cs cr
 [THEN]
-  NULL vtarget_compile postpone literal vsource data>
-  data> BEQI op 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
+  vtarget_compile vsource
+  data> I_0BRANCH uop 0 over node_reg ! true over node_delay ! control> over node_val ! inst_btrees_insert_end
   basic_exit
   basic_init ; immediate restrict
 

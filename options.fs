@@ -36,7 +36,7 @@ func_mode_direct constant func_mode_const
   func_mode_indirect func_mode ; immediate
 
  $0000 constant trace_const	\ no trace
-\ $0871 constant trace_const	\ trace what you want
+\ $0a71 constant trace_const	\ trace what you want
 \ $0001 constant trace_const	\ trace compiler
 \ $0002 constant trace_const	\ trace compiler
 \ $0003 constant trace_const	\ trace compiler (more)
