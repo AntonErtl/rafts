@@ -1,0 +1,233 @@
+%{
+\\ mips.gr	mips BURG grammar
+\\
+\\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
+\\
+\\ This file is part of RAFTS.
+\\
+\\	RAFTS is free software you can redistribute it and/or
+\\	modify it under the terms of the GNU General Public License
+\\	as published by the Free Software Foundation; either version 2
+\\	of the License, or (at your option) any later version.
+\\
+\\	This program is distributed in the hope that it will be useful,
+\\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\\	GNU General Public License for more details.
+\\
+\\	You should have received a copy of the GNU General Public License
+\\	along with this program; if not, write to the Free Software
+\\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+: node_op@ ( node_addr -- op )
+  node_op @ ;
+: node_op! ( op node_addr -- )
+  node_op ! ;
+
+: node_slabel@ ( node_addr -- slabel )
+  node_slabel @ ;
+: node_slabel! ( slabel node_addr -- )
+  node_slabel ! ;
+
+: node_left@ ( node_addr -- left )
+  node_left @ ;
+: node_left! ( left node_addr -- )
+  node_left ! ;
+
+: node_right@ ( node_addr -- right )
+  node_right @ ;
+: node_right! ( right node_addr -- )
+  node_right ! ;
+
+\' node_op alias OP_LABEL
+\' node_op@ alias OP_LABEL@
+\' node_op! alias OP_LABEL!
+\' node_slabel alias STATE_LABEL
+\' node_slabel@ alias STATE_LABEL@
+\' node_slabel! alias STATE_LABEL!
+\' node_left alias LEFT_CHILD
+\' node_left@ alias LEFT_CHILD@
+\' node_left! alias LEFT_CHILD!
+\' node_right alias RIGHT_CHILD
+\' node_right@ alias RIGHT_CHILD@
+\' node_right! alias RIGHT_CHILD!
+
+: val ( node_addr -- node_addr )
+  ;
+: lval ( node_addr -- node_addr )
+  LEFT_CHILD ;
+: llval ( node_addr -- node_addr )
+  LEFT_CHILD@ LEFT_CHILD ;
+: lrval ( node_addr -- node_addr )
+  LEFT_CHILD@ RIGHT_CHILD ; 
+: rval ( node_addr -- node_addr )
+  RIGHT_CHILD ;
+: rlval ( node_addr -- node_addr )
+  RIGHT_CHILD@ LEFT_CHILD ; 
+: rrval ( node_addr -- node_addr ) 
+  RIGHT_CHILD@ RIGHT_CHILD ;
+
+: val@ ( node_addr -- node_addr )
+  val @ ;
+: lval@ ( node_addr -- node_addr )
+  lval @ ;
+: llval@ ( node_addr -- node_addr )
+  llval @ ;
+: lrval@ ( node_addr -- node_addr )
+  lrval @ ;
+: rval@ ( node_addr -- node_addr )
+  rval @ ;
+: rlval@ ( node_addr -- node_addr )
+  rlval @ ;
+: rrval@ ( node_addr -- node_addr ) 
+  rrval @ ;
+
+\' .\" alias burm_PANIC\" immediate
+
+0 constant none
+1 constant unary
+2 constant binary
+
+%}
+
+%start stmt
+
+%term LITS=1 LITI=2 LITF=4
+
+/* unary operators	*/
+%term BINVU=11
+%term NEGI=18 NEGF=20
+%term ABSI=22 ABSF=24
+
+/* binary operators	*/
+%term ADDI=26 ADDF=28
+%term SUBI=98 SUBF=100
+%term MUL=81 MULIL=82 MULIH=83 MULF=84
+%term DIV=56 DIVI=58 DIVF=60
+%term MODI=74
+%term BANDU=35 BORU=43 BXORU=51
+%term LSHU=66 LSHI=67 RSHU=90 RSHI=91
+
+/* fetch and store	*/
+%term FETCHC=105 FETCHI=106 FETCHF=108
+%term STOREC=113 STOREI=114 STOREF=116
+
+/* compare		*/
+%term SLTI=120 SLTU=121 SLTF=122
+%term BEQI=130 BEQF=132
+%term BGEI=138 BGEU=139 BGEF=140
+%term BGTI=146 BGTU=147 BGTF=148
+%term BLEI=154 BLEU=155 BLEF=156
+%term BLTI=162 BLTU=163 BLTF=164
+%term BNEI=170 BNEF=172
+
+%term VREGP=182
+
+%term NOP=200
+
+/*
+addr: ADDI(cons, reg)		#0#	>r swap dup node_val @ r@ node_val ! [\'] asm_addr r> inst_ok
+reg:  ADDI(cons, reg)		#1#	>r swap [\'] asm_addi r> inst_ok
+reg:  BANDU(cons, reg)		#1#	>r swap [\'] asm_andi r> inst_ok
+reg:  SUBI(reg, cons)		#1#	>r [\'] asm_addi r@ rval@ node_val @ negate r@ rval@ node_val ! r> inst_ok
+reg:  BORU(cons, reg)		#1#	>r swap [\'] asm_ori r> inst_ok
+reg:  BXORU(cons, reg)		#1#	>r swap [\'] asm_xori r> inst_ok
+*/
+%%
+
+stmt: reg			#0#	2drop
+addr: ADDI(reg, cons)		#0#	>r dup node_val @ r@ node_val ! [\'] asm_addr r> inst_ok
+
+reg:  VREGP			#0#	
+cons: LITS			#0#	dup inst_done
+con:  LITI			#0#	dup inst_done
+reg:  cons			#1#	node_dup >r r@ inst_notdone NIL [\'] asm_lit r> inst_ok
+reg:  con			#1#	node_dup >r r@ inst_notdone NIL [\'] asm_lit r> inst_ok
+
+reg:  FETCHC(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchc r@ inst inst_s!_list @ slist_insert drop r> inst_ok
+reg:  FETCHC(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregc r@ inst inst_s!_list @ slist_insert drop r> inst_ok
+reg:  FETCHI(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchi r@ inst inst_s!_list @ slist_insert drop r> inst_ok
+reg:  FETCHI(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregi r@ inst inst_s!_list @ slist_insert drop r> inst_ok
+stmt: STOREC(reg, addr)		#1#	>r 0 r@ node_reg ! [\'] asm_storec r> inst_ok drop
+stmt: STOREC(reg, reg)		#1#	>r 0 r@ node_reg ! [\'] asm_storeregc r> inst_ok drop
+stmt: STOREI(reg, addr)		#1#	>r 0 r@ node_reg ! [\'] asm_storei r> inst_ok drop
+stmt: STOREI(reg, reg)		#1#	>r 0 r@ node_reg ! [\'] asm_storeregi r> inst_ok drop
+
+reg:  ADDI(reg, reg)		#1#	>r [\'] asm_add r> inst_ok
+reg:  ADDI(reg, cons)		#1#	>r [\'] asm_addi r> inst_ok
+reg:  SUBI(reg, reg)		#1#	>r [\'] asm_sub r> inst_ok
+lmul: MUL(reg, reg)		#1#	>r [\'] asm_mul r> inst_ok
+reg:  MULIL(lmul)		#1#	>r NIL [\'] asm_mull r> inst_ok
+reg:  MULIH(lmul)		#1#	>r NIL [\'] asm_mulh r> inst_ok
+ldiv: DIV(reg, reg)		#1#	>r [\'] asm_div r> inst_ok
+reg:  DIVI(ldiv)		#1#	>r NIL [\'] asm_divl r> inst_ok
+reg:  MODI(ldiv)		#1#	>r NIL [\'] asm_divh r> inst_ok
+reg:  NEGI(reg)			#1#	>r NIL [\'] asm_neg r> inst_ok
+reg:  ABSI(reg)			#1#	>r NIL [\'] asm_abs r> inst_ok
+
+reg:  BANDU(reg, reg)		#1#	>r [\'] asm_and r> inst_ok
+reg:  BANDU(reg, cons)		#1#	>r [\'] asm_andi r> inst_ok
+reg:  BORU(reg, reg)		#1#	>r [\'] asm_or r> inst_ok
+reg:  BORU(reg, cons)		#1#	>r [\'] asm_ori r> inst_ok
+reg:  BXORU(reg, reg)		#1#	>r [\'] asm_xor r> inst_ok
+reg:  BXORU(reg, cons)		#1#	>r [\'] asm_xori r> inst_ok
+reg:  BINVU(reg)		#1#	>r NIL [\'] asm_not r> inst_ok
+reg:  LSHU(reg, reg)		#1#	>r [\'] asm_lsh r> inst_ok
+reg:  LSHI(reg, reg)		#1#	>r [\'] asm_lsh r> inst_ok
+reg:  LSHU(reg, cons)		#1#	>r [\'] asm_lshi r> inst_ok
+reg:  LSHI(reg, cons)		#1#	>r [\'] asm_lshi r> inst_ok
+reg:  RSHU(reg, reg)		#1#	>r [\'] asm_rshu r> inst_ok
+reg:  RSHI(reg, reg)		#1#	>r [\'] asm_rsh r> inst_ok
+reg:  RSHU(reg, cons)		#1#	>r [\'] asm_rshui r> inst_ok
+reg:  RSHI(reg, cons)		#1#	>r [\'] asm_rshi r> inst_ok
+
+reg:  SLTI(reg, reg)		#1#	>r [\'] asm_slt r> inst_ok
+reg:  SLTI(reg, cons)		#1#	>r [\'] asm_slti r> inst_ok
+reg:  SLTU(reg, reg)		#1#	>r [\'] asm_sltu r> inst_ok
+reg:  SLTU(reg, cons)		#1#	>r [\'] asm_sltui r> inst_ok
+stmt: BEQI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGEI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGEI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGEI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGEU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGEU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGEU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGTI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGTI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGTI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGTU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGTU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BGTU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLEI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLEI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLEI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLEU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLEU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLEU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLTI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLTI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLTI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLTU(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLTU(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BLTU(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BNEI(reg, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BNEI(reg, cons)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+stmt: BNEI(cons, reg)		#1#	>r [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+
+reg:  FETCHF(addr)		#1#
+stmt: STOREF(reg, addr)		#1#	drop
+reg:  ADDF(reg, reg)		#1#
+reg:  SUBF(reg, reg)		#1#
+reg:  MULF(reg, reg)		#1#
+reg:  DIVF(reg, reg)		#1#
+reg:  NEGF(reg)			#1#
+reg:  ABSF(reg)			#1#
+
+stmt: BEQF(reg, reg)		#1#	drop
+stmt: BGEF(reg, reg)		#1#	drop
+stmt: BGTF(reg, reg)		#1#	drop
+stmt: BLEF(reg, reg)		#1#	drop
+stmt: BLTF(reg, reg)		#1#	drop
+stmt: BNEF(reg, reg)		#1#	drop
+
+%%
