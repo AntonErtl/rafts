@@ -1,0 +1,2 @@
+#!/bin/sh
+awk -f `basename $0`.awk $1
