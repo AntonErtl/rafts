@@ -1,5 +1,5 @@
 %{
-\\ mips.gr	mips BURG grammar
+\\ grammar.burg	mips BURG grammar
 \\
 \\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \\
@@ -19,123 +19,67 @@
 \\	along with this program; if not, write to the Free Software
 \\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: node_op@ ( node_addr -- op )
-  node_op @ ;
-: node_op! ( op node_addr -- )
-  node_op ! ;
+include header.fs
 
-: node_slabel@ ( node_addr -- slabel )
-  node_slabel @ ;
-: node_slabel! ( slabel node_addr -- )
-  node_slabel ! ;
+\' il-op alias OP-LABEL
+\' il-slabel alias STATE-LABEL
+\' il-left alias LEFT-CHILD
+\' il-right alias RIGHT-CHILD
 
-: node_left@ ( node_addr -- left )
-  node_left @ ;
-: node_left! ( left node_addr -- )
-  node_left ! ;
-
-: node_right@ ( node_addr -- right )
-  node_right @ ;
-: node_right! ( right node_addr -- )
-  node_right ! ;
-
-\' node_op alias OP_LABEL
-\' node_op@ alias OP_LABEL@
-\' node_op! alias OP_LABEL!
-\' node_slabel alias STATE_LABEL
-\' node_slabel@ alias STATE_LABEL@
-\' node_slabel! alias STATE_LABEL!
-\' node_left alias LEFT_CHILD
-\' node_left@ alias LEFT_CHILD@
-\' node_left! alias LEFT_CHILD!
-\' node_right alias RIGHT_CHILD
-\' node_right@ alias RIGHT_CHILD@
-\' node_right! alias RIGHT_CHILD!
-
-: val ( node_addr -- node_addr )
-  ;
-: lval ( node_addr -- node_addr )
-  LEFT_CHILD ;
-: llval ( node_addr -- node_addr )
-  LEFT_CHILD@ LEFT_CHILD ;
-: lrval ( node_addr -- node_addr )
-  LEFT_CHILD@ RIGHT_CHILD ; 
-: rval ( node_addr -- node_addr )
-  RIGHT_CHILD ;
-: rlval ( node_addr -- node_addr )
-  RIGHT_CHILD@ LEFT_CHILD ; 
-: rrval ( node_addr -- node_addr ) 
-  RIGHT_CHILD@ RIGHT_CHILD ;
-
-: val@ ( node_addr -- node_addr )
-  val @ ;
-: lval@ ( node_addr -- node_addr )
-  lval @ ;
-: llval@ ( node_addr -- node_addr )
-  llval @ ;
-: lrval@ ( node_addr -- node_addr )
-  lrval @ ;
-: rval@ ( node_addr -- node_addr )
-  rval @ ;
-: rlval@ ( node_addr -- node_addr )
-  rlval @ ;
-: rrval@ ( node_addr -- node_addr ) 
-  rrval @ ;
-
-\' .\" alias burm_PANIC\" immediate
+\' .\" alias burm-PANIC\" immediate
 
 0 constant none
 1 constant unary
 2 constant binary
 
-: bin-inst ( left-ml right-ml node_addr nt asm_xt -- ml )
-    inst_ok 
-    tuck btree_right !
-    tuck btree_left ! ;
+: bin-inst ( left-ml right-ml il-addr nt asm-xt -- ml )
+    inst-ok
+    tuck ml-right !
+    tuck ml-left ! ;
 
-: binrc-inst ( left-ml n node_addr nt asm_xt -- ml )
-    inst_ok 
+: binrc-inst ( left-ml n il-addr nt asm-xt -- ml )
+    inst-ok
     tuck ml-val !
-    tuck btree_left !
-    NIL over btree_right ! ;
+    tuck ml-left !
+    NIL over ml-right ! ;
 
-: un-inst ( left-ml node-addr nt asm-xt -- ml )
-    inst_ok
-    tuck btree_left !
-    NIL over btree_right ! ;
+: un-inst ( left-ml il-addr nt asm-xt -- ml )
+    inst-ok
+    tuck ml-left !
+    NIL over ml-right ! ;
 
-: 0branch-inst ( left-ml node-addr nt asm-xt -- ml )
+: 0branch-inst ( left-ml il-addr nt asm-xt -- ml )
     un-inst
     dup ml-delay on
     0 over ml-cost ! ;
 
-: term-inst ( node-addr nt asm-xt -- ml )
-    inst_ok
-    NIL over btree_left !
-    NIL over btree_right ! ;
+: term-inst ( il-addr nt asm-xt -- ml )
+    inst-ok
+    NIL over ml-left !
+    NIL over ml-right ! ;
 
-: branch-inst ( node-addr nt asm-xt -- ml )
+: branch-inst ( il-addr nt asm-xt -- ml )
     term-inst
     dup ml-delay on
     0 over ml-cost ! ;
 
-: lit-inst ( n node-addr nt asm-xt -- ml )
+: lit-inst ( n il-addr nt asm-xt -- ml )
     term-inst
     tuck ml-val ! ;
 
-: store-inst ( left-ml right-ml n node_addr nt asm_xt -- ml )
-    inst_ok
+: store-inst ( left-ml right-ml n il-addr nt asm-xt -- ml )
+    inst-ok
     tuck ml-val !
-    tuck btree_right !
-    tuck btree_left !
-    0 over ml-reg ! \\ store does not produce a result
-    ;
+    tuck ml-right !
+    tuck ml-left !
+    \\ store does not produce a result
+    0 over ml-reg ! ;
 
-: load-inst ( ml n node-addr nt asm-xt -- ml )
-    inst_ok
+: load-inst ( ml n il-addr nt asm-xt -- ml )
+    inst-ok
     tuck ml-val !
-    tuck btree_left !
-    NIL over btree_right !
+    tuck ml-left !
+    NIL over ml-right !
     dup ml-delay on ;
 
 %}
@@ -170,14 +114,14 @@
 %term I_0BRANCH
 %term I_BRANCH
 %term I_REG
-%term I_LITS 
+%term I_LITS
 %term NOP
 
 /* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
    %term I_FFETCH=46  I_FSTORE=47
 */
 
-/* 
+/*
 In the following a line is divided into fields with #:
 
 rule# cost# reducing# assembling
@@ -196,7 +140,7 @@ cons	( -- n )
 con	( -- n )
 addr	( -- ml n )
 
-For a given rule, burm_reduce first (parses and) reduces the children
+For a given rule, burm-reduce first (parses and) reduces the children
 (which produce their respective stack effects) left to right, then
 pushes the IL node, the (number of the) target nonterminal, and the xt
 of a definition containing the "assembling" code, then it executes the
@@ -204,7 +148,7 @@ of a definition containing the "assembling" code, then it executes the
 
 I.e. the reducing code must have the stack effect
 
-stuff1 node nt asm_xt -- stuff2
+stuff1 node nt asm-xt -- stuff2
 
 where stuff1 is the stack contents produced by the children of the
 rule, and stuff2 is the right side of the stack effect for the target
@@ -221,44 +165,46 @@ addr: I_PLUS(reg, cons)		#0#	drop 2drop	#
 addr: reg			#0#	drop 2drop 0	#
 
 reg:  I_REG			#0#	term-inst	#drop
-cons: I_LITS			#0#	drop drop node_val @ #
-con:  I_LIT			#0#	drop drop node_val @ #
-reg:  cons			#1#	lit-inst	#asm_lit
-reg:  con			#1#	lit-inst	#asm_lit
+cons: I_LITS			#0#	drop drop il-val @ #
+con:  I_LIT			#0#	drop drop il-val @ #
+con:  cons			#0#	drop drop drop	#
+reg:  con			#1#	lit-inst	#asm-lit
 
-reg:  I_CFETCH(addr)		#1#	load-inst	#asm_fetchc
-reg:  I_FETCH(addr)		#1#	load-inst	#asm_fetchi
+reg:  I_CFETCH(addr)		#1#	load-inst	#asm-fetchc
+reg:  I_FETCH(addr)		#1#	load-inst	#asm-fetchi
 
-reg:  I_PLUS(reg, reg)		#1#	bin-inst	#asm_add
-reg:  I_PLUS(reg, cons)		#1#	binrc-inst	#asm_addi
-reg:  I_MINUS(reg, reg)		#1#	bin-inst	#asm_sub
-reg:  I_TIMES(reg, reg)		#1#	bin-inst	#asm_mul
-reg:  I_SLASH(reg, reg)		#1#	bin-inst	#asm_div
-reg:  I_MOD(reg, reg)		#1#	bin-inst	#asm_mod
-reg:  I_NEGATE(reg)		#1#	un-inst		#asm_neg
+reg:  I_PLUS(reg, reg)		#1#	bin-inst	#asm-add
+reg:  I_PLUS(reg, cons)		#1#	binrc-inst	#asm-addi
+con:  I_PLUS(con, con)		#0#	drop drop drop + #
+reg:  I_MINUS(reg, reg)		#1#	bin-inst	#asm-sub
+con:  I_MINUS(con, con)		#0#	drop drop drop - #
+reg:  I_TIMES(reg, reg)		#1#	bin-inst	#asm-mul
+reg:  I_SLASH(reg, reg)		#1#	bin-inst	#asm-div
+reg:  I_MOD(reg, reg)		#1#	bin-inst	#asm-mod
+reg:  I_NEGATE(reg)		#1#	un-inst		#asm-neg
 
-reg:  I_AND(reg, reg)		#1#	bin-inst	#asm_and
-reg:  I_AND(reg, cons)		#1#	binrc-inst	#asm_andi
-reg:  I_OR(reg, reg)		#1#	bin-inst	#asm_or
-reg:  I_OR(reg, cons)		#1#	binrc-inst	#asm_ori
-reg:  I_XOR(reg, reg)		#1#	bin-inst	#asm_xor
-reg:  I_XOR(reg, cons)		#1#	binrc-inst	#asm_xori
-reg:  I_INVERT(reg)		#1#	un-inst		#asm_not
-reg:  I_LSHIFT(reg, reg)	#1#	bin-inst	#asm_lsh
-reg:  I_LSHIFT(reg, cons)	#1#	binrc-inst	#asm_lshi
-reg:  I_RSHIFT(reg, reg)	#1#	bin-inst	#asm_rshu
-reg:  I_SRSHIFT(reg, reg)	#1#	bin-inst	#asm_rsh
-reg:  I_RSHIFT(reg, cons)	#1#	binrc-inst	#asm_rshui
-reg:  I_SRSHIFT(reg, cons)	#1#	binrc-inst	#asm_rshi
+reg:  I_AND(reg, reg)		#1#	bin-inst	#asm-and
+reg:  I_AND(reg, cons)		#1#	binrc-inst	#asm-andi
+reg:  I_OR(reg, reg)		#1#	bin-inst	#asm-or
+reg:  I_OR(reg, cons)		#1#	binrc-inst	#asm-ori
+reg:  I_XOR(reg, reg)		#1#	bin-inst	#asm-xor
+reg:  I_XOR(reg, cons)		#1#	binrc-inst	#asm-xori
+reg:  I_INVERT(reg)		#1#	un-inst		#asm-not
+reg:  I_LSHIFT(reg, reg)	#1#	bin-inst	#asm-lsh
+reg:  I_LSHIFT(reg, cons)	#1#	binrc-inst	#asm-lshi
+reg:  I_RSHIFT(reg, reg)	#1#	bin-inst	#asm-rshu
+reg:  I_SRSHIFT(reg, reg)	#1#	bin-inst	#asm-rsh
+reg:  I_RSHIFT(reg, cons)	#1#	binrc-inst	#asm-rshui
+reg:  I_SRSHIFT(reg, cons)	#1#	binrc-inst	#asm-rshi
 
-reg:  I_LESS(reg, reg)		#1#	bin-inst	#asm_slt
-reg:  I_LESS(reg, cons)		#1#	binrc-inst	#asm_slti
-reg:  I_ULESS(reg, reg)		#1#	bin-inst	#asm_sltu
-reg:  I_ULESS(reg, cons)	#1#	binrc-inst	#asm_sltui
+reg:  I_LESS(reg, reg)		#1#	bin-inst	#asm-slt
+reg:  I_LESS(reg, cons)		#1#	binrc-inst	#asm-slti
+reg:  I_ULESS(reg, reg)		#1#	bin-inst	#asm-sltu
+reg:  I_ULESS(reg, cons)	#1#	binrc-inst	#asm-sltui
 
 stmt: reg			#0#	drop 2drop	#
-stmt: I_CSTORE(reg, addr)	#1#	store-inst	#asm_storec
-stmt: I_STORE(reg, addr)	#1#	store-inst	#asm_storei
-stmt: I_0BRANCH(reg)		#1#	0branch-inst	#asm_0branch
-stmt: I_BRANCH			#1#	branch-inst	#asm_branch
+stmt: I_CSTORE(reg, addr)	#1#	store-inst	#asm-storec
+stmt: I_STORE(reg, addr)	#1#	store-inst	#asm-storei
+stmt: I_0BRANCH(reg)		#1#	0branch-inst	#asm-0branch
+stmt: I_BRANCH			#1#	branch-inst	#asm-branch
 %%
