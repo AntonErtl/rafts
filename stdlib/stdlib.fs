@@ -33,24 +33,24 @@
 \ prints the char at addr
     c@ . ;
 
-cell constant 1cell
-2 cells constant 2cell
-3 cells constant 3cell
-4 cells constant 4cell
-5 cells constant 5cell
-cell negate constant -1cell
--2 cells constant -2cell
--3 cells constant -3cell
--4 cells constant -4cell
--5 cells constant -5cell
+cell constant 1cells
+2 cells constant 2cells
+3 cells constant 3cells
+4 cells constant 4cells
+5 cells constant 5cells
+cell negate constant -1cells
+-2 cells constant -2cells
+-3 cells constant -3cells
+-4 cells constant -4cells
+-5 cells constant -5cells
 
 : char- ( addr -- addr )
 \ decrements addr by one char
-    1 chars - ;
+    [ 1 chars ] literal - ;
 
 : cell- ( addr -- addr )
 \ decrements addr by one cell
-    1cell - ;
+    1cells - ;
 
 : hexn. ( n x -- )
     base @ >r hex
@@ -63,11 +63,11 @@ cell negate constant -1cell
     r> base ! ;
 
 : hex. ( x -- )
-\ prints x in hex with 8 digits (e.g. $12345678)
-    8 swap hexn. ;
+\ prints x in hex with 2*cell digits (e.g. $12345678)
+    [ cell 2* ] literal swap hexn. ;
 
 : hex? ( addr -- )
-\ prints the cell at addr in hex with 8 digits
+\ prints the cell at addr in hex with 2*cell digits
     @ hex. ;
 
 : hex.s ( -- )
@@ -77,8 +77,7 @@ cell negate constant -1cell
     loop
     drop ;
 
-
-\ ' hex.s IS printdebugdata
+' hex.s IS printdebugdata
 : hex.rs ( -- )
     ." <R: " rp@ hex. ." > "
     rp@ cell+ dup maxdepth-.s @ cells + ?do
@@ -96,24 +95,6 @@ cell negate constant -1cell
     over name.
     dump ;
 
-: list ( wid -- )
-    ." Vocabulary: " dup name. dup hex. cr
-    >body begin
-	@ dup 0<>
-    while
-	dup .name
-	dup cell+ c@
-	over name>int ." ( " hex. ." )"
-	dup $20 and if
-	    ." [imm]"
-	endif
-	$40 and if
-	    ." [rest]"
-	endif
-	space
-    repeat
-    drop cr ;
-
 : finish ( -- )
     ." stack: " hex.s cr ;
 
@@ -126,5 +107,4 @@ include stdlib/btree.fs
 cr ." Test for stdlib.fs" cr
 
 finish
-bye
 [THEN]

@@ -57,9 +57,9 @@ does>
 ?test $0400 [IF]
 cr ." Test for matrix.fs" cr
 
-3 6 matrix a2data
+3 6 matrix amatrix
 
-: a2data-print ( addr -- )
+: amatrix-print ( addr -- )
     ." ( " dup hex. ." ) " ? ;
 
 : amatrix-test ( -- )
