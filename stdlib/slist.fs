@@ -93,7 +93,7 @@ end-struct sdata_struct
   tuck sdata_value ! ;
 
 : sdata_print_func ( addr -- )
-  ." ( " dup hex. ." ) " sdata_value @ . ;
+  ." ( " dup hex. ." ) " sdata_value ? ;
 
 : sdata_print ( addr -- )
   ['] sdata_print_func swap slist_forall ;

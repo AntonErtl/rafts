@@ -23,6 +23,12 @@
 
 0 constant NULL
 
+: ? ( addr -- )
+  @ . ;
+
+: c? ( c-addr -- )
+  c@ . ;
+
 : ndup ( xn ... x1 n -- )
   dup 0 ?do
     dup pick swap loop
@@ -66,7 +72,9 @@
     i @ hex. 1 cells +loop ;
 
 : name. ( cfa -- )
-  >name .name ;
+  look if
+    .name else
+    ." not defined" endif ;
 
 : code. ( cfa n -- )
   over name.
@@ -87,7 +95,7 @@
   drop cr ;
 
 : finish ( -- )
-  ." stack: " .s cr ;
+  ." stack: " hex.s cr ;
 
 \ include struct.fs
 include stdlib/marray.fs

@@ -66,7 +66,7 @@ end-struct tdata_struct
   tuck tdata_value ! ;
 
 : tdata_print_func ( addr -- )
-  ." ( " dup hex. ." ) " tdata_value @ . ;
+  ." ( " dup hex. ." ) " tdata_value ? ;
 
 : tdata_print ( addr -- )
   ['] tdata_print_func swap stack_forall ;

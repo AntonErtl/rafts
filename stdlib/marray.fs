@@ -56,15 +56,6 @@
     swap cell+ dup rot rot @ * loop
   cells allot drop ;
 
-\ limit check for an array (chars)
-: mclims ( i*u a-addr1 -- a-addr2 )
-  dup @
-  dup depth 2 - < 0= abort" marray: dimension error (stack depth)"
-  0 ?do
-    i 1+ pick over i 1+ cells + @
-    over > swap -1 >
-    and 0= abort" marray: dimension error (index size)" loop ;
-
 \ use an array (chars)
 : mcarray_does ( i*u a-addr1 -- a-addr2 )
   swap over @ 1- 0 ?do
@@ -78,7 +69,7 @@
   create
     marray_create
   does>
-    \ mclims
+    \ mlims
     mcarray_does ;
 
 : mcarray ( i*u i "name" -- )
@@ -98,10 +89,10 @@ cr ." Test for marray.fs" cr
 ' m2cdata dup hex. >name $80 dump
 
 : mdata_print ( addr -- )
-  ." ( " dup hex. ." ) " @ . ;
+  ." ( " dup hex. ." ) " ? ;
 
 : mcdata_print ( addr -- )
-  ." ( " dup hex. ." ) " c@ . ;
+  ." ( " dup hex. ." ) " c? ;
 
 : mdata_test
   0 0 0 0 m4data mdata_print .s cr

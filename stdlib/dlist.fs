@@ -132,7 +132,7 @@ end-struct ddata_struct
   tuck ddata_value ! ;
 
 : ddata_print_func ( addr -- )
-  ." ( " dup hex. ." ) " ddata_value @ . ;
+  ." ( " dup hex. ." ) " ddata_value ? ;
 
 : ddata_print ( addr -- )
   ['] ddata_print_func swap dlist_forall ;

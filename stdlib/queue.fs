@@ -66,7 +66,7 @@ end-struct qdata_struct
   tuck qdata_value ! ;
 
 : qdata_print_func ( addr -- )
-  ." ( " dup hex. ." ) " qdata_value @ . ;
+  ." ( " dup hex. ." ) " qdata_value ? ;
 
 : qdata_print ( addr -- )
   ['] qdata_print_func swap dlist_forall ;

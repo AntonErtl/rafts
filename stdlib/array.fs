@@ -19,16 +19,16 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 : array_noallot ( u "name" -- )
-  1 marray_noallot ; immediate
+  1 marray_noallot ;
 
 : array ( u "name" -- )
-  1 marray ; immediate
+  1 marray ;
 
 : carray_noallot ( u "name" -- )
-  1 mcarray_noallot ; immediate
+  1 mcarray_noallot ;
 
 : carray ( u "name" -- )
-  1 mcarray ; immediate
+  1 mcarray ;
 
 ?test $0400 [IF]
 cr ." Test for array.fs" cr
@@ -37,10 +37,10 @@ cr ." Test for array.fs" cr
 6 carray cadata
 
 : adata_print ( addr -- )
-  ." ( " dup hex. ." ) " @ . ;
+  ." ( " dup hex. ." ) " ? ;
 
 : cadata_print ( addr -- )
-  ." ( " dup hex. ." ) " c@ . ;
+  ." ( " dup hex. ." ) " c? ;
 
 : adata_test
   0 adata adata_print .s cr
@@ -70,10 +70,10 @@ cr ." Test for array.fs" cr
   5 cadata cadata_print .s cr
   \ 6 cadata cadata_print .s cr
 
-  123 0 cadata !
-  234 1 cadata !
-  345 2 cadata !
-  456 5 cadata !
+  123 0 cadata c!
+  234 1 cadata c!
+  345 2 cadata c!
+  456 5 cadata c!
   0 cadata 2 cells - 2 cells 6 chars + dump
 
   0 cadata cadata_print .s cr
@@ -82,13 +82,12 @@ cr ." Test for array.fs" cr
   5 cadata cadata_print .s cr
 
   6 0 ?do
-    i dup cadata ! loop
+    i dup cadata c! loop
 
   0 cadata cadata_print .s cr
   1 cadata cadata_print .s cr
 
   0 cadata 2 cells - 2 cells 6 chars + dump ;
-
 adata_test
 
 finish
