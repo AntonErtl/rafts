@@ -33,62 +33,54 @@ include header.fs
 2 constant binary
 
 : bin-inst ( left-ml right-ml il-addr nt asm-xt -- ml )
-    inst-ok 
-    tuck btree-right !
-    tuck btree-left !
-;
+    inst-ok
+    tuck ml-right !
+    tuck ml-left ! ;
 
 : binrc-inst ( left-ml n il-addr nt asm-xt -- ml )
-    inst-ok 
+    inst-ok
     tuck ml-val !
-    tuck btree-left !
-    NIL over btree-right !
-;
+    tuck ml-left !
+    NIL over ml-right ! ;
 
 : un-inst ( left-ml il-addr nt asm-xt -- ml )
     inst-ok
-    tuck btree-left !
-    NIL over btree-right !
-;
+    tuck ml-left !
+    NIL over ml-right ! ;
 
 : 0branch-inst ( left-ml il-addr nt asm-xt -- ml )
     un-inst
     dup ml-delay on
-    0 over ml-cost !
-;
+    0 over ml-cost ! ;
 
 : term-inst ( il-addr nt asm-xt -- ml )
     inst-ok
-    NIL over btree-left !
-    NIL over btree-right !
-;
+    NIL over ml-left !
+    NIL over ml-right ! ;
 
 : branch-inst ( il-addr nt asm-xt -- ml )
     term-inst
     dup ml-delay on
-    0 over ml-cost !
-;
+    0 over ml-cost ! ;
 
 : lit-inst ( n il-addr nt asm-xt -- ml )
     term-inst
-    tuck ml-val !
-;
+    tuck ml-val ! ;
 
 : store-inst ( left-ml right-ml n il-addr nt asm-xt -- ml )
     inst-ok
     tuck ml-val !
-    tuck btree-right !
-    tuck btree-left !
-    0 over ml-reg ! \\ store does not produce a result
-;
+    tuck ml-right !
+    tuck ml-left !
+    \\ store does not produce a result
+    0 over ml-reg ! ;
 
 : load-inst ( ml n il-addr nt asm-xt -- ml )
     inst-ok
     tuck ml-val !
-    tuck btree-left !
-    NIL over btree-right !
-    dup ml-delay on
-;
+    tuck ml-left !
+    NIL over ml-right !
+    dup ml-delay on ;
 
 %}
 
@@ -122,14 +114,14 @@ include header.fs
 %term I_0BRANCH
 %term I_BRANCH
 %term I_REG
-%term I_LITS 
+%term I_LITS
 %term NOP
 
 /* %term I_LITF=40 I_FNEGATE=41 I_FPLUS=42 I_FMINUS=43 I_FTIMES=44  I_FSLASH=45
    %term I_FFETCH=46  I_FSTORE=47
 */
 
-/* 
+/*
 In the following a line is divided into fields with #:
 
 rule# cost# reducing# assembling

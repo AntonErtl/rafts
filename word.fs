@@ -23,6 +23,7 @@ docode constant docode:
 : word-init-noname ( -- )
     docode cfa,
     (word-init)
+    0 , 0 ,
     basic-init
     0 @ra I_REG terminal
     >return ;
@@ -86,10 +87,12 @@ false noname-state !
 
 >target-compile
 : [ ( -- )
-    state off previous previous ; immediate restrict
+    ['Forth] interpreter IS parser
+    state off previous previous ; immediate compile-only
 
 >target
 : ] ( -- )
+    ['Forth] compiler IS parser
     state on target-compile> ;
 
 : :noname ( -- )
@@ -142,7 +145,7 @@ false noname-state !
     here over - flush-icache
     noname-state @ 0<> if
 	lastcfa @
-    endif ; immediate restrict
+    endif ; immediate compile-only
 >source
 
 ?test $0008 [IF]

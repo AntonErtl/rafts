@@ -1,4 +1,6 @@
-." START: " here hex . decimal cr
+base @ hex
+." START: " here . cr
+decimal
 
 \ compiler.fs	compiler main load file
 \
@@ -29,61 +31,49 @@ vocabulary voc-target-compile
 
 voc-source also definitions
 
+: replace-word ( xt cfa -- )
+    \ replace word at cfa with xt. !! This is quite general-purpose
+    \ and should migrate elsewhere.
+    dodefer: over code-address!
+    >body ! ;
+
 include options.fs
 include stdlib/stdlib.fs
 
 : vForth ( -- )
-    Forth ; restrict immediate
+    Forth ; immediate
 
 : vsource ( -- )
-    voc-source ; restrict immediate
+    voc-source ; immediate
 : >source ( -- )
     also voc-source definitions previous ;
 : source> ( -- )
     voc-source also ;
 
 : vtarget ( -- )
-    voc-target ; restrict immediate
+    voc-target ; immediate
 : >target ( -- )
     also voc-target definitions previous ;
 : target> ( -- )
     voc-target also ;
 
 : vtarget-compile ( -- )
-    voc-target-compile ; restrict immediate
+    voc-target-compile ; immediate
 : >target-compile ( -- )
     also voc-target-compile definitions previous ;
 : target-compile> ( -- )
     also voc-target-compile also ;
 
+: comp'Forth ( "name" -- )
+    postpone vForth comp' postpone vsource drop ; immediate
+: 'Forth ( "name" -- )
+    postpone vForth ' postpone vsource ; immediate
+: ['Forth] ( "name" -- )
+    postpone vForth postpone ['] postpone vsource ; immediate compile-only
+
 include asm.fs
 include disasm.fs
 include basic.fs
-
-: interpreter-default ( c-addr u xt -- )
-    nip nip
-    ?trace $0001 [IF]
-	." interpreter:" dup name.
-	dup hex. dup >code-address hex. cr
-    [THEN]
-    execute ;
-
-: interpreter ( c-addr u -- )
-    ?trace $0002 [IF]
-	." INTER:" 2dup type cr
-    [THEN]
-    2dup sfind
-    ?trace $0001 [IF]
-	order cr
-	hex.s cr
-    [THEN]
-    1 and if
-	interpreter-default
-    else
-	snumber? 0= if
-	    interpreter-notfound
-	endif
-    endif ;
 
 : compile,-constant ( xt -- )
     ?trace $0001 [IF]
@@ -102,6 +92,13 @@ include basic.fs
 	." user:" hex.s cr
     [THEN]
     execute vtarget-compile postpone literal vsource ;
+
+: compile,-struct ( xt -- )
+    ?trace $0001 [IF]
+	." FUNC-STRUC:" hex.s cr
+    [THEN]
+    2 cells + @ vtarget-compile postpone literal vsource dostruc @
+    execute ;
 
 : compile,-interpreter ( xt -- )
     ?trace $0001 [IF]
@@ -126,13 +123,6 @@ include basic.fs
     basic-exit
     word-interpreter
     basic-init ;
-
-: compile,-struct ( xt -- )
-    ?trace $0001 [IF]
-	." FUNC-STRUC:" hex.s cr
-    [THEN]
-    2 cells + @ vtarget-compile postpone literal vsource dostruc @
-    execute ;
 
 : compile,-native ( xt -- )
     ?trace $0001 [IF]
@@ -189,127 +179,8 @@ include basic.fs
 	compile,-forth
     endif ;
 
-: compiler-rest&imm ( c-addr u xt -- )
-    nip nip
-    ?trace $0001 [IF]
-	." compiler (restrict&immediate):" dup name.
-	dup hex. dup >code-address hex. cr
-    [THEN]
-    execute ;
-
-: compiler-rest ( c-addr u xt -- )
-    nip nip
-    ?trace $0001 [IF]
-	." compiler (restrict):" dup name.
-	dup hex. dup >code-address hex. cr
-    [THEN]
-    compile, ;
-
-: compiler-imm ( c-addr u xt -- )
-    nip nip
-    ?trace $0001 [IF]
-	." compiler (immediate):" dup name.
-	dup hex. dup >code-address hex. cr
-    [THEN]
-    execute ;
-
-: compiler-default ( c-addr u xt -- )
-    nip nip
-    ?trace $0001 [IF]
-	." compiler:" dup name.
-	dup hex. dup >code-address hex. cr
-    [THEN]
-    compile, ;
-
-: compiler-number ( n -- )
-    ?trace $0001 [IF]
-	." number:" dup hex. cr
-    [THEN]
-    vtarget-compile postpone literal vsource ;
-
-: compiler ( c-addr u -- )
-    ?trace $0002 [IF]
-	." COMP:" 2dup type cr
-    [THEN]
-    2dup sfind
-    ?trace $0001 [IF]
-	order cr hex.s cr
-    [THEN]
-    case
-	2 of
-	compiler-rest&imm endof
-	-2 of
-	compiler-rest endof
-	1 of
-	compiler-imm endof
-	-1 of
-	compiler-default endof
-	0 of
-	snumber? 0<> if
-	    compiler-number
-	else
-	    compiler-notfound
-	endif
-	endof
-    endcase ;
-
-: interpret ( -- )
-    begin
-	?stack
-	name dup 0<>
-    while
-	state @ 0= if
-	    interpreter
-	else
-	    compiler
-	endif
-    repeat
-    2drop ;
-
-: printok ( -- )
-    ."  o"
-    ?trace $0001 [IF]
-	hex.s
-    [THEN]
-    ." k" ;
-
-: printcompile ( -- )
-    ."  com"
-    ?trace $0001 [IF]
-	hex.s
-    [THEN]
-    ." piled" ;
-
 include primitives.fs
 include control.fs
-include primitives-ext.fs
-
-: quit ( -- )
-    loadfile off blk off
-    begin
-	cr refill
-    while
-	interpret
-	state @ 0= if
-	    printok
-	else
-	    printcompile
-	endif
-    repeat ;
-
-: cold ( -- )
-    \ 2, because compiler.fs is 1 in testmod !!!
-    argc @ 2 > if
-	begin
-	    argc @ 2 >
-	while
-	    2 arg
-	    -1 argc +!
-	    1 cells argv +!
-	    included
-	repeat
-    endif
-    quit ;
 
 >target
 : bye ( -- )
@@ -341,5 +212,8 @@ finish
 \ ." START AGAIN: " here hex . decimal cr
 
 target>
-\ order .s cr
-cold
+base !
+order .s cr
+
+' compile, 'Forth compile, vtarget replace-word
+vtarget-compile comp' literal vtarget drop comp'Forth literal replace-word

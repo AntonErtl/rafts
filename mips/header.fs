@@ -20,7 +20,7 @@
 
 ?shared docode [IF]
 create docode
-    #cfa dup 8 @addiu
+    #cfa dup 16 @addiu
     #ip -4 #rp @sw
     @ra swap @jalr drop
     #rp dup -4 @addiu
@@ -87,8 +87,6 @@ create dodoes
 
 : (word-lwexit) ( -- )
     @ra 0 #rp @lw drop ;
-
-true constant ?runtest
 
 ?test $0002 [IF]
 cr ." Test for header.fs" cr

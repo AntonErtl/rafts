@@ -381,7 +381,7 @@ include grammar.fs
 
 >target-compile
 : literal ( x -- D: addr )
-    lit >data ; immediate restrict
+    lit >data ; immediate compile-only
 >source
 
 : addr ( offset register -- il-addr )

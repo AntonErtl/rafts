@@ -18,42 +18,39 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: ['Forth] ( "name" -- )
-    postpone vForth postpone ['] postpone vsource ; immediate restrict
-
 >target-compile
 
 \ stack primitives
 : drop ( D: x -- )
     data>
-    vForth drop vsource ; immediate restrict
+    vForth drop vsource ; immediate compile-only
 
 : dup ( D: x -- x x )
     data>
     vForth dup vsource
-    >data >data ; immediate restrict
+    >data >data ; immediate compile-only
 
 : over ( D: x1 x2 -- x1 x2 x1 )
     data> data>
     vForth dup vsource
-    >data vForth swap vsource >data >data ; immediate restrict
+    >data vForth swap vsource >data >data ; immediate compile-only
 
 : rot ( D: x1 x2 x3 -- x2 x3 x1 )
     data> data> data>
     vForth rot rot vsource
-    >data >data >data ; immediate restrict
+    >data >data >data ; immediate compile-only
 
 : swap ( D: x1 x2 -- x2 x1 )
     data> data>
     vForth swap vsource
-    >data >data ; immediate restrict
+    >data >data ; immediate compile-only
 
 : pick ( D: xu ... x1 x0 u -- xu ... x1 x0 xu )
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
 	il-val @ #data@ >data
     else
 	>data ['Forth] pick compile,
-    endif ; immediate restrict
+    endif ; immediate compile-only
 
 : roll ( D: xu xu-1 ... x0 u -- xu-1 ... x0 xu )
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
@@ -62,22 +59,22 @@
 	data> drop >data
     else
 	>data ['Forth] roll compile,
-    endif ; immediate restrict
+    endif ; immediate compile-only
 
 : 2drop ( D: x1 x2 -- )
-    vtarget-compile postpone drop postpone drop vsource ; immediate restrict
+    vtarget-compile postpone drop postpone drop vsource ; immediate compile-only
 
 : 2dup ( D: x1 x2 -- x1 x2 x1 x2 )
-    vtarget-compile postpone over postpone over vsource ; immediate restrict
+    vtarget-compile postpone over postpone over vsource ; immediate compile-only
 
 : 2over ( x1 x2 x3 x4 -- x1 x2 x3 x4 x1 x2 )
-    vtarget-compile 3 postpone literal postpone pick 3 postpone literal postpone pick vsource ; immediate restrict
+    vtarget-compile 3 postpone literal postpone pick 3 postpone literal postpone pick vsource ; immediate compile-only
 
 : 2rot ( x1 x2 x3 x4 x5 x6 -- x3 x4 x5 x6 x1 x2 )
-    vtarget-compile 5 postpone literal postpone roll 5 postpone literal postpone roll vsource ; immediate restrict
+    vtarget-compile 5 postpone literal postpone roll 5 postpone literal postpone roll vsource ; immediate compile-only
 
 : 2swap ( x1 x2 x3 x4 -- x3 x4 x1 x2 )
-    vtarget-compile 3 postpone literal postpone roll 3 postpone literal postpone roll vsource ; immediate restrict
+    vtarget-compile 3 postpone literal postpone roll 3 postpone literal postpone roll vsource ; immediate compile-only
 
 : ?dup ( D: x -- 0 | x x )
     data> dup il-op @ dup I_LITS = swap I_LIT = or if
@@ -88,23 +85,23 @@
 	endif
     else
 	>data ['Forth] ?dup compile,
-    endif ; immediate restrict
+    endif ; immediate compile-only
 
 : nip ( D: x1 x2 -- x2 )
-    vtarget-compile postpone swap postpone drop vsource ; immediate restrict
+    vtarget-compile postpone swap postpone drop vsource ; immediate compile-only
 
 : tuck ( D: x1 x2 -- x2 x1 x2 )
-    vtarget-compile postpone swap postpone over vsource ; immediate restrict
+    vtarget-compile postpone swap postpone over vsource ; immediate compile-only
 
 \ primitives
 >source
 : binop-primitive ( op -- )
-    create , immediate restrict
+    create , immediate compile-only
 does> ( D: addr addr -- addr )
     data> data> rot @ op >data ;
 
 : unop-primitive ( op -- )
-    create , immediate restrict
+    create , immediate compile-only
 does> ( D: addr -- addr )
     data> swap @ uop >data ;
 >target-compile
@@ -128,105 +125,105 @@ I_NEGATE unop-primitive negate
 I_INVERT unop-primitive invert
 
 : 1+ ( D: addr -- addr )
-    vtarget-compile 1 postpone literal postpone + vsource ; immediate restrict
+    vtarget-compile 1 postpone literal postpone + vsource ; immediate compile-only
 
 : 1- ( D: addr -- addr )
-    vtarget-compile -1 postpone literal postpone + vsource ; immediate restrict
+    vtarget-compile -1 postpone literal postpone + vsource ; immediate compile-only
 
 : 2* ( D: addr -- addr )
-    vtarget-compile 1 postpone literal postpone lshifta vsource ; immediate restrict
+    vtarget-compile 1 postpone literal postpone lshifta vsource ; immediate compile-only
 
 : 2/ ( D: addr -- addr )
-    vtarget-compile 1 postpone literal postpone rshifta vsource ; immediate restrict
+    vtarget-compile 1 postpone literal postpone rshifta vsource ; immediate compile-only
 
 : = ( D: addr addr -- addr )
     data> data> I_XOR op
     vtarget-compile 1 postpone literal vsource data> swap I_ULESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : <> ( D: addr addr -- addr )
     data> data> I_XOR op
     vtarget-compile 0 postpone literal vsource data> I_ULESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : < ( D: addr addr -- addr )
     data> data> I_LESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : <= ( D: addr addr -- addr )
     data> data> swap I_LESS op
-    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
+    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate compile-only
 
 : > ( D: addr addr -- addr )
     data> data> swap I_LESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : >= ( D: addr addr -- addr )
     data> data> I_LESS op
-    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
+    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate compile-only
 
 : 0= ( D: addr -- addr )
     data> vtarget-compile 1 postpone literal vsource data> swap I_ULESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : 0<> ( D: addr -- addr )
     data> vtarget-compile 0 postpone literal vsource data> I_ULESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : 0< ( D: addr -- addr )
     data> vtarget-compile 0 postpone literal vsource data> swap I_LESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : 0<= ( D: addr -- addr )
     data> vtarget-compile 0 postpone literal vsource data> I_LESS op
-    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
+    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate compile-only
 
 : 0> ( D: addr -- addr )
     data> vtarget-compile 0 postpone literal vsource data> I_LESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : 0>= ( D: addr -- addr )
     data> vtarget-compile 0 postpone literal vsource data> swap I_LESS op
-    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
+    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate compile-only
 
 : u< ( D: addr addr -- addr )
     data> data> I_ULESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : u<= ( D: addr addr -- addr )
     data> data> swap I_ULESS op
-    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
+    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate compile-only
 
 : u> ( D: addr addr -- addr )
     data> data> swap I_ULESS op
-    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate restrict
+    vtarget-compile 0 postpone literal vsource data> I_MINUS op >data ; immediate compile-only
 
 : u>= ( D: addr addr -- addr )
     data> data> I_ULESS op
-    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate restrict
+    vtarget-compile -1 postpone literal vsource data> I_PLUS op >data ; immediate compile-only
 
 : cells ( D: addr -- addr )
-    vtarget-compile 2 postpone literal postpone lshift vsource ; immediate restrict
+    vtarget-compile 2 postpone literal postpone lshift vsource ; immediate compile-only
 
 : cell+ ( D: addr -- addr )
-    vtarget-compile 4 postpone literal postpone + vsource ; immediate restrict
+    vtarget-compile 4 postpone literal postpone + vsource ; immediate compile-only
 
 : cell- ( D: addr -- addr )
-    vtarget-compile 4 postpone literal postpone - vsource ; immediate restrict
+    vtarget-compile 4 postpone literal postpone - vsource ; immediate compile-only
 
-: chars ( D: addr -- addr ) ; immediate restrict
+: chars ( D: addr -- addr ) ; immediate compile-only
 
 : char+ ( D: addr -- addr )
-    vtarget-compile postpone 1+ vsource ; immediate restrict
+    vtarget-compile postpone 1+ vsource ; immediate compile-only
 
 : char- ( D: addr -- addr )
-    vtarget-compile postpone 1- vsource ; immediate restrict
+    vtarget-compile postpone 1- vsource ; immediate compile-only
 
 : @ ( D: addr -- addr )
     data> I_FETCH uop
     inst-!-list @ over il-depends !
     dup inst inst-@-list @ slist-insert drop
-    >data ; immediate restrict
+    >data ; immediate compile-only
 
 : ! ( D: addr addr -- )
     data> data> I_STORE op
@@ -235,19 +232,19 @@ I_INVERT unop-primitive invert
     dup inst inst-!-list @ slist-insert drop
     NIL inst inst-@-list !
     dup inst inst-@-list @ slist-insert drop
-    inst-btrees-insert ; immediate restrict
+    inst-btrees-insert ; immediate compile-only
 
 : 2@ ( D: addr -- addr addr )
-    vtarget-compile postpone dup postpone cell+ postpone @ postpone swap postpone @ vsource ; immediate restrict
+    vtarget-compile postpone dup postpone cell+ postpone @ postpone swap postpone @ vsource ; immediate compile-only
 
 : 2! ( D: addr addr addr -- )
-    vtarget-compile postpone swap postpone over postpone ! postpone cell+ postpone ! vsource ; immediate restrict
+    vtarget-compile postpone swap postpone over postpone ! postpone cell+ postpone ! vsource ; immediate compile-only
 
 : c@ ( D: addr -- addr )
     data> I_CFETCH uop
     inst-!-list @ over il-depends !
     dup inst inst-@-list @ slist-insert drop
-    >data ; immediate restrict
+    >data ; immediate compile-only
 
 : c! ( D: addr addr -- )
     data> data> I_CSTORE op
@@ -255,36 +252,45 @@ I_INVERT unop-primitive invert
     NIL inst inst-!-list !
     dup inst inst-!-list @ slist-insert drop
     NIL inst inst-@-list !
-    inst-btrees-insert ; immediate restrict
+    inst-btrees-insert ; immediate compile-only
 
 : >r ( R: -- addr )
-    data> >return ; immediate restrict
+    data> >return ; immediate compile-only
 
 : r@ ( R: -- addr )
-    0 #return@ >data ; immediate restrict
+    0 #return@ >data ; immediate compile-only
 
 : r> ( R: -- addr )
-    return> >data ; immediate restrict
+    return> >data ; immediate compile-only
 
 : 2>r ( R: addr addr -- )
-    vtarget-compile postpone swap postpone >r postpone >r vsource ; immediate restrict
+    vtarget-compile postpone swap postpone >r postpone >r vsource ; immediate compile-only
 
 : 2r@ ( R: -- addr addr )
-    vtarget-compile postpone r> postpone r@ postpone over postpone >r postpone swap vsource ; immediate restrict
+    vtarget-compile postpone r> postpone r@ postpone over postpone >r postpone swap vsource ; immediate compile-only
 
 : 2r> ( R: -- addr addr )
-    vtarget-compile postpone r> postpone r> postpone swap vsource ; immediate restrict
+    vtarget-compile postpone r> postpone r> postpone swap vsource ; immediate compile-only
 
 : rdrop ( R: addr -- )
-    return> drop ; immediate restrict
+    return> drop ; immediate compile-only
 
 : ['] ( "name" -- )
-    ' vtarget-compile postpone literal vsource ; immediate restrict
+    ' vtarget-compile postpone literal vsource ; immediate compile-only
 
 : [char] ( 'char' -- n )
-    char vtarget-compile postpone literal vsource ; immediate restrict
+    char vtarget-compile postpone literal vsource ; immediate compile-only
 
+: is ( xt "name" -- )
+    ' >body vtarget-compile postpone literal postpone ! vsource ; immediate compile-only
+
+: on ( addr -- )
+  true vtarget-compile postpone literal postpone swap postpone ! vsource ; immediate compile-only
+
+: off ( addr -- )
+  false vtarget-compile postpone literal postpone swap postpone ! vsource ; immediate compile-only
 >source
+
 \ Variablen fuer Stringbehandlung
 $2000 constant text-size	\ 16 kByte Textbuffer
 create text-data
@@ -316,26 +322,25 @@ create text-data
 
 : ." ( "string"<"> -- )
     ," vtarget-compile postpone literal vsource
-    ['] (.") compile, ; immediate restrict
+    ['] (.") compile, ; immediate compile-only
 
 : s" ( "string"<"> -- )
     ," vtarget-compile postpone literal vsource
-    ['] (s") compile, ; immediate restrict
+    ['] (s") compile, ; immediate compile-only
 
 : abort" ( "string"<"> -- )
     ," vtarget-compile postpone literal vsource
-    ['] (abort") compile, ; immediate restrict
+    ['] (abort") compile, ; immediate compile-only
 
 : ( ( -- )
-    postpone ( ; immediate restrict
+    postpone ( ; immediate compile-only
 
 : \ ( -- )
-    postpone \ ; immediate restrict
-
+    postpone \ ; immediate compile-only
 >source
 
 : (dostruc) ( addr u - addr )
-    vtarget-compile postpone + vsource ; immediate restrict
+    vtarget-compile postpone + vsource ; immediate compile-only
 comp' (dostruc) drop dostruc !
 
 : nothing ( -- ) ;		\ a unknown bugfix
@@ -352,7 +357,7 @@ comp' (dostruc) drop dostruc !
 
 : ~~ ( -- )
     sourcepos,
-    ['] (~~) compile, ; immediate restrict
+    ['] (~~) compile, ; immediate compile-only
 
 >source
 : assertn ( -- )
@@ -369,18 +374,18 @@ comp' (dostruc) drop dostruc !
 >target-compile
 
 : assert0( ( -- )
-    0 assertn ; immediate restrict
+    0 assertn ; immediate compile-only
 : assert1( ( -- )
-    1 assertn ; immediate restrict
+    1 assertn ; immediate compile-only
 : assert2( ( -- )
-    2 assertn ; immediate restrict
+    2 assertn ; immediate compile-only
 : assert3( ( -- )
-    3 assertn ; immediate restrict
+    3 assertn ; immediate compile-only
 : assert( ( -- )
-    vtarget-compile postpone assert1( vsource ; immediate restrict
+    vtarget-compile postpone assert1( vsource ; immediate compile-only
 : ) ( -- )
     sourcepos,
-    ['] (endassert) compile, ; immediate restrict
+    ['] (endassert) compile, ; immediate compile-only
 
 >source
 

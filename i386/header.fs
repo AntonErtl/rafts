@@ -20,7 +20,7 @@
 
 ?shared docode [IF]
 create docode
-    #cfa dup 8 @addiu
+    #cfa dup 16 @addiu
     #ip -4 #rp @sw
     @ra swap @jalr drop
     #rp dup -4 @addiu
@@ -72,23 +72,21 @@ create dodoes
 : (word-init) ( -- )
     \ \\ @ra -4 #rp @sw
     \ \\ #rp #rp -4 @addiu drop
-    \ -4 regs-unused I_LIT node
-    \ 0 #rp I_REG node
+    \ -4 regs-unused I-LIT node
+    \ 0 #rp I-REG node
     \ ADDU op #rp over il-reg ! inst-btrees-insert
-    \ 0 @ra I_REG node dup inst-done
+    \ 0 @ra I-REG node
     \ -4 #rp id! inst-btrees-insert
     ;
 
 : (word-exit) ( -- )
     \ \\ @ra 0 #rp @lw
-    \ \\ #rp #rp 4 @addiu drop
+    \ \\ #rp #rp 4 @addiaddiu drop
     @ra @jr
     @nop ;
 
 : (word-lwexit) ( -- )
     @ra 0 #rp @lw drop ;
-
-true constant ?runtest
 
 ?test $0002 [IF]
 cr ." Test for header.fs" cr

@@ -29,6 +29,7 @@
 
 $0000 constant trace-const	\ no trace
 \ $0a71 constant trace-const	\ trace what you want
+\ $0813 constant trace-const	\ trace what you want
 \ $0001 constant trace-const	\ trace compiler
 \ $0002 constant trace-const	\ trace compiler
 \ $0003 constant trace-const	\ trace compiler (more)

@@ -29,7 +29,7 @@
     ?trace $0010 [IF]
 	." if " .cs cr
     [THEN]
-    basic-init ; immediate restrict
+    basic-init ; immediate compile-only
 
 : ahead ( -- ) ( C: -- orig )
     vtarget-compile vsource
@@ -41,7 +41,7 @@
     ?trace $0010 [IF]
 	." ahead " .cs cr
     [THEN]
-    basic-init ; immediate restrict
+    basic-init ; immediate compile-only
 
 : then ( -- ) ( C: orig -- )
     basic-exit
@@ -58,13 +58,13 @@
 	dup hex. cr
     [THEN]
     over @ $ffff0000 and or swap !
-    basic-init ; immediate restrict
-lastxt alias endif immediate restrict
+    basic-init ; immediate compile-only
+lastxt alias endif immediate compile-only
 
 : else ( -- ) ( C: orig1 -- orig2 )
     vtarget-compile
     postpone ahead 1 cs-roll postpone then
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : begin ( -- ) ( C: -- dest )
     basic-exit
@@ -72,7 +72,7 @@ lastxt alias endif immediate restrict
     ?trace $0010 [IF]
 	." begin " .cs cr
     [THEN]
-    basic-init ; immediate restrict
+    basic-init ; immediate compile-only
 
 : again ( -- ) ( C: dest -- )
     ?trace $0010 [IF]
@@ -82,7 +82,7 @@ lastxt alias endif immediate restrict
     0 0 I_BRANCH terminal 0 over il-reg !
     control> over il-val ! inst-btrees-insert-end
     basic-exit
-    basic-init ; immediate restrict
+    basic-init ; immediate compile-only
 
 : until ( flag -- ) ( C: dest -- )
     ?trace $0010 [IF]
@@ -92,23 +92,23 @@ lastxt alias endif immediate restrict
     data> I_0BRANCH uop 0 over il-reg !
     control> over il-val ! inst-btrees-insert-end
     basic-exit
-    basic-init ; immediate restrict
+    basic-init ; immediate compile-only
 
 : while ( flag -- ) ( C: dest -- \rig dest )
     vtarget-compile
     postpone if 1 cs-roll
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : repeat ( -- ) ( C: orig dest -- )
     vtarget-compile
     postpone again postpone then
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : exit ( -- ) ( C: -- )
     check-ra
     basic-exit
     (word-exit)
-    basic-init ; immediate restrict
+    basic-init ; immediate compile-only
 
 >source
 $20 constant ls-size
@@ -129,7 +129,7 @@ ls-size array ls-data
     vtarget-compile
     postpone ahead
     vsource
-    control> >leave ; immediate restrict
+    control> >leave ; immediate compile-only
 
 : do ( to from -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- to from )
     vtarget-compile
@@ -138,12 +138,12 @@ ls-size array ls-data
     0 >leave
     vtarget-compile
     postpone begin
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : unloop ( -- ) ( C: -- ) ( L: -- ) ( R: to from -- )
     vtarget-compile
     postpone rdrop postpone rdrop
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : loop ( -- ) ( C: dest -- ) ( L: 0 destu ... dest0 -- | 0 destu ... dest0 ) ( R: to from -- | to from )
     vtarget-compile
@@ -160,7 +160,7 @@ ls-size array ls-data
     drop
     vtarget-compile
     postpone unloop
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : ?do ( to from -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- to from )
     vtarget-compile
@@ -171,7 +171,7 @@ ls-size array ls-data
     postpone 2r@ postpone = postpone if
     postpone leave postpone endif
     postpone begin
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : +loop ( n -- ) ( C: dest -- ) ( L: 0 destu ... dest0 -- | 0 destu ... dest0 ) ( R: to from -- | to from )
     vtarget-compile
@@ -190,35 +190,35 @@ ls-size array ls-data
     drop
     vtarget-compile
     postpone unloop
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : i ( -- n ) ( C: -- ) ( L: -- ) ( R: to from -- to from )
     vtarget-compile
     postpone r@
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : i' ( -- n ) ( C: -- ) ( L: -- ) ( R: to from -- to from )
     vtarget-compile
     postpone r> postpone r@ postpone swap postpone >r
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : j ( -- n ) ( C: -- ) ( L: -- ) ( R: to1 from1 to0 from0 -- to1 from1 to0 from0 )
     vtarget-compile
     postpone r> postpone r> postpone r@ postpone swap postpone >r postpone swap postpone >r
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : for ( count -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- 0 from )
     vtarget-compile
     0 postpone literal postpone swap postpone ?do
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : next ( -- ) ( C: dest -- ) ( L: 0 destu ... dest0 -- | 0 destu ... dest0 ) ( R: 0 from -- | 0 from )
     vtarget-compile
     -1 postpone literal postpone +loop
-    vsource ; immediate restrict
+    vsource ; immediate compile-only
 
 : case ( -- ) ( C: -- 0 )
-    0 >control ; immediate restrict
+    0 >control ; immediate compile-only
 
 : of ( x1 x2 -- | x1 ) ( C: u -- orig u+1 )
     control> 1+ >r
@@ -228,14 +228,14 @@ ls-size array ls-data
     vtarget-compile
     postpone over postpone = postpone if postpone drop
     vsource
-    r> >control ; immediate restrict
+    r> >control ; immediate compile-only
 
 : endof ( -- ) ( C: orig1 u -- orig2 u )
     control> >r
     vtarget-compile
     postpone else
     vsource
-    r> >control ; immediate restrict
+    r> >control ; immediate compile-only
 
 : endcase ( x -- ) ( C: destu ... dest0 u -- )
     vtarget-compile
@@ -245,10 +245,10 @@ ls-size array ls-data
 	vtarget-compile
 	postpone then
 	vsource
-    loop ; immediate restrict
+    loop ; immediate compile-only
 
 : recurse ( -- )
-    basic-exit basic-init lastxt compile, ; immediate restrict
+    basic-exit basic-init lastxt compile, ; immediate compile-only
 
 : postpone ( "name" -- )
     ?trace $0010 [IF]
@@ -257,12 +257,12 @@ ls-size array ls-data
     name sfind case
 	2 of
 	?trace $0010 [IF]
-	    ." postpone (restrict&immediate):" dup hex. dup >code-address hex. cr
+	    ." postpone (compile-only&immediate):" dup hex. dup >code-address hex. cr
 	[THEN]
 	compile, endof
 	-2 of
 	?trace $0010 [IF]
-	    ." postpone (restrict):" dup hex. dup >code-address hex. cr
+	    ." postpone (compile-only):" dup hex. dup >code-address hex. cr
 	[THEN]
 	vtarget-compile postpone literal vsource ['] compile, compile, endof
 	1 of
@@ -277,7 +277,7 @@ ls-size array ls-data
 	vtarget-compile postpone literal vsource ['] compile, compile, endof
 	0 of
 	-13 throw endof
-    endcase ; immediate restrict
+    endcase ; immediate compile-only
 >source
 
 : !does ( addr -- )
@@ -317,7 +317,7 @@ ls-size array ls-data
     endif
     (word-init)
     basic-init
-    0 @ra I_REG terminal >return ; immediate restrict
+    0 @ra I_REG terminal >return ; immediate compile-only
 \ !! make it visible in target to get interpretation semantics?
 >source
 
