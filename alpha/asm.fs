@@ -1,4 +1,4 @@
-\ header.fs
+\ asm.fs
 \
 \ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
@@ -19,7 +19,7 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 ?test $0002 [IF]
-cr ." Test for header.fs" cr
+cr ." Test for asm.fs" cr
 
 finish
 [THEN]
