@@ -43,49 +43,28 @@ $00 constant asm-init-code
 : asm-op ( n code -- code )
     $6 asm-bitmask and $1a lshift ;
 
-: (asm-rs) ( n -- code )
-    $5 asm-bitmask and $15 lshift ;
-
 : asm-rs ( n code -- code )
-    swap (asm-rs) or ;
-
-: (asm-rt) ( n -- code )
-    $5 asm-bitmask and $10 lshift ;
+    swap $5 asm-bitmask and $15 lshift or ;
 
 : asm-rt ( n code -- code )
-    swap (asm-rt) or ;
-
-: (asm-imm) ( n -- code )
-    $10 asm-bitmask and ;
+    swap $5 asm-bitmask and $10 lshift or ;
 
 : asm-imm ( n code -- code )
-    swap (asm-imm) or ;
+    swap $10 asm-bitmask and or ;
 ' asm-imm alias asm-offset
 
-: (asm-target) ( n -- code )
-    $1a asm-bitmask and ;
-
 : asm-target ( n -- code )
-    swap 2 rshift (asm-target) or ;
-
-: (asm-rd) ( n -- code )
-    $5 asm-bitmask and $b lshift ;
+    swap 2 rshift $1a asm-bitmask and or ;
 
 : asm-rd ( n -- code )
-    swap (asm-rd) or ;
+    swap $5 asm-bitmask and $b lshift or ;
 
-: (asm-shamt) ( n -- code )
-    $5 asm-bitmask and $6 lshift ;
-
-: asm-shamt ( code n -- code )
-    swap (asm-shamt) or ;
+: asm-shamt ( n -- code )
+    swap $5 asm-bitmask and $6 lshift or ;
 ' asm-shamt alias asm-sa
 
-: (asm-funct) ( n code -- code )
-    $6 asm-bitmask and ;
-
-: asm-funct ( n -- code )
-    swap (asm-funct) or ;
+: asm-funct ( n code -- code )
+    swap $6 asm-bitmask and or ;
 
 \ ***** I-types
 : (asm-I-type) ( code -- )
@@ -446,7 +425,7 @@ $08 asm-copz0				tlbl,
 ?test $0080 [IF]
 cr ." Test for asm.fs" cr
 
-: exec ( u -- )
+: exec ( ... xt u -- ... w1 ... wu )
     >r execute r> 1+ cells cell ?do
 	here i - @
     cell +loop ;
@@ -470,7 +449,7 @@ variable asm-z
     asm-u !
     dup name. asm-xt ! ;
 
-: check ( orz -- )
+: check ( ... -- )
     asm-xt @ asm-u @ dup >r exec r> same if
 	." OK "
     else
@@ -607,9 +586,10 @@ $00210826 $00000826 $00200026 $00010026 $03fff826 ' xor, 1 asm-test5
 $38210001 $38010000 $38200000 $38000001 $3bffffff ' xori, 1 asm-test5
 
 $00200821 $00000821 $00200021 $03e0f821 ' move, 1 asm-test4
-$00010823 $00200821 $04210002 $00000823
-$00000821 $04010002 $00010023 $00200021
-$04210002 $001ff823 $03e0f821 $07e10002 ' abs, 3 asm-test4
+$00010823 $00200821 $04210002
+$00000823 $00000821 $04010002
+$00010023 $00200021 $04210002
+$001ff823 $03e0f821 $07e10002 ' abs, 3 asm-test4
 $00010823 $00000823 $00010023 $001ff823 ' neg, 1 asm-test4
 $00010823 $00000823 $00010023 $001ff823 ' negu, 1 asm-test4
 $00200827 $00000827 $00200027 $03e0f827 ' not, 1 asm-test4

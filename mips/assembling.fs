@@ -39,6 +39,15 @@
 : asm-lit ( ml-addr -- )
     dup ml-reg @ swap ml-val @ li, ;
 
+: asm-move ( ml-addr -- )
+    dup asm-reg@
+    swap asm-lreg@
+    2dup = if
+	2drop
+    else
+	move,
+    endif ;
+
 : prep-load ( ml-addr -- rt offset rs )
     >r
     r@ ml-reg @

@@ -1458,13 +1458,10 @@ defer save-inst ( save the current instruction -- used in postfix mode )
 
 ( mov instruction )
 : mov-compile ( compile a mov instruction )
-  ~~
         ( param -- | x \ param -- | x \ x' \ param -- )
         ?rep treg generic-entry2 drop has-immed? if
-	~~
 	  0c6 +size-bit
 	else
-	~~
           maxtype data-@ case
                 register of                 88 +size-bit endof
                 sreg     of                 8c           endof

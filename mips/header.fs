@@ -25,11 +25,16 @@
 \ @s4 constant #lp
 @s4 constant #cfa
 \ @s6 constant #up
-\ @s7 constant #tos
+\ @s5 constant #tos
 \ @s8 constant #ftos
 
+@at constant #tos
+\ @s5 constant #tos
+@v0 constant #sos
+
 \ initialize freeable registers
-$0300FFFE constant regs-freeable-set
+\ $0300FFF8 constant regs-freeable-set
+$0300FFF8 constant regs-freeable-set
 
 : (word-init) ( -- )
     here ih-size tuck + a,
@@ -48,11 +53,15 @@ $0300FFFE constant regs-freeable-set
 ?shared docode: [IF]
 
 create docode:
+    #tos 0 #sp lw,         \ load top of stack element
+    #sos 1cells #sp lw,    \ load second of stack element
     #cfa 2cells over lw,
     #ip -1cells #rp sw,
     @ra #cfa jalr,
     #rp dup -1cells addiu,
 
+    #sos 1cells #sp sw,    \ save second of stack element
+    #tos 0 #sp sw,         \ save top of stack element
     #ip 0 #rp lw,
     #rp dup 1cells addiu,
     #cfa 0 #ip lw,
@@ -72,6 +81,8 @@ create docode:
 [THEN]
 
 create dodata:
+    #tos #cfa @zero addiu,          \ load top of stack element
+    #sos 0 #sp lw,                  \ load top of stack element0
     #cfa -1cells #sp sw,
     nop,
     #cfa 2cells over lw,
@@ -89,13 +100,17 @@ create dodoes:
 	@ra dup 2cells addiu,
     [THEN]
     #cfa dup ih-cfsize addiu,
-    #cfa -1cells #sp sw,
+    \ #cfa -1cells #sp sw,
+    #tos #cfa @zero addiu,          \ load top of stack element
+    #sos 0 #sp lw,                  \ load second of stack element
     #sp dup -1cells addiu,
     #cfa 0 @ra lw,
     #ip -1cells #rp sw,
     @ra #cfa jalr,
     #rp dup -1cells addiu,
 
+    #sos 1cells #sp sw,    \ save second of stack element
+    #tos 0 #sp sw,         \ save top of stack element
     #ip 0 #rp lw,
     #rp dup 1cells addiu,
     #cfa 0 #ip lw,
