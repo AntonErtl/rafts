@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.7 1997/03/28 20:56:20 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.8 1997/06/17 19:21:07 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -887,13 +887,13 @@ void DEFUN_VOID(makeSimple)
 void DEFUN_VOID(startOptional)
 {
     SOURCE(("#ifdef %s_STATE_LABEL\n", prefix),
-	("bl word %s-STATE-LABEL find nip 0<> [IF]\n", prefix));
+	("bl word %s-STATE-LABEL find nip [IF]\n", prefix));
     SOURCE(("#define %s_INCLUDE_EXTRA\n", prefix),
 	("  : %s-INCLUDE-EXTRA ;\n", prefix));
     SOURCE(("#else\n"),
 	("[ELSE]\n"));
     SOURCE(("#ifdef STATE_LABEL\n"),
-	("  bl word STATE-LABEL find nip 0<> [IF]\n"));
+	("  bl word STATE-LABEL find nip [IF]\n"));
     SOURCE(("#define %s_INCLUDE_EXTRA\n", prefix),
 	("    : %s-INCLUDE-EXTRA ;\n", prefix));
     SOURCE(("#define %s_STATE_LABEL\tSTATE_LABEL\n", prefix),
@@ -912,7 +912,7 @@ void DEFUN_VOID(startOptional)
 	("[ENDIF] \\ %s-STATE-LABEL\n\n", prefix));
 
     SOURCE(("#ifdef %s_INCLUDE_EXTRA\n\n", prefix),
-	("bl word %s-INCLUDE-EXTRA find nip 0<> [IF]\n\n", prefix));
+	("bl word %s-INCLUDE-EXTRA find nip [IF]\n\n", prefix));
 }
 
 void DEFUN_VOID(makeTerminals)

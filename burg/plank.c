@@ -1,4 +1,4 @@
-#ident "@(#)$Id: plank.c,v 1.3 1996/11/14 20:12:29 pirky Exp $";
+#ident "@(#)$Id: plank.c,v 1.4 1997/06/17 19:21:08 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -566,7 +566,7 @@ static void DEFUN_VOID(makePlankRuleMacros)
 		SOURCE((")"),
 		    (")")); /* LATER pirky */
 	    SOURCE((" +%d]", im->offset),
-		(" dup 0<> if %d + endif %s-eruleMap@", im->offset, prefix));
+		(" dup if %d + endif %s-eruleMap@", im->offset, prefix));
 	} else {
 	    /* nonterminal never appears on LHS. */
 	    assert(ntVector[i] ==  start);
@@ -726,7 +726,7 @@ static void DEFUN(doPlankLabelMacrosSafely, (op), Operator op)
 		}
 		SOURCE(("\t( (%s_TEMP = %s[l].%s) ? %s_TEMP+%d : 0 )\n",
 		    prefix, im0->values->plank->name, im0->values->fieldname, prefix, im0->offset),
-		    (" %s-%s %s@ dup 0<> if %d + endif ;\n",
+		    (" %s-%s %s@ dup if %d + endif ;\n",
 			prefix, im0->values->fieldname, im0->values->plank->name, im0->offset));
 	    } else {
 		Item_Set *ts = transLval(op->table, 1, 0);

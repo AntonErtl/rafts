@@ -1,4 +1,4 @@
-#ident "@(#)$Id: main.c,v 1.1 1997/02/27 13:35:11 pirky Exp $";
+#ident "@(#)$Id: main.c,v 1.2 1997/06/17 19:21:08 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -25,7 +25,7 @@ void DEFUN(main, (argc, argv), int argc AND char **argv)
     extern int optind;
     extern char *optarg;
 
-    char c;
+    int c;
 
     while ((c = getopt(argc, argv, "CFIO:TVc:de:i:o:p:t=")) != EOF)
 	switch (c) {
