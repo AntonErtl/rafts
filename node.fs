@@ -47,7 +47,7 @@ NIL inst constant node_depends_init
 
 \ reset node values
 : node_reset ( node_addr -- )
-  0 over node_slabel !
+\  0 over node_slabel !
   0 over node_count !
   false over node_done !
   -1 over node_reg !

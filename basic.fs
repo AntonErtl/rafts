@@ -202,8 +202,8 @@ control_init
   ;
 
 : (basic_stackupdate) ( val register -- )
-  >r regs_unused LITS node dup inst_done
-  0 r@ VREGP node dup inst_done
+  >r regs_unused LITS terminal dup inst_done
+  0 r@ VREGP terminal dup inst_done
   ADDI op inst_s!_list @ over node_depends !
   r> dup regs_inc over node_reg ! inst_btrees_insert_end ;
 

@@ -306,7 +306,7 @@ ls_size array ls_data
     vtarget ] vsource endif
   (func_init)
   basic_init
-  0 @ra VREGP node dup inst_done >return ; immediate restrict
+  0 @ra VREGP terminal dup inst_done >return ; immediate restrict
 \ !! make it visible in target to get interpretation semantics?
 >source
 

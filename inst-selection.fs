@@ -309,14 +309,36 @@ include grammar.fs
 
 NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
 
+: op ( node_addr node_addr op -- node_addr )
+\  assert( dup burm_arity@ 2 = ) \ !!
+  >r over node_slabel @ over node_slabel @ swap r@ burm_state
+  0 regs_unused r> node
+  tuck node_slabel !
+  tuck node_left !
+  tuck node_right ! ;
+
+: uop ( node_addr op -- node_addr )
+\  assert( dup burm_arity@ 1 = ) \ !!
+  >r dup node_slabel @ NIL r@ burm_state
+  0 regs_unused r> node
+  tuck node_slabel !
+  tuck node_left ! ;
+
+: terminal ( val reg op -- node_addr )
+ dup NIL NIL rot burm_state >r
+\ assert( dup burm_arity@ 0= ) \ !! assert funktioniert nicht
+ node
+ r> over node_slabel ! ;
+
 : lit ( n -- node_addr )
   dup 0= if
-    0 LITS node else
-  dup $8000 >= if
-    regs_unused LITI node else
-  dup $0000 < if
-    regs_unused LITI node else
-    regs_unused LITS node endif endif endif
+    0 LITS terminal \ !! warum 0 ?
+  else dup $8000 >= if
+    regs_unused LITI terminal
+  else dup $0000 < if
+    regs_unused LITI terminal
+  else
+    regs_unused LITS terminal endif endif endif
   dup inst_done ;
 
 >target_compile
@@ -325,31 +347,16 @@ NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
 >source
 
 : addr ( offset register -- node_addr )
-  swap regs_unused LITS node dup inst_done
-  NULL rot VREGP node dup inst_done
-  NULL regs_unused ADDI node dup inst_done
-  tuck node_left !
-  tuck node_right ! ;
+  swap regs_unused LITS terminal dup inst_done
+  NULL rot VREGP terminal dup inst_done
+  ADDI op
+  dup inst_done ;
 
 : id@ ( offset register -- node_addr )
-  addr
-  NULL regs_unused FETCHI node
-  tuck node_left ! ;
+  addr FETCHI uop ;
 
 : id! ( node_addr offset register -- node_addr )
-  addr
-  swap NULL regs_unused STOREI node
-  tuck node_left !
-  tuck node_right ! ;
-
-: op ( node_addr node_addr op -- node_addr )
-  0 regs_unused rot node
-  tuck node_left !
-  tuck node_right ! ;
-
-: uop ( node_addr op -- node_addr )
-  0 regs_unused rot node
-  tuck node_left ! ;
+  addr swap STOREI op ;
 
 : inst_cover ( indent goal node_addr -- flag )
   dup hex.
@@ -386,7 +393,7 @@ NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
 ?trace $0020 [IF]
   ." inst_selection:" hex.s cr
 [THEN]
-  dup burm_label drop				\ label the tree
+\  dup burm_label drop				\ label the tree
 ?trace $0020 [IF]
   dup 0 burm_stmt_NT rot inst_cover drop
 [THEN]

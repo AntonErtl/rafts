@@ -1435,24 +1435,41 @@ bl word burm_STATE_LABEL find nip 0<> [IF]
 
 bl word burm_INCLUDE_EXTRA find nip 0<> [IF]
 
+: print_node ( node_addr -- )
+  ." { "
+  dup hex.
+  dup node_left@ hex.
+  dup node_right@ hex.
+\  dup node_copy @ hex.
+  dup burm_OP_LABEL@ burm_opname
+  dup node_slabel hex?
+  dup node_val hex?
+  ." reg:" dup node_reg ?
+  ." done:" dup node_done ?
+  drop
+  ." }" cr ;
+
 : burm_label ( node-addr -- state )
   dup 0= burm_assert" NULL pointer passed to burm_label"
   dup burm_OP_LABEL@ burm_arity@ case
     0 of
       >r NIL NIL
       r@ burm_OP_LABEL@ burm_state
-      dup r> burm_STATE_LABEL! endof
+    endof
     1 of
       >r r@ burm_LEFT_CHILD@ recurse
       NIL
       r@ burm_OP_LABEL@ burm_state
-      dup r> burm_STATE_LABEL! endof
+    endof
     2 of
       >r r@ burm_LEFT_CHILD@ recurse
       r@ burm_RIGHT_CHILD@ recurse
       r@ burm_OP_LABEL@ burm_state
-      dup r> burm_STATE_LABEL! endof
-    >r true burm_assert" Bad op in burm_label" r> endcase ;
+    endof
+    >r true burm_assert" Bad op in burm_label" r> endcase 
+    dup r@ node_slabel
+     2dup @ <> if  ." bad state" over hex. r@ print_node else ." good state" over hex. r@ print_node  then
+    ! rdrop ;
 
 : burm_kids1
   >r

@@ -43,7 +43,7 @@ end-struct ((:dostruc))
   docode cfa,
   (func_init)
   basic_init
-  0 @ra VREGP node dup inst_done >return ;
+  0 @ra VREGP terminal dup inst_done >return ;
 
 : check-ra ( -- )
   return>
