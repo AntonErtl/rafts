@@ -18,75 +18,76 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-?shared docode [IF]
-create docode
-    #cfa dup 16 @addiu
-    #ip -4 #rp @sw
-    @ra swap @jalr drop
-    #rp dup -4 @addiu
+?shared docode: [IF]
 
-    #ip 0 rot @lw
-    #rp dup 4 @addiu drop
-    #cfa 0 rot @lw
-    #ip dup 4 @addiu drop
-    ?word-mode-indirect [IF]
-	@t0 0 rot @lw
-	@nop
-    [THEN]
-    @jr
-    @nop
+create docode:
+    #cfa 2cell over lw,
+    #ip -1cell #rp sw,
+    @ra #cfa jalr,
+    #rp dup -1cell addiu,
 
-create dodoes
-    @t0 0 #cfa @lw
-    #cfa dup 8 @addiu
-    dup -4 #sp @sw
-    #sp dup -4 @addiu drop
+    #ip 0 #rp lw,
+    #rp dup 1cell addiu,
+    #cfa 0 #ip lw,
+    #ip dup 1cell addiu,
     ?word-mode-direct [IF]
-	@t1 $03ffffff @li
-	rot tuck @and
-	dup $02 @sll
-	@t1 $fc000000 @li
-	rot tuck @and
-	tuck @or
+	#cfa jr,
     [THEN]
     ?word-mode-indirect [IF]
-	drop
+	@t0 0 #cfa lw,
+	nop,
+	@t0 jr,
     [THEN]
-    #ip -4 #rp @sw
-    dup 8 @addiu
-    @ra swap @jalr drop
-    #rp dup -4 @addiu
+    nop,
 
-    #ip 0 rot @lw
-    #rp dup 4 @addiu drop
-    #cfa 0 rot @lw
-    #ip dup 4 @addiu drop
-    ?word-mode-indirect [IF]
-	@t0 0 rot @lw
-	@nop
+create dodoes:
+    @t0 0 #cfa lw,
+    #cfa dup 2cell addiu,
+    #cfa -1cell #sp sw,
+    #sp dup -1cell addiu,
+    ?word-mode-direct [IF]
+	@t1 $03ffffff li,
+	@t1 @t0 tuck and,
+	@t0 dup $02 sll,
+	@t1 $fc000000 li,
+	@t1 #cfa tuck and,
+	@t0 #cfa tuck or,
     [THEN]
-    @jr
-    @nop
+    #cfa 2cell over lw,
+    #ip -1cell #rp sw,
+    @ra #cfa jalr,
+    #rp dup -1cell addiu,
+
+    #ip 0 #rp lw,
+    #rp dup cell addiu,
+    #cfa 0 #ip lw,
+    #ip dup cell addiu,
+    ?word-mode-direct [IF]
+	#cfa jr,
+    [THEN]
+    ?word-mode-indirect [IF]
+	@t0 0 #cfa lw,
+	nop,
+	@t0 jr,
+    [THEN]
+    nop,
+
 [THEN]
 
+4 constant info-head-size
+
 : (word-init) ( -- )
-    \ \\ @ra -4 #rp @sw
-    \ \\ #rp #rp -4 @addiu drop
-    \ -4 regs-unused I-LIT node
-    \ 0 #rp I-REG node
-    \ ADDU op #rp over il-reg ! inst-btrees-insert
-    \ 0 @ra I-REG node
-    \ -4 #rp id! inst-btrees-insert
-    ;
+    here info-head-size tuck cells + ,
+    1 ?do
+	0 ,
+    loop ;
 
 : (word-exit) ( -- )
-    \ \\ @ra 0 #rp @lw
-    \ \\ #rp #rp 4 @addiaddiu drop
-    @ra @jr
-    @nop ;
+    @ra jr,
+    nop, ;
 
 : (word-lwexit) ( -- )
-    @ra 0 #rp @lw drop ;
+    @ra 0 #rp lw, ;
 
 ?test $0002 [IF]
 cr ." Test for header.fs" cr

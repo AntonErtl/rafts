@@ -18,12 +18,9 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-docode constant docode:
-
 : word-init-noname ( -- )
-    docode cfa,
+    docode: cfa,
     (word-init)
-    0 , 0 ,
     basic-init
     0 @ra I_REG terminal
     >return ;
@@ -50,29 +47,30 @@ docode constant docode:
     reveal ;
 
 : word-call ( pfa -- )
-    @jal
-    @nop ;
+    jal,
+    nop, ;
 
 : word-native ( cfa -- )
     ?trace $0002 [IF]
 	dup >name hex. ." word-native:" dup name. cr
     [THEN]
-    2 cells + word-call ;
+    2cell + @ word-call ;
 
 : word-interpreter ( cfa -- )
     ?trace $0002 [IF]
 	dup >name hex. ." word-interpreter:" dup name. cr
     [THEN]
-    #cfa swap @li
+    #cfa swap li,
     ?word-mode-direct [IF]
-	#ip here 4 cells + @li drop
+	#ip here 4cell + li,
+	#cfa jr,
     [THEN]
     ?word-mode-indirect [IF]
-	#ip here 5 cells + @li drop
-	@t0 0 rot @lw
+	#ip here 5cell + li,
+	@t0 0 rot lw,
+	@t0 jr,
     [THEN]
-    @jr
-    @nop
+    nop,
     here cell+ a,
     ?word-mode-indirect [IF]
 	here cell+ a,
@@ -84,6 +82,54 @@ docode constant docode:
 variable dostruc
 variable noname-state
 false noname-state !
+
+false [IF]
+    ?trace $0800 [IF]
+	here hex.s cr
+    [THEN]
+
+: :: ( "name" -- )
+    :
+    here info-head-size tuck cells + ,
+    1 do
+	0 ,
+    loop ;
+
+    ?trace $0800 [IF]
+	\ Hexdump vom generierten Maschinencode
+	here 2dup over - hex.s dump
+	swap name>int swap
+	\ disassemblierter Dump vom generierten Maschienencode
+	hex.s swap
+	dup 2cell + tuck disasm-dump
+	\ dup 2cell + tuck disasm-dump
+	\ swap 4cell - tuck disasm-dump
+	swap disasm-dump
+	.cs cr
+	regs-print
+    [THEN]
+
+    ?trace $0800 [IF]
+	here hex.s cr
+    [THEN]
+
+: ;; ( -- )
+    postpone ; ; immediate compile-only
+
+    ?trace $0800 [IF]
+	\ Hexdump vom generierten Maschinencode
+	here 2dup over - hex.s dump
+	\ swap name>int swap
+	\ disassemblierter Dump vom generierten Maschienencode
+	hex.s swap
+	dup 2cell + tuck disasm-dump
+	\ dup 2cell + tuck disasm-dump
+	\ swap 4cell - tuck disasm-dump
+	swap disasm-dump
+	.cs cr
+	regs-print
+    [THEN]
+[THEN]
 
 >target-compile
 : [ ( -- )
@@ -129,9 +175,9 @@ false noname-state !
 	endif
 	\ disassemblierter Dump vom generierten Maschienencode
 	hex.s swap
-	dup 2 cells + tuck disasm-dump
-	\ dup 2 cells + tuck disasm-dump
-	\ swap 4 cells - tuck disasm-dump
+	dup 2cell + tuck disasm-dump
+	\ dup 2cell + tuck disasm-dump
+	\ swap 4cell - tuck disasm-dump
 	swap disasm-dump
 	.cs cr
 	regs-print
@@ -151,7 +197,7 @@ false noname-state !
 ?test $0008 [IF]
 cr ." Test for word.fs" cr
 
-' docode >name &164 dump
+' docode: >name &164 dump
 
 docol: hex.
 docon: hex.

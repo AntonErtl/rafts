@@ -77,32 +77,32 @@ include basic.fs
 
 : compile,-constant ( xt -- )
     ?trace $0001 [IF]
-	." constant:" hex.s
+	." constant: " dup name. hex.s cr
     [THEN]
     execute vtarget-compile postpone literal vsource ;
 
 : compile,-variable ( xt -- )
     ?trace $0001 [IF]
-	." variable:" hex.s cr
+	." variable: " dup name. hex.s cr
     [THEN]
     execute vtarget-compile postpone literal vsource ;
 
 : compile,-user ( xt -- )
     ?trace $0001 [IF]
-	." user:" hex.s cr
+	." user: " dup name. hex.s cr
     [THEN]
     execute vtarget-compile postpone literal vsource ;
 
 : compile,-struct ( xt -- )
     ?trace $0001 [IF]
-	." FUNC-STRUC:" hex.s cr
+	." func-struc: " dup name. hex.s cr
     [THEN]
-    2 cells + @ vtarget-compile postpone literal vsource dostruc @
+    2cell + @ vtarget-compile postpone literal vsource dostruc @
     execute ;
 
 : compile,-interpreter ( xt -- )
     ?trace $0001 [IF]
-	." FUNC-INTERPRETER:" hex.s cr
+	." func-interpreter: " dup name. hex.s cr
     [THEN]
     basic-exit
     word-interpreter
@@ -110,7 +110,7 @@ include basic.fs
 
 : compile,-forth ( xt -- )
     ?trace $0001 [IF]
-	." FUNC-INTERPRETER (FORTH):" hex.s cr
+	." func-interpreter (forth): " dup name. hex.s cr
     [THEN]
     basic-exit
     word-interpreter
@@ -118,7 +118,7 @@ include basic.fs
 
 : compile,-defer ( xt -- )
     ?trace $0001 [IF]
-	." FUNC-DEFER:" hex.s cr
+	." func-defer: " dup name. hex.s cr
     [THEN]
     basic-exit
     word-interpreter
@@ -126,7 +126,7 @@ include basic.fs
 
 : compile,-native ( xt -- )
     ?trace $0001 [IF]
-	." FUNC-NATIVE:" hex.s cr
+	." func-native: " dup name. hex.s cr
     [THEN]
     basic-exit
     word-native
@@ -134,16 +134,16 @@ include basic.fs
 
 : compile,-native-does ( xt ca -- )
     ?trace $0001 [IF]
-	." FUNC-NATIVE (DOES>):" hex.s cr
+	." func-native (does>): " hex.s cr
     [THEN]
-    swap 2 cells + vtarget-compile postpone literal vsource basic-exit
+    swap 2cell + vtarget-compile postpone literal vsource basic-exit
     word-native
     basic-init ;
 
 : compile,-interpreter-does ( xt ca -- )
     drop
     ?trace $0001 [IF]
-	." FUNC-INTERPRETER (DOES>):" hex.s cr
+	." func-interpreter (does>): " hex.s cr
     [THEN]
     basic-exit
     word-interpreter
@@ -213,7 +213,7 @@ finish
 
 target>
 base !
-order .s cr
+\ order .s cr
 
 ' compile, 'Forth compile, vtarget replace-word
 vtarget-compile comp' literal vtarget drop comp'Forth literal replace-word

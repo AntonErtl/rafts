@@ -152,7 +152,7 @@ control-init
     ?trace $0020 [IF]
 	." basic-init " here hex. cr
     [THEN]
-    regs-init
+    regs-reset
     here basic-head-ptr !
     basic-code allot
     ?trace $0020 [IF]
@@ -312,8 +312,7 @@ constant nop-ml \ nop instruction, usable only after scheduling
     assemble ;
 
 >target-compile
-: cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
-    #control@ ;
+' #control@ alias cs-pick ( u -- ) ( C: dest/origu ... dest/orig1 dest/orig0 -- dest/origu ... dest/orig1 dest/orig0 dest/origu )
 
 : cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
     dup 1+ #control@ swap

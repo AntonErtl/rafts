@@ -181,10 +181,10 @@ include node.fs
     (asm-rval@) ml-reg @ ;
 
 : asm-nop ( ml-addr -- )
-    drop @nop ;
+    drop nop, ;
 
 : asm-lit ( ml-addr -- )
-    dup ml-reg @ swap ml-val @ @li drop ;
+    dup ml-reg @ swap ml-val @ li, ;
 
 : prep-load ( ml-addr -- rt offset rs )
     >r
@@ -193,10 +193,10 @@ include node.fs
     r> ml-left @ ml-reg @ ;
 
 : asm-fetchc ( ml-addr -- )
-    prep-load @lbu drop ;
+    prep-load lbu, ;
 
 : asm-fetchi ( ml-addr -- )
-    prep-load @lw drop ;
+    prep-load lw, ;
 
 : prep-store ( ml-addr -- rt offset rs )
     >r
@@ -205,103 +205,106 @@ include node.fs
     r> ml-right @ ml-reg @ ;
 
 : asm-storec ( ml-addr -- )
-    prep-store @sb ;
+    prep-store sb, ;
 
 : asm-storei ( ml-addr -- )
-    prep-store @sw ;
+    prep-store sw, ;
 
 : asm-add ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @addu drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ addu, ;
 
 : asm-addi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @addiu drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ addiu, ;
 
 : asm-sub ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @subu drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ subu, ;
 
 \ !! two instructions
 : asm-mul ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ @multu asm-reg@ @mflo drop ;
+    dup asm-lreg@ over asm-rreg@ multu,
+    asm-reg@ mflo, ;
 
 : asm-div ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ @div asm-reg@ @mflo drop ;
+    dup asm-lreg@ over asm-rreg@ div,
+    asm-reg@ mflo, ;
 
 : asm-mod ( ml-addr -- )
-    dup asm-lreg@ over asm-rreg@ @div asm-reg@ @mfhi drop ;
+    dup asm-lreg@ over asm-rreg@ div,
+    asm-reg@ mfhi, ;
 
 : asm-neg ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ @neg drop ;
+    dup asm-reg@ swap asm-lreg@ neg, ;
 
 : asm-abs ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ @abs drop ;
+    dup asm-reg@ swap asm-lreg@ abs, ;
 
 : asm-and ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @and drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ and, ;
 
 : asm-andi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @andi drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ andi, ;
 
 : asm-or ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @or drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ or, ;
 
 : asm-ori ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @ori drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ ori, ;
 
 : asm-xor ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @xor drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ xor, ;
 
 : asm-xori ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @xori drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ xori, ;
 
 : asm-not ( ml-addr -- )
-    dup asm-reg@ swap asm-lreg@ @not drop ;
+    dup asm-reg@ swap asm-lreg@ not, ;
 
 : asm-lsh ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @sllv drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ sllv, ;
 
 : asm-lshi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @sll drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sll, ;
 
 : asm-rshu ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @srlv drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ srlv, ;
 
 : asm-rsh ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @srav drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ srav, ;
 
 : asm-rshui ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @srl drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ srl, ;
 
 : asm-rshi ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @sra drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sra, ;
 
 : asm-0branch ( ml-addr -- )
     dup asm-lreg@ @zero rot asm-val@
-    here - cell- @beq ;
+    here - cell- beq, ;
 
 : asm-branch ( ml-addr -- )
     @zero @zero rot asm-val@
-    here - cell- @beq ;
+    here - cell- beq, ;
 
 : asm-beq ( ml-addr -- )
     dup asm-lreg@ over asm-rreg@ rot asm-val@
-    here - cell- @beq ;
+    here - cell- beq, ;
 
 : asm-seq ( ml-addr -- )
     >r
-    r@ asm-reg@ r@ asm-lreg@ r> asm-rreg@ @xor drop
-    dup 1 @sltiu drop ;
+    r@ asm-reg@ r@ asm-lreg@ r> asm-rreg@ xor,
+    dup 1 sltiu, ;
 
 : asm-slt ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @slt drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ slt, ;
 
 : asm-slti ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @slti drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ slti, ;
 
 : asm-sltu ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ @sltu drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap asm-rreg@ sltu, ;
 
 : asm-sltui ( ml-addr -- )
-    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ @sltiu drop ;
+    dup asm-reg@ swap dup asm-lreg@ swap ml-val @ sltiu, ;
 
 include grammar.fs
 

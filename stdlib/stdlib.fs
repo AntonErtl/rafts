@@ -33,13 +33,24 @@
 \ prints the char at addr
     c@ . ;
 
+cell constant 1cell
+2 cells constant 2cell
+3 cells constant 3cell
+4 cells constant 4cell
+5 cells constant 5cell
+cell negate constant -1cell
+-2 cells constant -2cell
+-3 cells constant -3cell
+-4 cells constant -4cell
+-5 cells constant -5cell
+
 : char- ( addr -- addr )
 \ decrements addr by one char
     1 chars - ;
 
 : cell- ( addr -- addr )
 \ decrements addr by one cell
-    1 cells - ;
+    1cell - ;
 
 : hexn. ( n x -- )
     base @ >r hex
@@ -70,9 +81,9 @@
 \ ' hex.s IS printdebugdata
 : hex.rs ( -- )
     ." <R: " rp@ hex. ." > "
-    rp@ cell+ dup maxdepth-.s @ cells + swap ?do
+    rp@ cell+ dup maxdepth-.s @ cells + ?do
 	i @ hex.
-    1 cells +loop ;
+    -1 cells +loop ;
 
 : name. ( cfa -- )
     look if

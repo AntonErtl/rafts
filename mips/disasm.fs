@@ -19,115 +19,110 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 \ ?trace $0800 [IF]
-: @@op ( code -- n )
-    $1a rshift $6 @mask and ;
+: disasm-op ( code -- n )
+    $1a rshift $6 asm-bitmask and ;
 
-: @@rs ( code -- n )
-    $15 rshift $5 @mask and ;
+: disasm-rs ( code -- n )
+    $15 rshift $5 asm-bitmask and ;
 
-: @@rt ( code -- n )
-    $10 rshift $5 @mask and ;
+: disasm-rt ( code -- n )
+    $10 rshift $5 asm-bitmask and ;
 
-: @@imm ( code -- n )
-    $10 @mask and ;
+: disasm-imm ( code -- n )
+    $10 asm-bitmask and ;
 
-: @@target ( code -- n )
-    $1a @mask and ;
+: disasm-target ( code -- n )
+    $1a asm-bitmask and ;
 
-: @@rd ( code -- n )
-    $b rshift $5 @mask and ;
+: disasm-rd ( code -- n )
+    $b rshift $5 asm-bitmask and ;
 
-: @@shamt ( code -- n )
-    $6 rshift $5 @mask and ;
+: disasm-shamt ( code -- n )
+    $6 rshift $5 asm-bitmask and ;
 
-' @@shamt alias @@sa
+' disasm-shamt alias disasm-sa
 
-: @@funct ( code -- n )
-    $6 @mask and ;
-
-: expand ( x -- x )
-    dup $0000ffff > if
-	$ffff0000 or
-    endif ;
+: disasm-funct ( code -- n )
+    $6 asm-bitmask and ;
 
 \ ***** I-types
-: @@I-type2 ( addr -- )
-    @ dup @@rt 2 swap hexn. @@imm 4 swap hexn. ;
+: disasm-I-type2 ( addr -- )
+    @ dup disasm-rt 2 swap hexn. disasm-imm 4 swap hexn. ;
 
-: @@I-type2n ( addr -- )
-    dup @ dup @@rs 2 swap hexn.
-    @@imm $2 lshift expand dup 4 swap hexn. ." ( " + cell+ hex. ." ) " ;
+: disasm-I-type2n ( addr -- )
+    dup @ dup disasm-rs 2 swap hexn.
+    disasm-imm $2 lshift asm-expand dup 4 swap hexn. ." ( " + cell+ hex. ." ) " ;
 
-: @@I-type3 ( addr -- )
-    @ dup @@rt 2 swap hexn. dup @@rs 2 swap hexn. @@imm 4 swap hexn. ;
+: disasm-I-type3 ( addr -- )
+    @ dup disasm-rt 2 swap hexn. dup disasm-rs 2 swap hexn. disasm-imm 4 swap hexn. ;
 
-: @@I-type3n ( addr -- )
-    dup @ dup @@rs 2 swap hexn. dup @@rt 2 swap hexn.
-    @@imm $2 lshift expand dup 4 swap hexn. ." ( " + cell+ hex. ." ) " ;
+: disasm-I-type3n ( addr -- )
+    dup @ dup disasm-rs 2 swap hexn. dup disasm-rt 2 swap hexn.
+    disasm-imm $2 lshift asm-expand dup 4 swap hexn. ." ( " + cell+ hex. ." ) " ;
 
-: @@I-type3-offset ( addr -- )
-    @ dup @@rt 2 swap hexn. dup @@imm 4 swap hexn. @@rs 2 swap hexn. ;
+: disasm-I-type3-offset ( addr -- )
+    @ dup disasm-rt 2 swap hexn. dup disasm-imm 4 swap hexn. disasm-rs 2 swap hexn. ;
 
-: @@I-type3n-offset ( addr -- )
-    @ dup @@rt 2 swap hexn. dup @@imm 4 swap hexn. @@rs 2 swap hexn. ;
+: disasm-I-type3n-offset ( addr -- )
+    @ dup disasm-rt 2 swap hexn. dup disasm-imm 4 swap hexn. disasm-rs 2 swap hexn. ;
 
 \ ***** regimm types
-' @@I-type2n alias @@regimm2
+' disasm-I-type2n alias disasm-regimm2
 
 \ ***** copz types 1
-: @@copzi1 ( addr -- )
-    dup @ dup @@imm $2 lshift expand dup 4 swap hexn. ." ( " rot + cell+ hex. ." ) "
-    @@op 2 swap hexn. ;
+: disasm-copzi1 ( addr -- )
+    dup @ dup disasm-imm $2 lshift asm-expand dup 4 swap hexn. ." ( " rot + cell+ hex. ." ) "
+    disasm-op 2 swap hexn. ;
 
-: @@copzi3 ( addr -- )
-    @ dup @@rt 2 swap hexn. dup @@imm 4 swap hexn.
-    dup @@rs 2 swap hexn. @@op 2 swap hexn. ;
+: disasm-copzi3 ( addr -- )
+    @ dup disasm-rt 2 swap hexn. dup disasm-imm 4 swap hexn.
+    dup disasm-rs 2 swap hexn. disasm-op 2 swap hexn. ;
 
 \ ***** J-types
-: @@J-type1n ( addr -- )
-    dup $fc000000 and swap @ @@target $2 lshift or hex. ;
+: disasm-J-type1n ( addr -- )
+    dup $fc000000 and swap @ disasm-target $2 lshift or hex. ;
 
 \ ***** R-types
-: @@R-type0 ( addr -- )
+: disasm-R-type0 ( addr -- )
     @ hex. ;
 
-: @@R-type1 ( addr -- )
-    @ @@rd 2 swap hexn. ;
+: disasm-R-type1 ( addr -- )
+    @ disasm-rd 2 swap hexn. ;
 
-: @@R-type1n ( addr -- )
-    @ @@rs 2 swap hexn. ;
+: disasm-R-type1n ( addr -- )
+    @ disasm-rs 2 swap hexn. ;
 
-: @@R-type2 ( addr -- )
-    @ dup @@rd 2 swap hexn. @@rs 2 swap hexn. ;
+: disasm-R-type2 ( addr -- )
+    @ dup disasm-rd 2 swap hexn. disasm-rs 2 swap hexn. ;
 
-: @@R-type2n ( addr -- )
-    @ dup @@rs 2 swap hexn. @@rt 2 swap hexn. ;
+: disasm-R-type2n ( addr -- )
+    @ dup disasm-rs 2 swap hexn. disasm-rt 2 swap hexn. ;
 
-: @@R-type3 ( addr -- )
-    @ dup @@rd 2 swap hexn. dup @@rs 2 swap hexn. @@rt 2 swap hexn. ;
+: disasm-R-type3 ( addr -- )
+    @ dup disasm-rd 2 swap hexn. dup disasm-rs 2 swap hexn. disasm-rt 2 swap hexn. ;
 
-: @@R-type3n ( addr -- )
-    @ dup @@rd 2 swap hexn. dup @@rt 2 swap hexn. @@rs 2 swap hexn. ;
+: disasm-R-type3n ( addr -- )
+    @ dup disasm-rd 2 swap hexn. dup disasm-rt 2 swap hexn. disasm-rs 2 swap hexn. ;
 
-: @@R-type3sa ( addr -- )
-    @ dup @@rd 2 swap hexn. dup @@rt 2 swap hexn. @@sa 2 swap hexn. ;
+: disasm-R-type3sa ( addr -- )
+    @ dup disasm-rd 2 swap hexn. dup disasm-rt 2 swap hexn. disasm-sa 2 swap hexn. ;
 
 \ ***** special types
-' @@R-type0 alias @@special0
-' @@R-type1 alias @@special1
-' @@R-type1n alias @@special1n
-' @@R-type2 alias @@special2
-' @@R-type2n alias @@special2n
-' @@R-type3 alias @@special3
-' @@R-type3n alias @@special3n
-' @@R-type3sa alias @@special3sa
+' disasm-R-type0 alias disasm-special0
+' disasm-R-type1 alias disasm-special1
+' disasm-R-type1n alias disasm-special1n
+' disasm-R-type2 alias disasm-special2
+' disasm-R-type2n alias disasm-special2n
+' disasm-R-type3 alias disasm-special3
+' disasm-R-type3n alias disasm-special3n
+' disasm-R-type3sa alias disasm-special3sa
 
 \ ***** copz types 2
-: @@cop0r0 ( addr -- )
-    @ @@rs 2 swap hexn. ;
+: disasm-cop0r0 ( addr -- )
+    @ disasm-rs 2 swap hexn. ;
 
-: @@copzr2 ( addr -- )
-    @ dup @@rt 2 swap hexn. dup @@rd 2 swap hexn. @@op 2 swap hexn. ;
+: disasm-copzr2 ( addr -- )
+    @ dup disasm-rt 2 swap hexn. dup disasm-rd 2 swap hexn. disasm-op 2 swap hexn. ;
 
 $40 2 matrix disasm-opc
 $40 2 matrix disasm-opc-spezial
@@ -142,9 +137,9 @@ $40 2 matrix disasm-opc-cop0
 
 : disasm-print ( addr -- )
     dup @ 0= if
-	drop ['] @nop name.
+	drop ['] nop, name.
     else
-	dup @ @@op
+	dup @ disasm-op
 	dup 0 disasm-opc @ NIL <> if
 	    ['] disasm-opc (disasm-print)
 	else
@@ -165,19 +160,19 @@ $40 2 matrix disasm-opc-cop0
     ['] disasm-opc (disasm-gen) ;
 
 : disasm-print-spezial ( addr -- )
-    dup @ @@funct ['] disasm-opc-spezial (disasm-print) ;
+    dup @ disasm-funct ['] disasm-opc-spezial (disasm-print) ;
 
 : disasm-gen-spezial ( name func n -- )
     ['] disasm-opc-spezial (disasm-gen) ;
 
 : disasm-print-regimm ( addr -- )
-    dup @ @@rt ['] disasm-opc-regimm (disasm-print) ;
+    dup @ disasm-rt ['] disasm-opc-regimm (disasm-print) ;
 
 : disasm-gen-regimm ( name func n -- )
     ['] disasm-opc-regimm (disasm-gen) ;
 
 : disasm-print-copzrs ( addr -- )
-    dup @ @@rs
+    dup @ disasm-rs
     dup 0 disasm-opc-copzrs @ NIL <> if
 	['] disasm-opc-copzrs (disasm-print)
     else
@@ -188,13 +183,13 @@ $40 2 matrix disasm-opc-cop0
     ['] disasm-opc-copzrs (disasm-gen) ;
 
 : disasm-print-copzrt ( addr -- )
-    dup @ @@rt ['] disasm-opc-copzrt (disasm-print) ;
+    dup @ disasm-rt ['] disasm-opc-copzrt (disasm-print) ;
 
 : disasm-gen-copzrt ( name func n -- )
     ['] disasm-opc-copzrt (disasm-gen) ;
 
 : disasm-print-copzi ( addr -- )
-    dup @ @@rs ['] disasm-opc-copzrs (disasm-print) ;
+    dup @ disasm-rs ['] disasm-opc-copzrs (disasm-print) ;
 
 : disasm-gen-copzi ( name func n -- )
     >r 2dup r@ 1+ disasm-gen
@@ -202,19 +197,19 @@ $40 2 matrix disasm-opc-cop0
     r> 3 + disasm-gen ;
 
 : disasm-print-cop0 ( addr -- )
-    dup @ @@funct ['] disasm-opc-cop0 (disasm-print) ;
+    dup @ disasm-funct ['] disasm-opc-cop0 (disasm-print) ;
 
 : disasm-gen-cop0 ( name func n -- )
     ['] disasm-opc-cop0 (disasm-gen) ;
 
 : illegal-code ( -- ) ;
 
-: @@nop ( code -- )
+: disasm-nop ( code -- )
     @ 8 swap ." ( " hexn. ." ) " ;
 
 : disasm-init ( xt n -- )
     0 ?do
-	['] illegal-code ['] @@nop i 3 pick execute
+	['] illegal-code ['] disasm-nop i 3 pick execute
     loop
     drop ;
 ' disasm-gen $40 disasm-init
@@ -229,82 +224,82 @@ NIL ' disasm-print-cop0 $10 disasm-gen
 NIL ' disasm-print-copzrs $11 disasm-gen
 NIL ' disasm-print-copzrs $12 disasm-gen
 NIL ' disasm-print-copzrs $13 disasm-gen
-NIL ' disasm-print-copzrt @copz-BC disasm-gen-copzrs
+NIL ' disasm-print-copzrt asm-copz-BC disasm-gen-copzrs
 
-' @beq		' @@I-type3n $04 disasm-gen
-' @bne		' @@I-type3n $05 disasm-gen
-' @blez		' @@I-type2n $06 disasm-gen
-' @bgtz		' @@I-type2n $07 disasm-gen
-' @addi		' @@I-type3 $08 disasm-gen
-' @addiu	' @@I-type3 $09 disasm-gen
-' @slti		' @@I-type3 $0a disasm-gen
-' @sltiu	' @@I-type3 $0b disasm-gen
-' @andi		' @@I-type3 $0c disasm-gen
-' @ori		' @@I-type3 $0d disasm-gen
-' @xori		' @@I-type3 $0e disasm-gen
-' @lui		' @@I-type2 $0f disasm-gen
-' @lb		' @@I-type3-offset $20 disasm-gen
-' @lh		' @@I-type3-offset $21 disasm-gen
-' @lwl		' @@I-type3-offset $22 disasm-gen
-' @lw		' @@I-type3-offset $23 disasm-gen
-' @lbu		' @@I-type3-offset $24 disasm-gen
-' @lhu		' @@I-type3-offset $25 disasm-gen
-' @lwr		' @@I-type3-offset $26 disasm-gen
-' @sb		' @@I-type3n-offset $28 disasm-gen
-' @sh		' @@I-type3n-offset $29 disasm-gen
-' @swl		' @@I-type3n-offset $2a disasm-gen
-' @sw		' @@I-type3n-offset $2b disasm-gen
-' @swr		' @@I-type3n-offset $2e disasm-gen
+' beq,		' disasm-I-type3n $04 disasm-gen
+' bne,		' disasm-I-type3n $05 disasm-gen
+' blez,		' disasm-I-type2n $06 disasm-gen
+' bgtz,		' disasm-I-type2n $07 disasm-gen
+' addi,		' disasm-I-type3 $08 disasm-gen
+' addiu,	' disasm-I-type3 $09 disasm-gen
+' slti,		' disasm-I-type3 $0a disasm-gen
+' sltiu,	' disasm-I-type3 $0b disasm-gen
+' andi,		' disasm-I-type3 $0c disasm-gen
+' ori,		' disasm-I-type3 $0d disasm-gen
+' xori,		' disasm-I-type3 $0e disasm-gen
+' lui,		' disasm-I-type2 $0f disasm-gen
+' lb,		' disasm-I-type3-offset $20 disasm-gen
+' lh,		' disasm-I-type3-offset $21 disasm-gen
+' lwl,		' disasm-I-type3-offset $22 disasm-gen
+' lw,		' disasm-I-type3-offset $23 disasm-gen
+' lbu,		' disasm-I-type3-offset $24 disasm-gen
+' lhu,		' disasm-I-type3-offset $25 disasm-gen
+' lwr,		' disasm-I-type3-offset $26 disasm-gen
+' sb,		' disasm-I-type3n-offset $28 disasm-gen
+' sh,		' disasm-I-type3n-offset $29 disasm-gen
+' swl,		' disasm-I-type3n-offset $2a disasm-gen
+' sw,		' disasm-I-type3n-offset $2b disasm-gen
+' swr,		' disasm-I-type3n-offset $2e disasm-gen
 
-' @j		' @@J-type1n $02 disasm-gen
-' @jal		' @@J-type1n $03 disasm-gen
+' j,		' disasm-J-type1n $02 disasm-gen
+' jal,		' disasm-J-type1n $03 disasm-gen
 
-' @sll		' @@special3sa $00 disasm-gen-spezial
-' @srl		' @@special3sa $02 disasm-gen-spezial
-' @sra		' @@special3sa $03 disasm-gen-spezial
-' @sllv		' @@special3n $04 disasm-gen-spezial
-' @srlv		' @@special3n $06 disasm-gen-spezial
-' @srav		' @@special3n $07 disasm-gen-spezial
-' @jr		' @@special1n $08 disasm-gen-spezial
-' @jalr		' @@special2 $09 disasm-gen-spezial
-' @syscall	' @@special0 $0c disasm-gen-spezial
-' @break	' @@special0 $0d disasm-gen-spezial
-' @mfhi		' @@special1 $10 disasm-gen-spezial
-' @mthi		' @@special1n $11 disasm-gen-spezial
-' @mflo		' @@special1 $12 disasm-gen-spezial
-' @mtlo		' @@special1n $13 disasm-gen-spezial
-' @mult		' @@special2n $18 disasm-gen-spezial
-' @multu	' @@special2n $19 disasm-gen-spezial
-' @div		' @@special2n $1a disasm-gen-spezial
-' @divu		' @@special2n $1b disasm-gen-spezial
-' @add		' @@special3 $20 disasm-gen-spezial
-' @addu		' @@special3 $21 disasm-gen-spezial
-' @sub		' @@special3 $22 disasm-gen-spezial
-' @subu		' @@special3 $23 disasm-gen-spezial
-' @and		' @@special3 $24 disasm-gen-spezial
-' @or		' @@special3 $25 disasm-gen-spezial
-' @xor		' @@special3 $26 disasm-gen-spezial
-' @nor		' @@special3 $27 disasm-gen-spezial
-' @slt		' @@special3 $2a disasm-gen-spezial
-' @sltu		' @@special3 $2b disasm-gen-spezial
+' sll,		' disasm-special3sa $00 disasm-gen-spezial
+' srl,		' disasm-special3sa $02 disasm-gen-spezial
+' sra,		' disasm-special3sa $03 disasm-gen-spezial
+' sllv,		' disasm-special3n $04 disasm-gen-spezial
+' srlv,		' disasm-special3n $06 disasm-gen-spezial
+' srav,		' disasm-special3n $07 disasm-gen-spezial
+' jr,		' disasm-special1n $08 disasm-gen-spezial
+' jalr,		' disasm-special2 $09 disasm-gen-spezial
+' syscall,	' disasm-special0 $0c disasm-gen-spezial
+' break,	' disasm-special0 $0d disasm-gen-spezial
+' mfhi,		' disasm-special1 $10 disasm-gen-spezial
+' mthi,		' disasm-special1n $11 disasm-gen-spezial
+' mflo,		' disasm-special1 $12 disasm-gen-spezial
+' mtlo,		' disasm-special1n $13 disasm-gen-spezial
+' mult,		' disasm-special2n $18 disasm-gen-spezial
+' multu,	' disasm-special2n $19 disasm-gen-spezial
+' div,		' disasm-special2n $1a disasm-gen-spezial
+' divu,		' disasm-special2n $1b disasm-gen-spezial
+' add,		' disasm-special3 $20 disasm-gen-spezial
+' addu,		' disasm-special3 $21 disasm-gen-spezial
+' sub,		' disasm-special3 $22 disasm-gen-spezial
+' subu,		' disasm-special3 $23 disasm-gen-spezial
+' and,		' disasm-special3 $24 disasm-gen-spezial
+' or,		' disasm-special3 $25 disasm-gen-spezial
+' xor,		' disasm-special3 $26 disasm-gen-spezial
+' nor,		' disasm-special3 $27 disasm-gen-spezial
+' slt,		' disasm-special3 $2a disasm-gen-spezial
+' sltu,		' disasm-special3 $2b disasm-gen-spezial
 
-' @bltz		' @@regimm2 $00 disasm-gen-regimm
-' @bgez		' @@regimm2 $01 disasm-gen-regimm
-' @bltzal	' @@regimm2 $10 disasm-gen-regimm
-' @bgezal	' @@regimm2 $11 disasm-gen-regimm
+' bltz,		' disasm-regimm2 $00 disasm-gen-regimm
+' bgez,		' disasm-regimm2 $01 disasm-gen-regimm
+' bltzal,	' disasm-regimm2 $10 disasm-gen-regimm
+' bgezal,	' disasm-regimm2 $11 disasm-gen-regimm
 
-' @lwcz		' @@copzi3 $30 disasm-gen-copzi
-' @swcz		' @@copzi3 $38 disasm-gen-copzi
-' @mfcz		' @@copzr2 @copz-MF disasm-gen-copzrs
-' @cfcz		' @@copzr2 @copz-CF disasm-gen-copzrs
-' @mtcz		' @@copzr2 @copz-MT disasm-gen-copzrs
-' @ctcz		' @@copzr2 @copz-CT disasm-gen-copzrs
-' @bczf		' @@copzi1 @copz-BCF disasm-gen-copzrt
-' @bczt		' @@copzi1 @copz-BCT disasm-gen-copzrt
-' @tlbr		' @@cop0r0 $01 disasm-gen-cop0
-' @tlbwi	' @@cop0r0 $02 disasm-gen-cop0
-' @tlbwr	' @@cop0r0 $06 disasm-gen-cop0
-' @tlbl		' @@cop0r0 $08 disasm-gen-cop0
+' lwcz,		' disasm-copzi3 $30 disasm-gen-copzi
+' swcz,		' disasm-copzi3 $38 disasm-gen-copzi
+' mfcz,		' disasm-copzr2 asm-copz-MF disasm-gen-copzrs
+' cfcz,		' disasm-copzr2 asm-copz-CF disasm-gen-copzrs
+' mtcz,		' disasm-copzr2 asm-copz-MT disasm-gen-copzrs
+' ctcz,		' disasm-copzr2 asm-copz-CT disasm-gen-copzrs
+' bczf,		' disasm-copzi1 asm-copz-BCF disasm-gen-copzrt
+' bczt,		' disasm-copzi1 asm-copz-BCT disasm-gen-copzrt
+' tlbr,		' disasm-cop0r0 $01 disasm-gen-cop0
+' tlbwi,	' disasm-cop0r0 $02 disasm-gen-cop0
+' tlbwr,	' disasm-cop0r0 $06 disasm-gen-cop0
+' tlbl,		' disasm-cop0r0 $08 disasm-gen-cop0
 
 ?test $0080 [IF]
 cr ." Test for disasm..fs" cr

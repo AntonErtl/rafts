@@ -250,66 +250,39 @@ ls-size array ls-data
 : recurse ( -- )
     basic-exit basic-init lastxt compile, ; immediate compile-only
 
-: postpone ( "name" -- )
-    ?trace $0010 [IF]
-	." POSTPONE:" order cr
-    [THEN]
-    name sfind case
-	2 of
-	?trace $0010 [IF]
-	    ." postpone (compile-only&immediate):" dup hex. dup >code-address hex. cr
-	[THEN]
-	compile, endof
-	-2 of
-	?trace $0010 [IF]
-	    ." postpone (compile-only):" dup hex. dup >code-address hex. cr
-	[THEN]
-	vtarget-compile postpone literal vsource ['] compile, compile, endof
-	1 of
-	?trace $0010 [IF]
-	    ." postpone (immediate):" dup hex. dup >code-address hex. cr
-	[THEN]
-	compile, endof
-	-1 of
-	?trace $0010 [IF]
-	    ." postpone:" dup hex. dup >code-address hex. cr
-	[THEN]
-	vtarget-compile postpone literal vsource ['] compile, compile, endof
-	0 of
-	-13 throw endof
-    endcase ; immediate compile-only
 >source
+
+$200 constant does-size
+create does-addr
+    cell ,
+    does-size cells allot
+
+: does-addr-inc ( -- )
+  cell does-addr +! ;
 
 : !does ( addr -- )
     ?word-mode-direct [IF]
-	2 rshift $1a @mask and $08000000 or
+	2 rshift $1a asm-bitmask and $08000000 or
     [THEN]
     lastcfa @ !
     here last @ tuck - flush-icache ;
 
 : dodoes, ( -- )
-    dodoes cfa, ;
+    dodoes: cfa, ;
 
 : ;dodoes ( -- )
-    r@ 4 cells +
-    dup cell- @ 0= over cell+ @ 0= and invert if
-	?word-mode-direct [IF]
-	    1
-	[THEN]
-	?word-mode-indirect [IF]
-	    2
-	[THEN]
-	cells +
-    endif
-    !does ;
+    does-addr + @ !does ;
 >target-compile
 
 : does> ( -- )
     state @ if
+	does-addr @ vtarget-compile postpone literal vsource
 	['] ;dodoes compile,
 	check-ra
 	basic-exit
 	(word-exit)
+	here does-addr dup @ + !
+	does-addr-inc
 	dodoes,
     else
 	here !does dodoes,

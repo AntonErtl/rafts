@@ -37,11 +37,11 @@ end-struct il-struct
 NIL inst constant il-depends-init
 
 btree-struct \ !! machine dep: is it really a *binary* tree?
-    1 cells: field ml-asm		\ xt of the assembler word for the instruction
+    1 cells: field ml-asm	\ xt of the assembler word for the instruction
     1 cells: field ml-count	\ use count (# of parents)
-    1 cells: field ml-val		\ literal value
+    1 cells: field ml-val	\ literal value
     1 cells: field ml-done	\ scheduling done flag
-    1 cells: field ml-reg		\ used register
+    1 cells: field ml-reg	\ used register
     1 cells: field ml-node-dependences \ dependences of ml's node
     1 cells: field ml-depends	\ list of dependencies
     1 cells: field ml-delay	\ true: create a delay slot nop for the instruction

@@ -20,6 +20,7 @@
 
 $20 constant regs-useable
 regs-useable array regs-data
+regs-useable array regs-init
 
 @s0 constant #ip
 @s1 constant #sp
@@ -34,33 +35,38 @@ regs-useable array regs-data
 -1 constant regs-unused
 
 \ initialize free registers
-: regs-init ( -- )
+: regs-initalize ( -- )
     regs-useable 0 ?do
-	regs-unused i regs-data !
+	regs-unused i regs-init !
     loop
-    0 @zero regs-data !	\ reserved registers
-    0 @at regs-data !
-    \ 0 @v0 regs-data !
-    \ 0 @v1 regs-data !
-    \ 0 @a0 regs-data !
-    \ 0 @a1 regs-data !
-    \ 0 @a2 regs-data !
-    \ 0 @a3 regs-data !
-    0 @k0 regs-data !
-    0 @k1 regs-data !
-    0 @gp regs-data !
-    0 @sp regs-data !
-    0 @s0 regs-data !	\ saved registers
-    0 @s1 regs-data !
-    0 @s2 regs-data !
-    0 @s3 regs-data !
-    0 @s4 regs-data !
-    0 @s5 regs-data !
-    0 @s6 regs-data !
-    0 @s7 regs-data !
-    0 @s8 regs-data !
-    0 @ra regs-data ! ;
-regs-init
+    0 @zero regs-init !	\ reserved registers
+    0 @at regs-init !
+    \ 0 @v0 regs-init !
+    \ 0 @v1 regs-init !
+    \ 0 @a0 regs-init !
+    \ 0 @a1 regs-init !
+    \ 0 @a2 regs-init !
+    \ 0 @a3 regs-init !
+    0 @k0 regs-init !
+    0 @k1 regs-init !
+    0 @gp regs-init !
+    0 @sp regs-init !
+    0 @s0 regs-init !		\ saved registers
+    0 @s1 regs-init !
+    0 @s2 regs-init !
+    0 @s3 regs-init !
+    0 @s4 regs-init !
+    0 @s5 regs-init !
+    0 @s6 regs-init !
+    0 @s7 regs-init !
+    0 @s8 regs-init !
+    0 @ra regs-init ! ;
+regs-initalize
+
+\ initialize free registers
+: regs-reset ( -- )
+    0 regs-init 0 regs-data regs-useable cells move ;
+regs-reset
 
 : free-set ( -- w )
     \ produces a bitset of (currently) free registers
@@ -100,29 +106,10 @@ free-set constant freeable-set
 : regs-print ( -- )
     ." regs:"
     regs-useable 0 ?do
-	i @zero = 			\ reserved registers
-	i @at = or
-	\ i @v0 = or
-	\ i @v1 = or
-	\ i @a0 = or
-	\ i @a1 = or
-	\ i @a2 = or
-	\ i @a3 = or
-	i @k0 = or
-	i @k1 = or
-	i @gp = or
-	i @sp = or
-	\ i @s0 = or			\ saved registers
-	\ i @s1 = or
-	\ i @s2 = or
-	i @s3 = or
-	\ i @s4 = or
-	i @s5 = or
-	i @s6 = or
-	i @s7 = or
-	i @s8 = or
-	i @ra = or 0= if
-	    i regs-data @ dup -1 <> if
+	i regs-data @ dup 0> if
+	    2 i hexn. .
+	else
+	    dup -1 < if
 		2 i hexn. .
 	    else
 		drop
@@ -151,6 +138,6 @@ regs-print
 1 regs-get ." regs-get:" . cr
 regs-print
 
-regs-init
+regs-reset
 finish
 [THEN]
