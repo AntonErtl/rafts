@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.1 1996/08/14 18:42:24 anton Exp $";
+#ident "@(#)$Id: be.c,v 1.2 1996/08/26 16:54:33 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -622,7 +622,7 @@ void DEFUN_VOID(makeStringArray)
     if (!pVector)
 	makePvector();
     SOURCE(("char *%s_string[] = {\n", prefix),
-	(""));
+	(": %s_string0 ;\n", prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i]) {
 	    SOURCE(("\t\"%s: ", pVector[i]->rule->lhs->name),
@@ -635,7 +635,7 @@ void DEFUN_VOID(makeStringArray)
 		(""));
     }
     SOURCE((""),
-	("%d array_noallot [%s_string]\n", max_erule_num+1, prefix));
+	("%d array_noallot [%s_string]\n  ' %s_string0 ,\n", max_erule_num+1, prefix, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i]) {
 	    SOURCE((""),
@@ -968,12 +968,12 @@ void DEFUN_VOID(makeNonterminalArray)
     SOURCE(("char *%s_ntname[] = {\n", prefix),
 	(""));
     SOURCE(("\t\"Error: Nonterminals are > 0\",\n"),
-	(""));
+	(": %s_ntname0 ;\n", prefix));
     for (i = 1; i < last_user_nonterminal; i++)
 	SOURCE(("\t\"%s\",\n", nta[i]->name),
 	    (": %s_ntname%d .\" %s\" ;\n", prefix, i, nta[i]->name));
     SOURCE(("\t0\n};\n\n"),
-	("%d array_noallot [%s_ntname]\n", max_erule_num+1, prefix));
+	("%d array_noallot [%s_ntname]\n  ' %s_ntname0 ,\n", max_erule_num+1, prefix, prefix));
     for (i = 1; i < last_user_nonterminal; i++)
 	SOURCE((""),
 	    ("  ' %s_ntname%d ,\n", prefix, i));
@@ -994,11 +994,11 @@ void DEFUN_VOID(startBurm)
     SOURCE(("\n#ifndef %s_PANIC\n", prefix),
 	("\nbl word %s_PANIC\" find nip 0= [IF]\n", prefix));
     SOURCE(("#define %s_PANIC\tPANIC\n", prefix),
-	(": %s_PANIC\" ( -- )\n  .\" PANIC\" ; immediate\n", prefix));
+	(": %s_PANIC\" ( -- )\n  .\" PANIC\" ; immediate restrict\n", prefix));
     SOURCE(("#endif /* %s_PANIC */\n", prefix),
 	("[ENDIF]\n"));
     SOURCE(("#define %s_assert(x, y)\tif(!(x)) {y; abort();}\n\n", prefix),
-	(": %s_assert\" postpone abort\" ; immediate restrict\n\n", prefix));
+	(": %s_assert\" ( \"string\"<\"> -- )\n  postpone abort\" ; immediate restrict\n\n", prefix));
 }
 
 void DEFUN_VOID(reportDiagnostics)
