@@ -10,9 +10,9 @@ variable v1
   1 1 v0 !
   2 + ;
 
-: foo2 ( -- n )
+: foo2 ( -- n n )
   v0 @
-  1 v0 !
+  2 v0 !
   v0 @ ;
 
 ?runtest [IF]
