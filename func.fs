@@ -19,25 +19,7 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 include header.fs
-' parse >code-address constant :docol
-' defstart >code-address constant :docon
-' dead-code >code-address constant :dovar
-' "error >code-address constant :douser
-' type >code-address constant :dodefer
-docode constant :docode
-\ dodoes constant :dodoes
-
-struct
-  1 cells: field (:dostruc)
-end-struct ((:dostruc))
-' (:dostruc) >code-address constant :dostruc
-\ ?func_mode_direct [IF]
-\   docode 2 rshift $1a @mask and $08000000 or constant :docode
-\ [THEN]
-\ ?func_mode_indirect [IF]
-\   docode constant :docode
-\ [THEN]
-\   dodoes 2 rshift $1a @mask and $08000000 or constant :dodoes
+docode constant docode:
 
 : func_init_noname ( -- )
   docode cfa,
@@ -106,14 +88,14 @@ cr ." Test for func.fs" cr
 
 ' docode >name &164 dump
 
-:docol hex.
-:docon hex.
-:dovar hex.
-:douser hex.
-:dodefer hex.
-:dostruc hex.
-:dodoes hex.
-:docode hex. cr
+docol: hex.
+docon: hex.
+dovar: hex.
+douser: hex.
+dodefer: hex.
+dofield: hex.
+dodoes: hex.
+docode: hex. cr
 
 here
 func_init foo

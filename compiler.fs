@@ -88,29 +88,29 @@ include basic.fs
   dup forthstart u> if
     dup >code-address
     case
-      :docon of
+      docon: of
 ?trace $0001 [IF]
         ." constant:" hex.s
 [THEN]
         execute vtarget_compile postpone literal vsource endof
-      :dovar of
+      dovar: of
 ?trace $0001 [IF]
         ." variable:" hex.s cr
 [THEN]
         execute vtarget_compile postpone literal vsource endof
-      :douser of
+      douser: of
 ?trace $0001 [IF]
         ." user:" hex.s cr
 [THEN]
         execute vtarget_compile postpone literal vsource endof
-      :docol of
+      docol: of
 ?trace $0001 [IF]
         ." FUNC_INTERPRETER:" hex.s cr
 [THEN]
         basic_exit
         func_interpreter
         basic_init endof
-      :dodefer of
+      dodefer: of
 \ ?trace $0001 [IF]
         ." FUNC_DEFER:" hex.s cr
 \ [THEN]
@@ -121,13 +121,13 @@ include basic.fs
 \        vtarget_compile postpone literal vsource
 \	['] @ recurse
 \        ['] execute recurse endof
-      :dostruc of
+      dofield: of
 ?trace $0001 [IF]
         ." FUNC_STRUC:" hex.s cr
 [THEN]
 	2 cells + @ vtarget_compile postpone literal vsource dostruc @ execute
 	endof
-      :docode of
+      docode: of
 ?trace $0001 [IF]
         ." FUNC_NATIVE:" hex.s cr
 [THEN]
