@@ -1,0 +1,8 @@
+#!/usr/local/bin/tcsh
+
+setenv file `basename $1 .fs`
+echo time $file.opt
+time $file.opt
+
+echo time $file.noopt
+time $file.noopt

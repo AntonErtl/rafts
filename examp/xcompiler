@@ -1,0 +1,7 @@
+#!/bin/sh
+
+host="`hostname`"
+hostbase="`basename $host .complang.tuwien.ac.at`"
+dmp="compiler.$hostbase.dmp"
+
+xruncompiler >$dmp 2>&1

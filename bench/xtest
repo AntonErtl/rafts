@@ -1,0 +1,21 @@
+#!/bin/sh
+
+host="`hostname`"
+hostbase="`basename $host .complang.tuwien.ac.at`"
+file="`basename $1 .fs`"
+dmp="$file.$hostbase.dmp"
+
+xnorun $1 >$dmp 2>&1
+echo >>$dmp 2>&1
+
+xrun $1 >>$dmp 2>&1
+echo >>$dmp 2>&1
+
+xgnorun $1 >>$dmp 2>&1
+echo >>$dmp 2>&1
+
+xgrun $1 >>$dmp 2>&1
+echo >>$dmp 2>&1
+
+xcrun $1 >>$dmp 2>&1
+echo >>$dmp 2>&1

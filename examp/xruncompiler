@@ -1,0 +1,21 @@
+#!/usr/local/bin/tcsh
+
+echo time gforth bye.fs
+time gforth bye.fs
+echo
+
+echo time gforth compiler.fs bye.fs
+time gforth compiler.fs bye.fs
+echo
+
+echo time gforth compiler.fs compiler.fs bye.fs
+time gforth compiler.fs compiler.fs bye.fs
+echo
+
+echo time gforth compiler.fs compiler.fs compiler.fs bye.fs
+time gforth compiler.fs compiler.fs compiler.fs bye.fs
+echo
+
+echo time gforth compiler.fs compiler.fs compiler.fs compiler.fs bye.fs
+time gforth compiler.fs compiler.fs compiler.fs compiler.fs bye.fs
+echo

@@ -1,0 +1,5 @@
+#!/usr/local/bin/tcsh
+
+setenv file `basename $0`.fs
+echo time gforth $1 $file bye.fs
+time gforth $1 $file bye.fs

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+xtest zif.fs
+xtest zifelse.fs
+xtest zcase.fs
+
+xtest zagain.fs
+xtest zuntil.fs
+xtest zwhile.fs
+xtest zloop.fs
+xtest z+loop.fs
+
+xtest zrecurse.fs
+xtest zfunc.fs

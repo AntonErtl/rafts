@@ -1,0 +1,6 @@
+#!/bin/sh
+
+xtest bubble-sort.fs
+xtest fib.fs
+xtest matrix-mult.fs
+xtest siev.fs

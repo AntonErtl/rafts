@@ -1,0 +1,17 @@
+#!/bin/sh
+
+OPTIONS=
+FILES=
+
+while [ $# -ge 1 ]
+do
+	case $1 in
+		-*)
+			OPTIONS="$OPTIONS $1";;
+		*)
+			FILE="$FILE $1";;
+	esac
+	shift
+done
+
+grep -c $OPTIONS $FILE | sed '/:0$/d'
