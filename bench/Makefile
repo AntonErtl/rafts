@@ -72,6 +72,8 @@ t0_fi		= $(t0).fi-0 $(t0).fi-1 $(t0).fi-2 $(t0).fi-3 $(t0).fi-4 $(t0).fi-5 $(t0)
 t0_rdmp-N	= $(t0).rdmp-0 $(t0).rdmp-1 $(t0).rdmp-2 $(t0).rdmp-3 $(t0).rdmp-4 $(t0).rdmp-5 $(t0).rdmp-6 $(t0).rdmp-7
 
 all::		bubble-sort
+bubble-sort.fs:	bubble-sort.pfe
+		ln -s $< $@
 bubble-sort:	t0
 		;
 t0:		$(t0_cdmp) $(t0_gdmp) $(t0_fi) $(t0_rdmp-N)
@@ -116,6 +118,8 @@ t2_fi		= $(t2).fi-0 $(t2).fi-1 $(t2).fi-2 $(t2).fi-3 $(t2).fi-4 $(t2).fi-5 $(t2)
 t2_rdmp-N	= $(t2).rdmp-0 $(t2).rdmp-1 $(t2).rdmp-2 $(t2).rdmp-3 $(t2).rdmp-4 $(t2).rdmp-5 $(t2).rdmp-6 $(t2).rdmp-7
 
 all::		matrix-mult
+matrix-mult.fs:	matrix-mult.pfe
+		ln -s $< $@
 matrix-mult:	t2
 		;
 t2:		$(t2_cdmp) $(t2_gdmp) $(t2_fi) $(t2_rdmp-N)

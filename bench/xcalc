@@ -1,0 +1,15 @@
+#!/bin/sh
+
+rel=-1
+grep user | sed 's/user //' | \
+	while read i
+do
+	if [ $rel = -1 ]
+	then
+		rel=$i
+	fi
+	echo -n "$i/$rel: "
+	echo "$i/$rel" | bc -l
+	# echo -n "($i-1.5)/$rel: "
+	# echo "($i-1.5)/$rel" | bc -l
+done
