@@ -133,7 +133,7 @@ GEN_PRECIOUS = Makefile configure
 		$(BURG) -F $(BURGFLAGS) -o $@ $<
 .SUFFIXES:	.gr .fs
 
-all:		grammar.fs
+all:		grammar.fs asm.fs disasm.fs
 
 dmp:		$(DMP)
 dmpclean:	
@@ -161,7 +161,9 @@ clean:		mostlyclean
 		$(RM) *.o core
 
 distclean:	clean
-		$(RM) header.fs grammar.burg grammar.gr grammar.fs
+		$(RM) header.fs
+		$(RM) grammar.burg grammar.gr grammar.fs
+		$(RM) asm.fs disasm.fs
 		$(RM) config.cache config.log config.status Makefile
 
 realclean:	distclean

@@ -71,6 +71,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
 
-AC_LINK_FILES(${mach}/grammar.burg ${mach}/header.fs, grammar.burg header.fs)
+AC_LINK_FILES(${mach}/grammar.burg ${mach}/header.fs ${mach}/asm.fs ${mach}/disasm.fs,
+	grammar.burg header.fs asm.fs disasm.fs)
 AC_OUTPUT(Makefile)
 
