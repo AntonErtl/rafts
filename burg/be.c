@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.4 1996/09/06 10:51:02 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.5 1996/11/14 20:12:28 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -112,41 +112,41 @@ int DEFUN(opsOfArity, (arity), int arity)
 void DEFUN_VOID(makeLabelinternals)
 {
     SOURCE(("int DEFUN(%s_label, (n), %s_NODEPTR_TYPE n) {\n", prefix, prefix),
-	(": %s_label ( node-addr -- state )\n", prefix));
+	(": %s-label ( il-addr -- state )\n", prefix));
     SOURCE(("\t%s_assert(n, %s_PANIC(\"NULL pointer passed to %s_label\\n\"));\n",
 	prefix, prefix, prefix),
-	("  dup 0= %s_assert\" NULL pointer passed to %s_label\"\n",
+	("  dup 0= %s-assert\" NULL pointer passed to %s-label\"\n",
 	prefix, prefix, prefix));
     SOURCE(("\tif (%s_STATE_LABEL(n)) {\n\t\treturn %s_STATE_LABEL(n);\n\t}\n", prefix, prefix),
 	(""));
     SOURCE(("\tswitch (%s_arity[%s_OP_LABEL(n)]) {\n", prefix, prefix),
-	("  dup %s_OP_LABEL@ %s_arity@ case\n", prefix, prefix));
+	("  dup %s-OP-LABEL @ %s-arity c@ case\n", prefix, prefix));
     SOURCE(("\tcase 0:\n"),
 	("    0 of\n"));
     SOURCE(("\t\treturn %s_STATE_LABEL(n) = %s_state(%s_OP_LABEL(n), 0, 0);\n",
 	prefix, prefix, prefix),
 	("      >r NIL NIL\n"
-	 "      r@ %s_OP_LABEL@ %s_state\n"
-	 "      dup r> %s_STATE_LABEL! endof\n", prefix, prefix, prefix));
+	 "      r@ %s-OP-LABEL @ %s-state\n"
+	 "      dup r> %s-STATE-LABEL ! endof\n", prefix, prefix, prefix));
     SOURCE(("\tcase 1:\n"),
 	("    1 of\n"));
     SOURCE(("\t\treturn %s_STATE_LABEL(n) = %s_state(%s_OP_LABEL(n), %s_label(%s_LEFT_CHILD(n)), 0);\n",
 	prefix, prefix, prefix, prefix, prefix),
-	("      >r r@ %s_LEFT_CHILD@ recurse\n"
+	("      >r r@ %s-LEFT-CHILD @ recurse\n"
 	 "      NIL\n"
-	 "      r@ %s_OP_LABEL@ %s_state\n"
-	 "      dup r> %s_STATE_LABEL! endof\n" , prefix, prefix, prefix, prefix));
+	 "      r@ %s-OP-LABEL @ %s-state\n"
+	 "      dup r> %s-STATE-LABEL ! endof\n" , prefix, prefix, prefix, prefix));
     SOURCE(("\tcase 2:\n"),
 	("    2 of\n"));
     SOURCE(("\t\treturn %s_STATE_LABEL(n) = %s_state(%s_OP_LABEL(n), %s_label(%s_LEFT_CHILD(n)), %s_label(%s_RIGHT_CHILD(n)));\n",
 	prefix, prefix, prefix, prefix, prefix, prefix, prefix),
-	("      >r r@ %s_LEFT_CHILD@ recurse\n"
-	 "      r@ %s_RIGHT_CHILD@ recurse\n"
-	 "      r@ %s_OP_LABEL@ %s_state\n"
-	 "      dup r> %s_STATE_LABEL! endof\n" , prefix, prefix, prefix, prefix, prefix));
+	("      >r r@ %s-LEFT-CHILD @ recurse\n"
+	 "      r@ %s-RIGHT-CHILD @ recurse\n"
+	 "      r@ %s-OP-LABEL @ %s-state\n"
+	 "      dup r> %s-STATE-LABEL ! endof\n" , prefix, prefix, prefix, prefix, prefix));
     SOURCE(("\tdefault: %s_PANIC(\"Bad op %%d in %s_label\\n\", %s_OP_LABEL(n)); abort(); return 0;\n", 
 	prefix, prefix, prefix),
-	("    >r true %s_assert\" Bad op in %s_label\" r>", prefix, prefix));
+	("    >r true %s-assert\" Bad op in %s-label\" r>", prefix, prefix));
     SOURCE(("\t}\n"),
 	(" endcase"));
     SOURCE(("}\n\n"),
@@ -158,47 +158,47 @@ void DEFUN_VOID(makeLabel)
     int flag = 0;
 
     SOURCE(("int DEFUN(%s_label, (n), %s_NODEPTR_TYPE n) {\n", prefix, prefix),
-	(": %s_label ( node-addr -- state )\n", prefix));
+	(": %s-label ( il-addr -- state )\n", prefix));
     SOURCE(("\t%s_assert(n, %s_PANIC(\"NULL pointer passed to %s_label\\n\"));\n",
 	prefix, prefix, prefix),
-	("  dup 0= %s_assert\" NULL pointer passed to %s_label\"\n",
+	("  dup 0= %s-assert\" NULL pointer passed to %s-label\"\n",
 	prefix, prefix, prefix));
     SOURCE(("\tif (%s_STATE_LABEL(n)) {\n\t\treturn %s_STATE_LABEL(n);\n\t}\n", prefix, prefix),
-	("  dup %s_STATE_LABEL@ dup if\n    nip else\n", prefix));
+	("  dup %s-STATE-LABEL @ dup if\n    nip else\n", prefix));
     SOURCE(("\tswitch (%s_OP_LABEL(n)) {\n", prefix),
-	("    drop dup %s_OP_LABEL@\n", prefix));
+	("    drop dup %s-OP-LABEL @\n", prefix));
     if (opsOfArity(0) > 0) {
 	flag++;
 	SOURCE(("\t\treturn %s_STATE_LABEL(n) = %s_state(%s_OP_LABEL(n), 0, 0);\n",
 	    prefix, prefix, prefix),
 	    (" if\n"
 	     "      drop >r NIL NIL\n"
-	     "      r@ %s_OP_LABEL@ %s_state\n"
-	     "      dup r> %s_STATE_LABEL! else\n", prefix, prefix, prefix));
+	     "      r@ %s-OP-LABEL @ %s-state\n"
+	     "      dup r> %s-STATE-LABEL ! else\n", prefix, prefix, prefix));
     }
     if (opsOfArity(1) > 0) {
 	flag++;
 	SOURCE(("\t\treturn %s_STATE_LABEL(n) = %s_state(%s_OP_LABEL(n), %s_label(%s_LEFT_CHILD(n)), 0);\n",
 	    prefix, prefix, prefix, prefix, prefix),
 	    (" if\n"
-	     "      drop >r r@ %s_LEFT_CHILD@ recurse\n"
+	     "      drop >r r@ %s-LEFT-CHILD @ recurse\n"
 	     "      NIL\n"
-	     "      r@ %s_OP_LABEL@ %s_state\n"
-	     "      dup r> %s_STATE_LABEL! else\n" , prefix, prefix, prefix, prefix));
+	     "      r@ %s-OP-LABEL @ %s-state\n"
+	     "      dup r> %s-STATE-LABEL ! else\n" , prefix, prefix, prefix, prefix));
     }
     if (opsOfArity(2) > 0) {
 	flag++;
 	SOURCE(("\t\treturn %s_STATE_LABEL(n) = %s_state(%s_OP_LABEL(n), %s_label(%s_LEFT_CHILD(n)), %s_label(%s_RIGHT_CHILD(n)));\n",
 	    prefix, prefix, prefix, prefix, prefix, prefix, prefix),
 	    (" if\n"
-	     "      drop >r r@ %s_LEFT_CHILD@ recurse\n"
-	     "      r@ %s_RIGHT_CHILD@ recurse\n"
-	     "      r@ %s_OP_LABEL@ %s_state\n"
-	     "      dup r> %s_STATE_LABEL! else\n" , prefix, prefix, prefix, prefix, prefix));
+	     "      drop >r r@ %s-LEFT-CHILD @ recurse\n"
+	     "      r@ %s-RIGHT-CHILD @ recurse\n"
+	     "      r@ %s-OP-LABEL @ %s-state\n"
+	     "      dup r> %s-STATE-LABEL ! else\n" , prefix, prefix, prefix, prefix, prefix));
     }
     SOURCE(("\tdefault: %s_PANIC(\"Bad op %%d in %s_label\\n\", %s_OP_LABEL(n)); abort(); return 0;\n", 
 	prefix, prefix, prefix),
-	("      drop true %s_assert\" Bad op in %s_label\"", prefix, prefix));
+	("      drop true %s-assert\" Bad op in %s-label\"", prefix, prefix));
     SOURCE(("\t}\n"),
 	(""));
     while(flag-- > 0)
@@ -211,7 +211,7 @@ void DEFUN_VOID(makeLabel)
 static void DEFUN_VOID(makeState)
 {
     SOURCE(("int DEFUN(%s_state, (op, l, r), int op AND int l AND int r) {\n", prefix),
-	(": %s_state ( left right op -- state )\n", prefix));
+	(": %s-state ( left right op -- state )\n", prefix));
     SOURCE(("\t%s_assert(l >= 0 && l < %d, PANIC(\"Bad state %%d passed to %s_state\\n\", l));\n",
 	prefix, globalMap->count, prefix),
 	(""));
@@ -222,7 +222,7 @@ static void DEFUN_VOID(makeState)
 	("  case\n"));
     SOURCE(("\tdefault: %s_PANIC(\"Bad op %%d in %s_state\\n\", index); abort(); return 0;\n", 
 	prefix, prefix, prefix),
-	("    >r true %s_assert\" Bad op in %s_state\" r>", prefix, prefix));
+	("    >r true %s-assert\" Bad op in %s-state\" r>", prefix, prefix));
 
     foreachList((ListFn) doLabel, operators);
 
@@ -260,19 +260,19 @@ static void DEFUN(setVectors, (ast), PatternAST ast)
 		case 1:
 		    strcpy(old, vecBuf);
 		    LANG(sprintf(vecBuf, "%s_LEFT_CHILD(%s)", prefix, old),
-			sprintf(vecBuf, "%s %s_LEFT_CHILD@", old, prefix));
+			sprintf(vecBuf, "%s %s-LEFT-CHILD @", old, prefix));
 		    setVectors((PatternAST) ast->children->x);
 		    strcpy(vecBuf, old);
 		    return;
 		case 2:
 		    strcpy(old, vecBuf);
 		    LANG(sprintf(vecBuf, "%s_LEFT_CHILD(%s)", prefix, old),
-			sprintf(vecBuf, "%s %s_RIGHT_CHILD@", old, prefix));
+			sprintf(vecBuf, "%s %s-RIGHT-CHILD @", old, prefix));
 		    LANG(setVectors((PatternAST) ast->children->x),
 			setVectors((PatternAST) ast->children->next->x));
 
 		    LANG(sprintf(vecBuf, "%s_RIGHT_CHILD(%s)", prefix, old),
-			sprintf(vecBuf, "%s %s_LEFT_CHILD@", old, prefix));
+			sprintf(vecBuf, "%s %s-LEFT-CHILD @", old, prefix));
 		    LANG(setVectors((PatternAST) ast->children->next->x),
 			setVectors((PatternAST) ast->children->x));
 		    strcpy(vecBuf, old);
@@ -461,7 +461,7 @@ void DEFUN_VOID(makeCostArray)
     if (!pVector)
 	makePvector();
     SOURCE(("short %s_cost[][%d] = {\n", prefix, DELTAWIDTH),
-	("%d %d 2array_noallot %s_cost\n", max_erule_num+1, DELTAWIDTH, prefix, prefix));
+	("%d %d matrix-noallot %s-cost\n", max_erule_num+1, DELTAWIDTH, prefix, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (i > 0)
 	    SOURCE((",\t/* %d */\n", i - 1),
@@ -495,9 +495,7 @@ void DEFUN_VOID(makeCostArray)
 	    (""));
     }
     SOURCE((" \t/* %d */\n};\n\n", max_erule_num),
-	(" ,\t\\ %d\n"
-	 ": %s_cost@ ( i j -- x )\n  %s_cost @ ;\n\n",
-	 max_erule_num, prefix, prefix, prefix, prefix, prefix));
+	(" ,\t\\ %d\n\n", max_erule_num));
 }
 
 static void DEFUN(printPatternAST, (p), PatternAST p)
@@ -591,7 +589,8 @@ void DEFUN_VOID(makeNts)
 	    if (new) {
 		char ename[50];
 
-		sprintf(ename, "%s_r%d_nts", prefix, i);
+		LANG(sprintf(ename, "%s_r%d_nts", prefix, i),
+		    sprintf(ename, "%s-r%d-nts", prefix, i));
 		pVector[i]->nts->ename = (char*) zalloc(strlen(ename)+1);
 		strcpy(pVector[i]->nts->ename, ename);
 		SOURCE(("static short %s[] = %s;\n", ename, cumBuf),
@@ -601,7 +600,7 @@ void DEFUN_VOID(makeNts)
     }
 
     SOURCE(("short *%s_nts[] = {\n", prefix),
-	("%d array_noallot %s_nts\n", max_erule_num+1, prefix));
+	("%d array-noallot %s-nts\n", max_erule_num+1, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i])
 	    SOURCE(("\t%s,\n", pVector[i]->nts->ename),
@@ -611,8 +610,7 @@ void DEFUN_VOID(makeNts)
 		("  0 ,\n"));
     }
     SOURCE(("};\n\n"),
-	(": %s_nts@ ( i -- x )\n  %s_nts @ ;\n\n",
-	 prefix, prefix));
+	("\n"));
 }
 
 void DEFUN_VOID(makeStringArray)
@@ -622,11 +620,11 @@ void DEFUN_VOID(makeStringArray)
     if (!pVector)
 	makePvector();
     SOURCE(("char *%s_string[] = {\n", prefix),
-	(": %s_string0 ;\n", prefix));
+	(": %s-string0 ;\n", prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i]) {
 	    SOURCE(("\t\"%s: ", pVector[i]->rule->lhs->name),
-		(": %s_string%d .\" %s: ", prefix, i, pVector[i]->rule->lhs->name));
+		(": %s-string%d .\" %s: ", prefix, i, pVector[i]->rule->lhs->name));
 	    printPatternAST(pVector[i]->pat);
 	    SOURCE(("\",\n"),
 		("\" ;\n"));
@@ -635,30 +633,30 @@ void DEFUN_VOID(makeStringArray)
 		(""));
     }
     SOURCE((""),
-	("%d array_noallot [%s_string]\n", max_erule_num+1, prefix));
+	("%d array-noallot [%s-string]\n", max_erule_num+1, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i]) {
 	    SOURCE((""),
-		("  ' %s_string%d ,\n", prefix, i));
+		("  ' %s-string%d ,\n", prefix, i));
 	} else
 	    SOURCE((""),
-		("  ' %s_string0 ,\n", prefix));
+		("  ' %s-string0 ,\n", prefix));
     }
     SOURCE(("};\n\n"),
-	(": %s_string ( rule -- )\n  [%s_string] @ execute ;\n\n", prefix, prefix));
+	(": %s-string ( rule -- )\n  [%s-string] @ execute ;\n\n", prefix, prefix));
 
     SOURCE(("int %s_max_rule = %d;\n", prefix, max_erule_num),
-	("%d constant %s_max_rule\n\n", max_erule_num, prefix));
+	("%d constant %s-max-rule\n\n", max_erule_num, prefix));
 }
 
 void
 DEFUN_VOID(makeRule)
 {
     SOURCE(("int DEFUN(%s_rule, (state, goalnt), int state AND int goalnt) {\n", prefix),
-	(": %s_rule ( state goalnt -- rule )\n", prefix));
+	(": %s-rule ( state goalnt -- rule )\n", prefix));
     SOURCE(("\t%s_assert(state >= 0 && state < %d, %s_PANIC(\"Bad state %%d passed to %s_rule\\n\", state));\n",
 	prefix, globalMap->count, prefix, prefix),
-	("  over dup 0 < swap %d >= and %s_assert\" Bad state passed to %s_rule\"\n",
+	("  over dup 0 < swap %d >= and %s-assert\" Bad state passed to %s-rule\"\n",
 	globalMap->count, prefix, prefix));
     source("\t%s_assert(goalnt >= 1 && goalnt < %d, PANIC(\"Bad goalnt %%d passed to %s_rule\\n\", state));\n",
 	prefix, max_nonterminal, prefix);
@@ -707,7 +705,7 @@ void DEFUN_VOID(makeKids)
     for (e = kids->elems, n=1; e; e = e->next, n++) {
 	StrTableElement el = (StrTableElement) e->x;
 	SOURCE((""),
-	    (": %s_kids%d\n  >r\n", prefix, n));
+	    (": %s-kids%d\n  >r\n", prefix, n));
 	SOURCE(("%s", el->str),
 	    ("%s", el->str));
 	SOURCE((""),
@@ -715,13 +713,13 @@ void DEFUN_VOID(makeKids)
     }
 
     SOURCE((""),
-	("%d array [%s_kids]\n", max_erule_num+1, prefix));
+	("%d array [%s-kids]\n", max_erule_num+1, prefix));
     for (e = kids->elems, n=1; e; e = e->next, n++) {
 	StrTableElement el = (StrTableElement) e->x;
 	for (r = el->erulenos; r; r = r->next) {
 	    int i = r->x;
 	    SOURCE(("\tcase %d:\n", i),
-		("  ' %s_kids%d %d [%s_kids] !\n", prefix, n, i, prefix));
+		("  ' %s-kids%d %d [%s-kids] !\n", prefix, n, i, prefix));
 	}
 	SOURCE(("%s", el->str),
 	    (""));
@@ -737,9 +735,9 @@ void DEFUN_VOID(makeKids)
     SOURCE(("\t}\n"),
 	(""));
     SOURCE((""),
-	(": %s_kids ( node-addr rule -- node-addr ... node-addr )\n", prefix));
+	(": %s-kids ( il-addr rule -- il-addr ... il-addr )\n", prefix));
     SOURCE((""),
-	("  over 0= %s_assert\" NULL pointer passed to %s_kids\"\n",
+	("  over 0= %s-assert\" NULL pointer passed to %s-kids\"\n",
 	prefix, prefix, prefix));
 
     SOURCE(("\tswitch (rulenumber) {\n"),
@@ -747,59 +745,59 @@ void DEFUN_VOID(makeKids)
     SOURCE(("\treturn kids;\n"),
 	(""));
     SOURCE(("}\n\n"),
-	("  [%s_kids] @ execute ;\n\n", prefix));
+	("  [%s-kids] @ execute ;\n\n", prefix));
 }
 
 void DEFUN_VOID(makeOpLabel)
 {
     SOURCE(("int DEFUN(%s_op_label, (p), %s_NODEPTR_TYPE p) {\n", prefix, prefix),
-	(": %s_op_label ( node-addr -- op )\n", prefix));
+	(": %s-op-label ( il-addr -- op )\n", prefix));
     SOURCE(("\t%s_assert(p, %s_PANIC(\"NULL pointer passed to %s_op_label\\n\"));\n",
 	prefix, prefix, prefix),
-	("  over 0= %s_assert\" NULL pointer passed to %s_op_label\"\n",
+	("  over 0= %s-assert\" NULL pointer passed to %s-op-label\"\n",
 	prefix, prefix, prefix));
     SOURCE(("\treturn %s_OP_LABEL(p);\n", prefix),
-	("  %s_OP_LABEL@", prefix));
+	("  %s-OP-LABEL\n", prefix));
     SOURCE(("}\n\n"),
-	(" ;\n\n"));
+	(" ;\n"));
 }
 
 void DEFUN_VOID(makeStateLabel)
 {
     SOURCE(("int DEFUN(%s_state_label, (p), %s_NODEPTR_TYPE p) {\n", prefix, prefix),
-	(": %s_state_label ( node-addr -- state )\n", prefix));
+	(": %s-state-label ( il-addr -- state )\n", prefix));
     SOURCE(("\t%s_assert(p, %s_PANIC(\"NULL pointer passed to %s_state_label\\n\"));\n",
 	prefix, prefix, prefix),
-	("  over 0= %s_assert\" NULL pointer passed to %s_state_label\"\n",
+	("  over 0= %s-assert\" NULL pointer passed to %s-state-label\"\n",
 	prefix, prefix, prefix));
     SOURCE(("\treturn %s_STATE_LABEL(p);\n", prefix),
-	("  %s_STATE_LABEL@", prefix));
+	("  %s-STATE-LABEL\n", prefix));
     SOURCE(("}\n\n"),
-	(" ;\n\n"));
+	(" ;\n"));
 }
 
 void DEFUN_VOID(makeChild)
 {
     SOURCE(("%s_NODEPTR_TYPE DEFUN(%s_child, (p, index), %s_NODEPTR_TYPE p AND int index) {\n",
 	prefix, prefix, prefix),
-	(": %s_child ( node-addr index -- node-addr )\n", prefix));
+	(": %s-child ( il-addr index -- il-addr )\n", prefix));
     SOURCE(("\t%s_assert(p, %s_PANIC(\"NULL pointer passed to %s_child\\n\"));\n",
 	prefix, prefix, prefix),
-	("  over 0= %s_assert\" NULL pointer passed to %s_child\"\n",
+	("  over 0= %s-assert\" NULL pointer passed to %s-child\"\n",
 	prefix, prefix, prefix));
     SOURCE(("\tswitch (index) {\n"),
 	("  case\n"));
     SOURCE(("\tcase 0:\n"),
 	("    0 of"));
     SOURCE(("\t\treturn %s_LEFT_CHILD(p);\n", prefix),
-	(" %s_LEFT_CHILD endof\n", prefix));
+	(" %s-LEFT-CHILD endof\n", prefix));
     SOURCE(("\tcase 1:\n"),
 	("    1 of"));
     SOURCE(("\t\treturn %s_RIGHT_CHILD(p);\n", prefix),
-	(" %s_RIGHT_CHILD endof\n", prefix));
+	(" %s-RIGHT-CHILD endof\n", prefix));
     SOURCE(("\tdefault: %s_PANIC(\"Bad index %%d in %s_child\\n\", index); abort(); return 0;\n", 
 	prefix, prefix, prefix),
-	("    >r true %s_assert\" Bad index in %s_child\" r>", prefix, prefix));
+	("    >r true %s-assert\" Bad index in %s-child\" r>", prefix, prefix));
     SOURCE(("\t}\n"),
 	(" endcase"));
     SOURCE(("}\n\n"),
@@ -845,23 +843,23 @@ void DEFUN_VOID(makeOperators)
 		(""));
 	if (opVector[i])
 	    SOURCE(("\t\"%s\"", opVector[i]->name),
-		(": %s_opname%d .\" %s \" ;\n", prefix, i, opVector[i]->name));
+		(": %s-opname%d .\" %s \" ;\n", prefix, i, opVector[i]->name));
 	else
 	    SOURCE(("\t0"),
 		(""));
     }
     SOURCE(("\t0\n};\n\n"),
-	("%d array [%s_opname]\n", maxOperator+1, prefix));
+	("%d array [%s-opname]\n", maxOperator+1, prefix));
     for (i = 0; i <= maxOperator; i++) {
 	if (opVector[i])
 	    SOURCE((""),
-		("  ' %s_opname%d %d [%s_opname] !\n", prefix, i, i, prefix));
+		("  ' %s-opname%d %d [%s-opname] !\n", prefix, i, i, prefix));
     }
     SOURCE((" \t/* %d */\n};\n\n", maxOperator),
-	(": %s_opname ( rule -- )\n  [%s_opname] @ execute ;\n\n", prefix, prefix));
+	(": %s-opname ( rule -- )\n  [%s-opname] @ execute ;\n\n", prefix, prefix));
 
     SOURCE(("char %s_arity[] = {\n", prefix),
-	("%d carray_noallot %s_arity\n", maxOperator+1, prefix));
+	("%d carray-noallot %s-arity\n", maxOperator+1, prefix));
     for (i = 0; i <= maxOperator; i++) {
 	if (i > 0)
 	    SOURCE((",\t/* %d */\n", i-1),
@@ -870,12 +868,12 @@ void DEFUN_VOID(makeOperators)
 	    ("  %d c,", opVector[i] ? opVector[i]->arity : -1));
     }
     SOURCE((" \t/* %d */\n};\n\n", maxOperator),
-	("\t\\ %d\n: %s_arity@ ( i -- x )\n  %s_arity c@ ;\n\n", maxOperator, prefix, prefix));
+	("\t\\ %d\n\n", maxOperator));
 
     SOURCE(("int %s_max_op = %d;\n", prefix, maxOperator),
-	("%d constant %s_max_op\n", maxOperator, prefix));
+	("%d constant %s-max-op\n", maxOperator, prefix));
     SOURCE(("int %s_max_state = %d;\n\n", prefix, globalMap->count-1),
-	("%d constant %s_max_state\n\n", globalMap->count-1, prefix));
+	("%d constant %s-max-state\n\n", globalMap->count-1, prefix));
 }
 
 void DEFUN_VOID(makeSimple)
@@ -889,40 +887,32 @@ void DEFUN_VOID(makeSimple)
 void DEFUN_VOID(startOptional)
 {
     SOURCE(("#ifdef %s_STATE_LABEL\n", prefix),
-	("bl word %s_STATE_LABEL find nip 0<> [IF]\n", prefix));
+	("bl word %s-STATE-LABEL find nip 0<> [IF]\n", prefix));
     SOURCE(("#define %s_INCLUDE_EXTRA\n", prefix),
-	("  : %s_INCLUDE_EXTRA ;\n", prefix));
+	("  : %s-INCLUDE-EXTRA ;\n", prefix));
     SOURCE(("#else\n"),
 	("[ELSE]\n"));
     SOURCE(("#ifdef STATE_LABEL\n"),
-	("  bl word STATE_LABEL find nip 0<> [IF]\n"));
+	("  bl word STATE-LABEL find nip 0<> [IF]\n"));
     SOURCE(("#define %s_INCLUDE_EXTRA\n", prefix),
-	("    : %s_INCLUDE_EXTRA ;\n", prefix));
+	("    : %s-INCLUDE-EXTRA ;\n", prefix));
     SOURCE(("#define %s_STATE_LABEL\tSTATE_LABEL\n", prefix),
-	("    : %s_STATE_LABEL STATE_LABEL ;\n"
-	 "    : %s_STATE_LABEL@ STATE_LABEL@ ;\n"
-	 "    : %s_STATE_LABEL! STATE_LABEL! ;\n", prefix, prefix, prefix));
+	("    : %s-STATE-LABEL STATE-LABEL ;\n", prefix));
     SOURCE(("#define %s_NODEPTR_TYPE\tNODEPTR_TYPE\n", prefix),
 	(""));
     SOURCE(("#define %s_LEFT_CHILD\tLEFT_CHILD\n", prefix),
-	("    : %s_LEFT_CHILD LEFT_CHILD ;\n"
-	 "    : %s_LEFT_CHILD@ LEFT_CHILD@ ;\n"
-	 "    : %s_LEFT_CHILD! LEFT_CHILD! ;\n", prefix, prefix, prefix));
+	("    : %s-LEFT-CHILD LEFT-CHILD ;\n", prefix));
     SOURCE(("#define %s_OP_LABEL\tOP_LABEL\n", prefix),
-	("    : %s_OP_LABEL OP_LABEL ;\n"
-	 "    : %s_OP_LABEL@ OP_LABEL@ ;\n"
-	 "    : %s_OP_LABEL! OP_LABEL! ;\n", prefix, prefix, prefix));
+	("    : %s-OP-LABEL OP-LABEL ;\n", prefix));
     SOURCE(("#define %s_RIGHT_CHILD\tRIGHT_CHILD\n", prefix),
-	("    : %s_RIGHT_CHILD RIGHT_CHILD ;\n"
-	 "    : %s_RIGHT_CHILD@ RIGHT_CHILD@ ;\n"
-	 "    : %s_RIGHT_CHILD! RIGHT_CHILD! ;\n", prefix, prefix, prefix));
+	("    : %s-RIGHT-CHILD RIGHT-CHILD ;\n", prefix));
     SOURCE(("#endif /* STATE_LABEL */\n"),
-	("  [ENDIF] \\ STATE_LABEL\n"));
+	("  [ENDIF] \\ STATE-LABEL\n"));
     SOURCE(("#endif /* %s_STATE_LABEL */\n\n", prefix),
-	("[ENDIF] \\ %s_STATE_LABEL\n\n", prefix));
+	("[ENDIF] \\ %s-STATE-LABEL\n\n", prefix));
 
     SOURCE(("#ifdef %s_INCLUDE_EXTRA\n\n", prefix),
-	("bl word %s_INCLUDE_EXTRA find nip 0<> [IF]\n\n", prefix));
+	("bl word %s-INCLUDE-EXTRA find nip 0<> [IF]\n\n", prefix));
 }
 
 void DEFUN_VOID(makeTerminals)
@@ -946,11 +936,11 @@ void DEFUN_VOID(makeNonterminals)
 	NonTerminal nt = (NonTerminal) l->x;
 	if (nt->num < last_user_nonterminal) {
 	    SOURCE(("#define %s_%s_NT %d\n", prefix, nt->name, nt->num),
-		("%d constant %s_%s_NT\n", nt->num, prefix, nt->name));
+		("%d constant %s-%s-NT\n", nt->num, prefix, nt->name));
 	}
     }
     SOURCE(("#define %s_NT %d\n\n", prefix, last_user_nonterminal-1),
-	("%d constant %s_NT\n\n", last_user_nonterminal-1, prefix));
+	("%d constant %s-NT\n\n", last_user_nonterminal-1, prefix));
 }
 
 void DEFUN_VOID(makeNonterminalArray)
@@ -970,17 +960,17 @@ void DEFUN_VOID(makeNonterminalArray)
     SOURCE(("char *%s_ntname[] = {\n", prefix),
 	(""));
     SOURCE(("\t\"Error: Nonterminals are > 0\",\n"),
-	(": %s_ntname0 ;\n", prefix));
+	(": %s-ntname0 ;\n", prefix));
     for (i = 1; i < last_user_nonterminal; i++)
 	SOURCE(("\t\"%s\",\n", nta[i]->name),
-	    (": %s_ntname%d .\" %s\" ;\n", prefix, i, nta[i]->name));
+	    (": %s-ntname%d .\" %s\" ;\n", prefix, i, nta[i]->name));
     SOURCE(("\t0\n};\n\n"),
-	("%d array_noallot [%s_ntname]\n  ' %s_ntname0 ,\n", max_erule_num+1, prefix, prefix));
+	("%d array-noallot [%s-ntname]\n  ' %s-ntname0 ,\n", max_erule_num+1, prefix, prefix));
     for (i = 1; i < last_user_nonterminal; i++)
 	SOURCE((""),
-	    ("  ' %s_ntname%d ,\n", prefix, i));
+	    ("  ' %s-ntname%d ,\n", prefix, i));
     SOURCE(("};\n\n"),
-	(": %s_ntname ( rule -- )\n  [%s_ntname] @ execute ;\n\n", prefix, prefix));
+	(": %s-ntname ( rule -- )\n  [%s-ntname] @ execute ;\n\n", prefix, prefix));
 
     zfree(nta);
 }
@@ -988,19 +978,19 @@ void DEFUN_VOID(makeNonterminalArray)
 void DEFUN_VOID(endOptional)
 {
     SOURCE(("#endif /* %s_INCLUDE_EXTRA */\n\n", prefix),
-	("[ENDIF] \\ %s_INCLUDE_EXTRA\n\n", prefix));
+	("[ENDIF] \\ %s-INCLUDE-EXTRA\n\n", prefix));
 }
 
 void DEFUN_VOID(startBurm)
 {
     SOURCE(("\n#ifndef %s_PANIC\n", prefix),
-	("\nbl word %s_PANIC\" find nip 0= [IF]\n", prefix));
+	("\nbl word %s-PANIC\" find nip 0= [IF]\n", prefix));
     SOURCE(("#define %s_PANIC\tPANIC\n", prefix),
-	(": %s_PANIC\" ( -- )\n  .\" PANIC\" ; immediate restrict\n", prefix));
+	(": %s-PANIC\" ( -- )\n  .\" PANIC\" ; immediate restrict\n", prefix));
     SOURCE(("#endif /* %s_PANIC */\n", prefix),
 	("[ENDIF]\n"));
     SOURCE(("#define %s_assert(x, y)\tif(!(x)) {y; abort();}\n\n", prefix),
-	(": %s_assert\" ( \"string\"<\"> -- )\n  postpone abort\" ; immediate restrict\n\n", prefix));
+	(": %s-assert\" ( \"string\"<\"> -- )\n  postpone abort\" ; immediate restrict\n\n", prefix));
 }
 
 void DEFUN_VOID(reportDiagnostics)

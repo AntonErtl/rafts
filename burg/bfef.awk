@@ -19,7 +19,7 @@ BEGIN {
     print ": asm-"i" "asm[i]" ;";
     print ":noname [\\'] asm-"i" "action[i]" ;";
   }
-  printf "%d array_noallot [burm_reduce]\n", rule;
+  printf "%d array-noallot [burm-reduce]\n", rule;
   print "  0 ,"
   for (i=1; i<rule; i++) {
     printf "  ,";

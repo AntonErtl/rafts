@@ -1,4 +1,4 @@
-#ident "@(#)$Id: plank.c,v 1.2 1996/09/06 10:51:02 pirky Exp $";
+#ident "@(#)$Id: plank.c,v 1.3 1996/11/14 20:12:29 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -47,7 +47,8 @@ static Plank DEFUN_VOID(newPlank)
     static int num = 0;
 
     p = (Plank) zalloc(sizeof(struct plank));
-    sprintf(buf, "%s_plank_%d", prefix, num++);
+    LANG(sprintf(buf, "%s_plank_%d", prefix, num++),
+	sprintf(buf, "%s-plank-%d", prefix, num++));
     p->name = (char *) zalloc(strlen(buf)+1);
     strcpy(p->name, buf);
     return p;
@@ -379,7 +380,7 @@ static void DEFUN(doDimPmaps, (op), Operator op)
 		op->name,
 		op->table->dimen[0]->map->count-(1-safely),
 		op->table->dimen[1]->map->count-(1-safely)),
-		("%d %d %s2array_noallot %s_%s_transition", 
+		("%d %d %smatrix-noallot %s-%s-transition", 
 		op->table->dimen[0]->map->count-(1-safely),
 		op->table->dimen[1]->map->count-(1-safely),
 		op->stateCount <= 255?"c":"",
@@ -415,7 +416,7 @@ static void DEFUN(doDimPmaps, (op), Operator op)
 		    (" %s,\t\\ row %d", op->stateCount <= 255?"c":"", i-(1-safely)));
 	    }
 	    SOURCE(("\n};\n\n"),
-		("\n: %s_%s_transition@ ( i j -- x )\n  %s_%s_transition %s@ ;\n\n",
+		("\n: %s-%s-transition@ ( i j -- x )\n  %s-%s-transition %s@ ;\n\n",
 		 prefix, op->name, prefix, op->name, op->stateCount <= 255?"c":""));
 	}
 	break;
@@ -474,10 +475,10 @@ static void DEFUN(outPlank, (p), Plank p)
     for (f = p->fields, i=0; f; f = f->next, i++) {
 	StateMap sm = (StateMap) f->x;
 	SOURCE(("\tunsigned int %s:%d;\n", sm->fieldname, sm->width),
-	    ("%d constant %s_%s\n", i, prefix, sm->fieldname));
+	    ("%d constant %s-%s\n", i, prefix, sm->fieldname));
     }
     SOURCE(("} %s[] = {\n", p->name),
-	("%d %d 2array_noallot %s\n", globalMap->count-(safely?0:1), i, p->name));
+	("%d %d matrix-noallot %s\n", globalMap->count-(safely?0:1), i, p->name));
 
     for (i = 0; i < globalMap->count-(safely?0:1); i++) {
 	SOURCE(("\t{"),
@@ -510,7 +511,7 @@ static void DEFUN_VOID(inToEx)
     int counter;
 
     SOURCE(("static short %s_eruleMap[] = {\n", prefix),
-	("%d array_noallot %s_eruleMap\n", max_ruleAST+2, prefix));
+	("%d array-noallot %s-eruleMap\n", max_ruleAST+2, prefix));
     counter = 0;
     for (i = 0; i < max_ruleAST; i++) {
 	if (counter > 0) {
@@ -539,7 +540,7 @@ static void DEFUN_VOID(inToEx)
     }
     SOURCE(("\n};\n\n"),
 	(" ,\n"
-	 ": %s_eruleMap@ ( i -- x )\n  %s_eruleMap @ ;\n\n", prefix, prefix));
+	 ": %s-eruleMap@ ( i -- x )\n  %s-eruleMap @ ;\n\n", prefix, prefix));
 }
 
 static void DEFUN_VOID(makePlankRuleMacros)
@@ -550,7 +551,7 @@ static void DEFUN_VOID(makePlankRuleMacros)
 	List es;
 	PlankMap im = ntVector[i]->pmap;
 	SOURCE(("#define %s_%s_rule(state)\t", prefix, ntVector[i]->name),
-	    (": %s_%s_rule ( state -- rule )\n", prefix, ntVector[i]->name));
+	    (": %s-%s-rule ( state -- rule )\n", prefix, ntVector[i]->name));
 	if (im) {
 	    SOURCE(("%s_eruleMap[", prefix),
 		("  "));
@@ -560,12 +561,12 @@ static void DEFUN_VOID(makePlankRuleMacros)
 		    ("((state) == %d ? %d :", e->index, e->value)); /* LATER pirky */
 	    }
 	    SOURCE(("%s[state].%s", im->values->plank->name, im->values->fieldname),
-		("%s_%s %s@", prefix, im->values->fieldname, im->values->plank->name));
+		("%s-%s %s@", prefix, im->values->fieldname, im->values->plank->name));
 	    for (es = im->exceptions; es; es = es->next)
 		SOURCE((")"),
 		    (")")); /* LATER pirky */
 	    SOURCE((" +%d]", im->offset),
-		(" dup 0<> if %d + endif %s_eruleMap@", im->offset, prefix));
+		(" dup 0<> if %d + endif %s-eruleMap@", im->offset, prefix));
 	} else {
 	    /* nonterminal never appears on LHS. */
 	    assert(ntVector[i] ==  start);
@@ -584,10 +585,10 @@ static void DEFUN_VOID(makePlankRule)
     makePlankRuleMacros();
 
     SOURCE(("int DEFUN(%s_rule, (state, goalnt), int state AND int goalnt) {\n", prefix),
-	(": %s_rule ( state goalnt -- rule )\n", prefix));
+	(": %s-rule ( state goalnt -- rule )\n", prefix));
     SOURCE(("\t%s_assert(state >= 0 && state < %d, %s_PANIC(\"Bad state %%d passed to %s_rule\\n\", state));\n",
 	prefix, globalMap->count-(safely?0:1), prefix, prefix),
-	("  over dup 0 < swap %d >= and %s_assert\" Bad state passed to %s_rule\"\n",
+	("  over dup 0 < swap %d >= and %s-assert\" Bad state passed to %s-rule\"\n",
 	globalMap->count-(safely?0:1), prefix, prefix));
     SOURCE(("\tswitch (goalnt) {\n"),
 	("  case\n"));
@@ -596,11 +597,11 @@ static void DEFUN_VOID(makePlankRule)
 	SOURCE(("\tcase %d:\n", i),
 	    ("    %d of", i));
 	SOURCE(("\t\treturn %s_%s_rule(state);\n", prefix, ntVector[i]->name),
-	    (" %s_%s_rule endof\n", prefix, ntVector[i]->name));
+	    (" %s-%s-rule endof\n", prefix, ntVector[i]->name));
     }
     SOURCE(("\tdefault: %s_PANIC(\"Unknown nonterminal %%d in %s_rule\\n\", state); abort(); return 0;\n",
     	prefix, prefix),
-	("    >r true %s_assert\" Unknown nonterminal in %s_rule\" r>", prefix, prefix));
+	("    >r true %s-assert\" Unknown nonterminal in %s-rule\" r>", prefix, prefix));
     SOURCE(("\t}\n"),
 	(" endcase"));
     SOURCE(("}\n\n"),
@@ -697,17 +698,17 @@ static void DEFUN(doPlankLabelMacrosSafely, (op), Operator op)
     switch (op->arity) {
 	case -1:
 	    SOURCE(("#define %s_%s_state\t0\n", prefix, op->name),
-		(": %s_%s_state ( left right -- state )\n  2drop 0 ;\n", prefix, op->name));
+		(": %s-%s-state ( left right -- state )\n  2drop 0 ;\n", prefix, op->name));
 	    break;
 	case 0:
 	    SOURCE(("#define %s_%s_state\t%d\n", prefix, op->name, op->table->transition[0]->newNum+safely),
-		(": %s_%s_state ( left right -- state )\n  2drop %d ;\n", prefix, op->name, op->table->transition[0]->newNum+safely));
+		(": %s-%s-state ( left right -- state )\n  2drop %d ;\n", prefix, op->name, op->table->transition[0]->newNum+safely));
 	    break;
 	case 1:
 	    im0 = op->table->dimen[0]->pmap;
 	    if (im0) {
 		SOURCE(("#define %s_%s_state(l)", prefix, op->name),
-		    (": %s_%s_state ( left right -- state )\n  drop", prefix, op->name));
+		    (": %s-%s-state ( left right -- state )\n  drop", prefix, op->name));
 		if (im0->exceptions) {
 		    List es = im0->exceptions;
 		    assert(FALSE);
@@ -725,16 +726,16 @@ static void DEFUN(doPlankLabelMacrosSafely, (op), Operator op)
 		}
 		SOURCE(("\t( (%s_TEMP = %s[l].%s) ? %s_TEMP+%d : 0 )\n",
 		    prefix, im0->values->plank->name, im0->values->fieldname, prefix, im0->offset),
-		    (" %s_%s %s@ dup 0<> if %d + endif ;\n",
+		    (" %s-%s %s@ dup 0<> if %d + endif ;\n",
 			prefix, im0->values->fieldname, im0->values->plank->name, im0->offset));
 	    } else {
 		Item_Set *ts = transLval(op->table, 1, 0);
 		if (*ts)
 		    SOURCE(("#define %s_%s_state(l)\t%d\n", (*ts)->newNum+safely, prefix, op->name),
-			(": %s_%s_state ( left right -- state )\n  2drop %d ; \n", prefix, op->name, (*ts)->newNum+safely));
+			(": %s-%s-state ( left right -- state )\n  2drop %d ; \n", prefix, op->name, (*ts)->newNum+safely));
 		else
 		    SOURCE(("#define %s_%s_state(l)\t0\n", prefix, op->name),
-			(": %s_%s_state ( left right -- state )\n  2drop 0 ;\n", prefix, op->name));
+			(": %s-%s-state ( left right -- state )\n  2drop 0 ;\n", prefix, op->name));
 	    }
 	    break;
 	case 2:
@@ -746,12 +747,12 @@ static void DEFUN(doPlankLabelMacrosSafely, (op), Operator op)
 		if (*ts)
 		    SOURCE(("#define %s_%s_state(l, r)\treturn %d;\n",
 			prefix, op->name, (*ts)->newNum+safely),
-			("%d %s_%s_state ( left right -- state )\n",
+			("%d %s-%s-state ( left right -- state )\n",
 			(*ts)->newNum+safely, prefix, op->name));
 		else
 		    SOURCE(("#define %s_%s_state(l, r)\treturn %d;\n",
 			prefix, op->name, 0),
-			("%d %s_%s_state ( left right -- state )\n",
+			("%d %s-%s-state ( left right -- state )\n",
 			0, prefix, op->name));
 	    } else if (!im0) {
 		assert(FALSE);
@@ -799,13 +800,13 @@ static void DEFUN(doPlankLabelMacrosSafely, (op), Operator op)
 		*/
 
 		SOURCE(("#define %s_%s_state(l, r)", prefix, op->name),
-		    (": %s_%s_state ( left right -- state )\n", prefix, op->name));
+		    (": %s-%s-state ( left right -- state )\n", prefix, op->name));
 
 		SOURCE(("\t( (%s_TEMP = %s_%s_transition[%s[l].%s][%s[r].%s]) ? ",
 		    prefix, prefix, op->name,
 		    im0->values->plank->name, im0->values->fieldname,
 		    im1->values->plank->name, im1->values->fieldname),
-		    ("  swap %s_%s %s@ swap %s_%s %s@ %s_%s_transition@",
+		    ("  swap %s-%s %s@ swap %s-%s %s@ %s-%s-transition@",
 		    prefix, im0->values->fieldname, im0->values->plank->name,
 		    prefix, im1->values->fieldname, im1->values->plank->name,
 		    prefix, op->name));
@@ -826,19 +827,19 @@ static void DEFUN(doPlankLabelSafely, (op), Operator op)
     switch (op->arity) {
 	case -1:
 	    SOURCE(("\t\treturn 0;\n"),
-		("  0 %d [%s_state] !\n", op->num, prefix));
+		("  0 %d [%s-state] !\n", op->num, prefix));
 	    break;
 	case 0:
 	    SOURCE(("\t\treturn %s_%s_state;\n", prefix, op->name),
-		("  ' %s_%s_state %d [%s_state] !\n", prefix, op->name, op->num, prefix));
+		("  ' %s-%s-state %d [%s-state] !\n", prefix, op->name, op->num, prefix));
 	    break;
 	case 1:
 	    SOURCE(("\t\treturn %s_%s_state(l);\n", prefix, op->name),
-		("  ' %s_%s_state %d [%s_state] !\n", prefix, op->name, op->num, prefix));
+		("  ' %s-%s-state %d [%s-state] !\n", prefix, op->name, op->num, prefix));
 	    break;
 	case 2:
 	    SOURCE(("\t\treturn %s_%s_state(l, r);\n", prefix, op->name),
-		("  ' %s_%s_state %d [%s_state] !\n", prefix, op->name, op->num, prefix));
+		("  ' %s-%s-state %d [%s-state] !\n", prefix, op->name, op->num, prefix));
 	    break;
 	default:
 	    assert(FALSE);
@@ -854,7 +855,7 @@ static void DEFUN_VOID(makePlankState)
 	(""));
 
     SOURCE((""),
-	("%d array [%s_state]\n", maxOperator+1, prefix));
+	("%d array [%s-state]\n", maxOperator+1, prefix));
     switch (max_arity) {
     case -1:
 	WARNING("ERROR: no terminals in grammar.\n");
@@ -927,21 +928,21 @@ static void DEFUN_VOID(makePlankState)
 	exit(1);
     case 0:
 	SOURCE((""),
-	    (": %s_state ( left right op -- state )\n", prefix));
+	    (": %s-state ( left right op -- state )\n", prefix));
 	break;
     case 1:
 	SOURCE((""),
-	    (": %s_state ( left right op -- state )\n", prefix));
+	    (": %s-state ( left right op -- state )\n", prefix));
 	break;
     case 2:
 	SOURCE((""),
-	    (": %s_state ( left right op -- state )\n", prefix));
+	    (": %s-state ( left right op -- state )\n", prefix));
 	break;
     default:
 	assert(FALSE);
     }
     SOURCE(("}\n\n"),
-	("  [%s_state] @ execute ;\n\n", prefix));
+	("  [%s-state] @ execute ;\n\n", prefix));
 }
 
 void DEFUN_VOID(makePlanks)
