@@ -45,14 +45,14 @@
     ['] inst_depends_done_func swap slist_forall else
     drop endif ;
 
-: ?inst_childs_done ( node_addr -- flag )
+: ?inst_kids_done ( node_addr -- flag )
   dup ?inst_depends_done		\ check yourself
-  over node_lval @ ?dup 0<> if		\ check left child
+  over node_lval @ ?dup 0<> if		\ check left kid
     >r over r> tuck <> if
       ?inst_done else
       drop true endif else
     true endif
-  and swap node_rval @ ?dup 0<> if	\ check right child
+  and swap node_rval @ ?dup 0<> if	\ check right kid
     >r over r> tuck <> if
       ?inst_done else
       drop true endif else
@@ -64,7 +64,7 @@
   begin
     inst_size 1- inst_nodes over >= while
     dup @ ?dup 0<> if
-      dup ?inst_childs_done if		\ check done childs
+      dup ?inst_kids_done if		\ check done kids
         inst_pnodes_insert		\ add to pnodes
 	NULL over ! else		\ del from nodes
 	drop endif endif

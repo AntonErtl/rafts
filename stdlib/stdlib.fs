@@ -102,6 +102,7 @@
 \ include struct.fs
 include stdlib/marray.fs
 include stdlib/array.fs
+include stdlib/2array.fs
 include stdlib/slist.fs
 \ include stdlib/stack.fs
 \ include stdlib/dlist.fs

@@ -331,6 +331,8 @@ create text_data
   vtarget_compile postpone + vsource ; immediate restrict
 comp' (dostruc) drop dostruc !
 
+include source.fs
+
 ?test $0004 [IF]
 cr ." Test for primitives.fs" cr
 

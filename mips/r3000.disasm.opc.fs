@@ -18,12 +18,12 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$40 2 2 marray disasm_opc
-$40 2 2 marray disasm_opc_spezial
-$20 2 2 marray disasm_opc_regimm
-$20 2 2 marray disasm_opc_copzrs
-$20 2 2 marray disasm_opc_copzrt
-$40 2 2 marray disasm_opc_cop0
+$40 2 2array disasm_opc
+$40 2 2array disasm_opc_spezial
+$20 2 2array disasm_opc_regimm
+$20 2 2array disasm_opc_copzrs
+$20 2 2array disasm_opc_copzrt
+$40 2 2array disasm_opc_cop0
 
 : (disasm_print) ( addr addr -- )
   >r dup 1 r@ execute @ rot swap execute

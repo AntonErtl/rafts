@@ -1,4 +1,4 @@
-\ array.fs	simple array words
+\ array.fs	one dimension array words
 \
 \ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
@@ -18,23 +18,49 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+\ allocate an array
+: array_create ( u  -- )
+  , ;
+
+\ limit check for an array (cells)
+: 1lims ( u a-addr1 -- a-addr2 )
+  2dup @ >= abort" array: dimension error (index size)" ;
+
+\ use an array (cells)
+: array_does ( u a-addr1 -- a-addr2 )
+  cell+ swap cells + ;
+
 : array_noallot ( u "name" -- )
-  1 marray_noallot ;
+  create
+    array_create
+  does>
+    \ 1lims
+    array_does ;
 
 : array ( u "name" -- )
-  1 marray ;
+  dup array_noallot
+  cells allot ;
+
+\ use an array (chars)
+: carray_does ( u a-addr1 -- a-addr2 )
+  cell+ swap chars + ;
 
 : carray_noallot ( u "name" -- )
-  1 mcarray_noallot ;
+  create
+    array_create
+  does>
+    \ 1lims
+    carray_does ;
 
 : carray ( u "name" -- )
-  1 mcarray ;
+  dup carray_noallot
+  chars allot ;
 
 ?test $0400 [IF]
 cr ." Test for array.fs" cr
 
 6 array adata
-6 carray cadata
+8 carray cadata
 
 : adata_print ( addr -- )
   ." ( " dup hex. ." ) " ? ;
@@ -51,7 +77,7 @@ cr ." Test for array.fs" cr
   234 1 adata !
   345 2 adata !
   456 5 adata !
-  0 adata 2 cells - 8 cells dump
+  0 adata 3 cells - 9 cells dump
 
   0 adata adata_print .s cr
   1 adata adata_print .s cr
@@ -63,31 +89,35 @@ cr ." Test for array.fs" cr
 
   0 adata adata_print .s cr
   1 adata adata_print .s cr
+  2 adata adata_print .s cr
+  5 adata adata_print .s cr
 
-  0 adata 2 cells - 8 cells dump
+  0 adata 3 cells - 9 cells dump
 
   0 cadata cadata_print .s cr
-  5 cadata cadata_print .s cr
-  \ 6 cadata cadata_print .s cr
+  7 cadata cadata_print .s cr
+  \ 8 cadata cadata_print .s cr
 
   123 0 cadata c!
   234 1 cadata c!
   345 2 cadata c!
-  456 5 cadata c!
-  0 cadata 2 cells - 2 cells 6 chars + dump
+  456 7 cadata c!
+  0 cadata 3 cells - 3 cells 8 chars + dump
 
   0 cadata cadata_print .s cr
   1 cadata cadata_print .s cr
   2 cadata cadata_print .s cr
-  5 cadata cadata_print .s cr
+  7 cadata cadata_print .s cr
 
-  6 0 ?do
+  8 0 ?do
     i dup cadata c! loop
 
   0 cadata cadata_print .s cr
   1 cadata cadata_print .s cr
+  2 cadata cadata_print .s cr
+  7 cadata cadata_print .s cr
 
-  0 cadata 2 cells - 2 cells 6 chars + dump ;
+  0 cadata 3 cells - 3 cells 8 chars + dump ;
 adata_test
 
 finish

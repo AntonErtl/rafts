@@ -116,7 +116,8 @@ include node.fs
   tuck node_asm !
   tuck node_rval !
   tuck node_lval !
-  dup inst_nodes_insert_end ;
+  dup ?inst_done 0= if
+    dup inst_nodes_insert_end endif ;
 
 : (asm_lval@) ( node_addr -- node_addr )
   node_lval @ ;
@@ -312,7 +313,7 @@ include grammar.fs
 : inst_pnodes_print ( -- )
   ['] inst_print_node 0 inst_pnodes inst_sequence ;
 
-NULL regs_unused NOP node ' asm_nop over node_asm ! constant inst_nop
+NULL 0 NOP node ' asm_nop over node_asm ! dup inst_done constant inst_nop
 
 : op ( node_addr node_addr op -- node_addr )
 \  assert( dup burm_arity@ 2 = ) \ !!
