@@ -1,12 +1,22 @@
-\ $Id: r3000.disasm.opc.fs,v 1.1 1995/10/06 18:12:54 anton Exp $
+\ r3000.disasm.opc.fs	opcodes for disassembler file (for MIPS R3000)
 \
-\ Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-\ All Rights Reserved.
+\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
-\ $Log: r3000.disasm.opc.fs,v $
-\ Revision 1.1  1995/10/06 18:12:54  anton
-\ Initial revision
+\ This file is part of RAFTS.
 \
+\	RAFTS is free software; you can redistribute it and/or
+\	modify it under the terms of the GNU General Public License
+\	as published by the Free Software Foundation; either version 2
+\	of the License, or (at your option) any later version.
+\
+\	This program is distributed in the hope that it will be useful,
+\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\	GNU General Public License for more details.
+\
+\	You should have received a copy of the GNU General Public License
+\	along with this program; if not, write to the Free Software
+\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 $40 2 2 marray disasm_opc
 $40 2 2 marray disasm_opc_spezial
@@ -28,7 +38,7 @@ $40 2 2 marray disasm_opc_cop0
       1 disasm_opc @ execute endif endif ;
 
 : disasm_dump ( to from -- )
-  swap ?do
+  cr swap ?do
     i dup hex. ." : " disasm_print cr 4 +loop ;
 
 : (disasm_gen) ( name func n addr -- )

@@ -1,35 +1,37 @@
-\ $Id: slist.fs,v 1.1 1995/10/06 18:12:54 anton Exp $
+\ slist.fs	single linked list words
 \
-\ Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-\ All Rights Reserved.
+\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
-\ $Log: slist.fs,v $
-\ Revision 1.1  1995/10/06 18:12:54  anton
-\ Initial revision
+\ This file is part of RAFTS.
 \
+\	RAFTS is free software; you can redistribute it and/or
+\	modify it under the terms of the GNU General Public License
+\	as published by the Free Software Foundation; either version 2
+\	of the License, or (at your option) any later version.
+\
+\	This program is distributed in the hope that it will be useful,
+\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\	GNU General Public License for more details.
+\
+\	You should have received a copy of the GNU General Public License
+\	along with this program; if not, write to the Free Software
+\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 \ data allocation and definitions
 struct
-  1 cells: field slist_data
   1 cells: field slist_next
 end-struct slist_struct
 
-: slist ( -- addr )
-  slist_struct struct-allot ;
-
 \ init function
-: slist_init ( -- addr )
-  slist						\ allocate head
-  dup NIL swap slist_data !
-  dup NIL swap slist_next ! ;
+: slist ( addr -- addr )
+  NIL over slist_next ! ;
 
 \ insert an element
-: slist_insert ( x addr -- addr )
-  slist_next dup @ swap
-  slist						\ allocate (new)
-  dup rot !					\ set next
+: slist_insert ( new-addr old-addr -- new-addr )
+  slist_next dup @ rot
   tuck slist_next !				\ set next (new)
-  tuck slist_data ! ;				\ set data (new)
+  tuck swap ! ;					\ set next (old)
 
 \ deletes an element
 : slist_delete ( addr -- )
@@ -70,7 +72,7 @@ end-struct slist_struct
 
 \ print function
 : slist_print_func ( addr -- )
-  slist_data @ . ;
+  hex. ;
 
 : slist_print ( addr -- )
   ['] slist_print_func swap slist_forall ;
@@ -78,48 +80,67 @@ end-struct slist_struct
 ?test $0800 [IF]
 cr ." Test for slist.fs" cr
 
-variable slist_head
+slist_struct
+  1 cells: field sdata_value
+end-struct sdata_struct
 
-." slist_init: " slist_init slist_head ! .s cr
+: sdata ( -- addr )
+  sdata_struct struct-allot slist
+  NIL over sdata_value ! ;
 
-." slist_insert: " 123 slist_head @ slist_insert
-  dup . slist_data @ . .s cr
-." slist_insert: " 456 slist_head @ slist_insert
-  dup . slist_data @ . .s cr
-." slist_insert: " 789 slist_head @ slist_next @ slist_insert
-  dup . slist_data @ . .s cr
-." slist_size: " slist_head @ slist_size . .s cr
-." slist_print: " slist_head @ slist_print .s cr
+: sdata_init ( x -- addr )
+  sdata
+  tuck sdata_value ! ;
 
-: slist_foo1 ( addr -- )
-  -100 swap slist_data +! ;
-." slist_forall: " ' slist_foo1 slist_head @ slist_forall .s cr
-." slist_print: " slist_head @ slist_print .s cr
+: sdata_print_func ( addr -- )
+  ." ( " dup hex. ." ) " sdata_value @ . ;
 
-: slist_foo2 ( addr -- flag )
-  slist_data @ 456 = ;
-: slist_foo02 ( -- )
-  ." slist_find: " ['] slist_foo2 slist_head @ slist_find dup NIL <> if
-    slist_print_func else
+: sdata_print ( addr -- )
+  ['] sdata_print_func swap slist_forall ;
+
+variable sdata_head
+
+." sdata: " sdata sdata_head ! .s cr
+
+." slist_insert: " 123 sdata_init sdata_head @ slist_insert
+  sdata_print_func .s cr
+." slist_insert: " 456 sdata_init sdata_head @ slist_insert
+  sdata_print_func .s cr
+." slist_insert: " 789 sdata_init sdata_head @ slist_next @ slist_insert
+  sdata_print_func .s cr
+." slist_size: " sdata_head @ slist_size . .s cr
+." sdata_print: " sdata_head @ sdata_print .s cr
+
+: sdata_foo1 ( addr -- )
+  -100 swap sdata_value +! ;
+." slist_forall: " ' sdata_foo1 sdata_head @ slist_forall .s cr
+." sdata_print: " sdata_head @ sdata_print .s cr
+
+: sdata_foo2 ( addr -- flag )
+  sdata_value @ 456 = ;
+: sdata_foo02 ( -- )
+  ." slist_find: " ['] sdata_foo2 sdata_head @ slist_find dup NIL <> if
+    sdata_print_func else
     ." not found " drop endif
     .s cr ;
-slist_foo02
+sdata_foo02
 
-: slist_foo3 ( addr -- flag )
-  slist_data @ 356 = ;
-: slist_foo03 ( -- )
-  ." slist_find: " ['] slist_foo3 slist_head @ slist_find dup NIL <> if
-    slist_print_func else
+: sdata_foo3 ( addr -- flag )
+  sdata_value @ 356 = ;
+: sdata_foo03 ( -- )
+  ." slist_find: " ['] sdata_foo3 sdata_head @ slist_find dup NIL <> if
+    sdata_print_func else
     ." not found " drop endif
     .s cr ;
-slist_foo03
+sdata_foo03
 
-." slist_delete: " slist_head @ slist_next @ dup slist_next @ slist_data @ .
+." slist_delete: " sdata_head @ slist_next @ dup slist_next @ sdata_print_func
   slist_delete .s cr
-." slist_size: " slist_head @ slist_size . .s cr
-." slist_print: " slist_head @ slist_print .s cr
+." slist_size: " sdata_head @ slist_size . .s cr
+." sdata_print: " sdata_head @ sdata_print .s cr
 
-." slist_exit: " slist_head @ slist_exit .s cr
+." slist_exit: " sdata_head @ slist_exit .s cr
+." sdata_print: " sdata_head @ sdata_print .s cr
 
 finish
 [THEN]

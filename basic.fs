@@ -1,12 +1,22 @@
-\ $Id: basic.fs,v 1.1 1995/10/06 18:12:53 anton Exp $
+\ basic.fs	basic words
 \
-\ Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-\ All Rights Reserved.
+\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
-\ $Log: basic.fs,v $
-\ Revision 1.1  1995/10/06 18:12:53  anton
-\ Initial revision
+\ This file is part of RAFTS.
 \
+\	RAFTS is free software; you can redistribute it and/or
+\	modify it under the terms of the GNU General Public License
+\	as published by the Free Software Foundation; either version 2
+\	of the License, or (at your option) any later version.
+\
+\	This program is distributed in the hope that it will be useful,
+\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\	GNU General Public License for more details.
+\
+\	You should have received a copy of the GNU General Public License
+\	along with this program; if not, write to the Free Software
+\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 \ Variablen for Datenstackbehandlung
 variable ds_depth
@@ -49,7 +59,7 @@ return_init_stack
 : return_init ( -- )
   rs_size 0 ?do
     i rs_init @
-    dup btree_data @ node_reset drop link-	\ reset the node values
+    dup node_reset drop link-		\ reset the node values
     i rs_data ! loop ;
 
 \ initial a basic block
@@ -66,8 +76,8 @@ return_init_stack
   0 ds_tos !
   0 rs_tor !				\ initial the temp returnstack
   return_init
-  slist_init node_!_list !
-  slist_init node_@_list !
+  NIL inst node_!_list !
+  NIL inst node_@_list !
   inst_init ;
 
 : n_basic ( node-addr -- )
@@ -79,7 +89,7 @@ return_init_stack
   ;
 
 : (basic_stackupdate) ( val register -- )
-  ['] @addiu ['] n_basic node btree inst_insert_end ;
+  ['] @addiu ['] n_basic node inst_insert_end ;
 
 : basic_stackupdate ( n -- )
 ?trace $0100 [IF]
@@ -100,58 +110,56 @@ return_init_stack
     #rp (basic_stackupdate) else
     drop endif ;
 
-: basic_stackdump ( btree-addr-n-1 ... btree-addr-0 -- )
+: basic_stackdump ( node-addr-n-1 ... node-addr-0 -- )
   depth ds_depth @ -
   >r
   r@ ds_tos @ over - swap 0 ?do		\ dump the datastack
 ?trace $0100 [IF]
-    ." STACKDUP:" i . .s cr
+    ." STACKDUMP:" i . .s cr
 [THEN]
     i over + cells rot swap #sp ['] @sw postpone id! inst_insert loop
   drop
   rs_size rs_torstart rs_tor @ + ?do	\ dump the returnstack
     i rs_data @ i rs_init @ over <> if
-      link+ i rs_torstart - cells #rp ['] @sw postpone id! inst_insert else
+      link+ i rs_torstart - cells #rp ['] @sw postpone id!  inst_insert else
       drop endif
     loop
   r> basic_stackupdate ;
 
 \ generate the dependencies between the datastackelements
-: (basic_depends_out) ( btree-addr-found offset val btree-addr -- btree-addr-found offset val )
-  dup btree_data @
-  dup node_type @ ['] n_id@ = if	\ search stack-reads
+: (basic_depends_out) ( node-addr-found offset val node-addr -- node-addr-found offset val )
+  dup dup node_type @ ['] n_id@ = if	\ search stack-reads
     swap >r >r 2dup r@ node_val @ = swap r> node_offset @ = and r> swap if
       >r rot drop r> rot rot else	\ the same stackelement found
       drop endif else			\ the same stackelement not found
     2drop endif ;
 
-: (basic_depends_func) ( btree-addr-found offset val slist-addr -- btree-addr-found )
-  slist_data @
+: (basic_depends_func) ( node-addr-found offset val inst-addr -- node-addr-found )
+  inst_node @
   ['] (basic_depends_out) swap btree_postorder ;
 
-: (basic_depends) ( offset val -- btree-addr-found )
+: (basic_depends) ( offset val -- node-addr-found )
   0 rot rot
   ['] (basic_depends_func) inst_head @ slist_forall
   2drop ;
 
-: basic_depends_out ( btree-addr -- )
-  btree_data @
+: basic_depends_out ( node-addr -- )
   dup node_type @ ['] n_id! = if	\ search stack-writes
     dup node_offset @ over node_val @ (basic_depends) dup 0<> if
-      slist_init tuck slist_insert drop
+      inst NIL inst tuck slist_insert drop
       swap node_depends ! else		\ insert the dependency
       2drop endif else			\ no dependency found
     drop endif ;
 
-: basic_depends_func ( slist-addr -- )
-  slist_data @
+: basic_depends_func ( inst-addr -- )
+  inst_node @
   ['] basic_depends_out swap btree_postorder ;
 
 : basic_depends ( -- )
   ['] basic_depends_func inst_head @ slist_forall ;
 
 \ exit a basic block and generate the code of the basic block
-: basic_exit ( btree-addr-n-1 ... btree-addr-0 -- )
+: basic_exit ( node-addr-n-1 ... node-addr-0 -- )
   basic_stackdump
   basic_depends
 ?trace $0200 [IF]
@@ -168,14 +176,14 @@ return_init_stack
 [THEN]
   ;
 
-: data_stackel ( n -- btree-addr-n-1 ... btree-addr-0 )
+: data_stackel ( n -- node-addr-n-1 ... node-addr-0 )
   dup depth ds_depth @ - swap - 2 -
   dup 0< if
     2dup + >r swap >r negate dup ds_tos +!
-    1+ 1 ?do				\ generate new btree elements for the stackelements
-      ds_tos @ i - cells #sp ['] @lw_nop ['] n_id@ node btree loop
+    1+ 1 ?do				\ generate new node elements for the stackelements
+      ds_tos @ i - cells #sp ['] @lw_nop ['] n_id@ node loop
     r> r>
-    0 ?do				\ put the new btree elements to the right position
+    0 ?do				\ put the new node elements to the right position
       dup roll swap loop
     drop else
     2drop endif ;
@@ -183,10 +191,10 @@ return_init_stack
 ?lit_mode_op [IF]
 : ?data_stackel_literal ( n -- flag )
   true swap 1+ 1 ?do
-    i pick btree_data @ node_type @ ['] n_literal = and loop ;
+    i pick node_type @ ['] n_literal = and loop ;
 [THEN]
 
-: data_stackel_literal ( n -- btree-addr-n-1 ... btree-addr-0 )
+: data_stackel_literal ( n -- node-addr-n-1 ... node-addr-0 )
 ?lit_mode_op [IF]
   >r r@
 [THEN]
@@ -194,7 +202,7 @@ return_init_stack
 ?lit_mode_op [IF]
   r@ ?data_stackel_literal r> swap if
     dup 1+ 1 ?do
-      dup roll btree_data link- @ node_val @ swap loop
+      dup roll link- node_val @ swap loop
     drop true else
     drop false endif
 [THEN]
@@ -203,14 +211,14 @@ return_init_stack
 [THEN]
   ;
 
-: return_stackel_fetch ( n -- btree-addr )
+: return_stackel_fetch ( n -- node-addr )
   rs_torstart rs_tor @ + + rs_data @ ;
 
-: return_stackel_get ( -- btree-addr )
+: return_stackel_get ( -- node-addr )
   0 return_stackel_fetch
   1 rs_tor +! ;
 
-: return_stackel_put ( btree-addr -- )
+: return_stackel_put ( node-addr -- )
   -1 rs_tor +!
   rs_torstart rs_tor @ + rs_data ! ;
 

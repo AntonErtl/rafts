@@ -1,12 +1,22 @@
-\ $Id: primitives.fs,v 1.1 1995/10/06 18:12:53 anton Exp $
+\ primitives.fs	primitive words
 \
-\ Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-\ All Rights Reserved.
+\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
-\ $Log: primitives.fs,v $
-\ Revision 1.1  1995/10/06 18:12:53  anton
-\ Initial revision
+\ This file is part of RAFTS.
 \
+\	RAFTS is free software; you can redistribute it and/or
+\	modify it under the terms of the GNU General Public License
+\	as published by the Free Software Foundation; either version 2
+\	of the License, or (at your option) any later version.
+\
+\	This program is distributed in the hope that it will be useful,
+\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\	GNU General Public License for more details.
+\
+\	You should have received a copy of the GNU General Public License
+\	along with this program; if not, write to the Free Software
+\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 : ['Forth] ( "name" -- )
   postpone vForth postpone ['] postpone vsource ; immediate restrict
@@ -30,12 +40,12 @@
   2 data_stackel vForth swap vsource ; immediate restrict
 
 : pick ( xu ... x1 x0 u -- xu ... x1 x0 xu ) \ PROBLEM
-  1 data_stackel dup btree_data @ dup node_type @ ['] n_literal = if
+  1 data_stackel dup dup node_type @ ['] n_literal = if
     nip node_val @ >r r@ 1+ data_stackel r> pick link+ else
     drop basic_exit ['Forth] pick compile, basic_init endif ; immediate restrict
 
 : roll ( xu xu-1 ... x0 u -- xu-1 ... x0 xu ) \ PROBLEM
-  1 data_stackel dup btree_data @ dup node_type @ ['] n_literal = if
+  1 data_stackel dup dup node_type @ ['] n_literal = if
     nip node_val @ >r r@ 1+ data_stackel r> roll else
     drop basic_exit ['Forth] roll compile, basic_init endif ; immediate restrict
 
@@ -55,7 +65,7 @@
   vtarget_compile 3 postpone lit postpone roll 3 postpone lit postpone roll vsource ; immediate restrict
 
 : ?dup ( x -- 0 | x x ) \ PROBLEM
-  1 data_stackel dup btree_data @ dup node_type @ ['] n_literal = if
+  1 data_stackel dup dup node_type @ ['] n_literal = if
     node_val @ 0<> if
       dup link+ endif else
     drop basic_exit ['Forth] ?dup compile, basic_init endif ; immediate restrict
@@ -329,30 +339,30 @@
 >target_compile
 : @ ( addr -- addr )
   1 data_stackel @zero @zero ['] @@ postpone uop
-  node_!_list @ over btree_data @ node_depends !
-  dup node_@_list @ slist_insert drop ; immediate restrict
+  node_!_list @ over node_depends !
+  dup node_@_list @ inst slist_insert drop ; immediate restrict
 
 : ! ( addr addr -- )
   2 data_stackel @zero @zero ['] @! postpone opn
-  node_@_list @ over btree_data @ node_depends !
-  slist_init node_!_list !
-  slist_init node_@_list !
-  dup node_!_list @ slist_insert drop
-  dup node_@_list @ slist_insert drop
+  node_@_list @ over node_depends !
+  NIL inst node_!_list !
+  NIL inst node_@_list !
+  dup inst node_!_list @ slist_insert drop
+  dup inst node_@_list @ slist_insert drop
   inst_insert ; immediate restrict
 
 : c@ ( addr -- addr )
   1 data_stackel @zero @zero ['] @c@ postpone uop
-  node_!_list @ over btree_data @ node_depends !
-  dup node_@_list @ slist_insert drop ; immediate restrict
+  node_!_list @ over node_depends !
+  dup node_@_list @ inst slist_insert drop ; immediate restrict
 
 : c! ( addr addr -- )
   2 data_stackel @zero @zero ['] @c! postpone opn
-  node_@_list @ over btree_data @ node_depends !
-  slist_init node_!_list !
-  slist_init node_@_list !
-  dup node_!_list @ slist_insert drop
-  dup node_@_list @ slist_insert drop
+  node_@_list @ over node_depends !
+  NIL inst node_!_list !
+  NIL inst node_@_list !
+  dup inst node_!_list @ slist_insert drop
+  dup inst node_@_list @ slist_insert drop
   inst_insert ; immediate restrict
 
 : rdrop ( addr -- )
@@ -431,7 +441,7 @@ create text_data
     bl i c! loop
   2dup text_data !
   2>r place
-  2r> tuck - cacheflush ;
+  2r> tuck - flush-icache ;
 
 : (.")
   count type ;

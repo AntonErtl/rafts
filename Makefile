@@ -1,24 +1,35 @@
-# $Id: Makefile,v 1.1 1995/10/06 18:12:53 anton Exp $
+# Makefile	makefile for testoutputs
 #
-# Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-# All Rights Reserved.
+# Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 #
-# $Log: Makefile,v $
-# Revision 1.1  1995/10/06 18:12:53  anton
-# Initial revision
+# This file is part of RAFTS.
 #
+#	RAFTS is free software; you can redistribute it and/or
+#	modify it under the terms of the GNU General Public License
+#	as published by the Free Software Foundation; either version 2
+#	of the License, or (at your option) any later version.
+#
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, write to the Free Software
+#	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+DIR		= examples
 
 FORTH		= gforth
 FORTH_FILE	= compiler.fs
-FORTH_FILE_T	= compilert.fs
-FORTH_FILE.p	= pperf.fs
+FORTH_FILE.p	= $(DIR)/pperf.fs
 TIME		= time
 DIFF		= diff
 
 COMPILER	= compiler.fs options.fs \
 		  mips/r3000.asm.fs mips/r3000.asm.opc.fs regs.fs \
 		  mips/r3000.disasm.fs mips/r3000.disasm.opc.fs \
-		  node.fs dataflow.fs basic.fs func.fs cacheflush.fs \
+		  node.fs dataflow.fs basic.fs func.fs \
 		  primitives.fs control.fs primitives_ext.fs \
 		  inst-selection.fs inst-scheduling.fs \
 		  stdlib/stdlib.fs stdlib/marray.fs stdlib/array.fs \
@@ -26,7 +37,7 @@ COMPILER	= compiler.fs options.fs \
 		  stdlib/stack.fs stdlib/btree.fs stdlib/string.fs
 
 %.dmp:		%.fs $(COMPILER)
-		$(FORTH) $(FORTH_FILE) $(FORTH_FILE) $< >$@
+		$(FORTH) $(FORTH_FILE) $(FORTH_FILE) $< >$@ 2>&1
 %.p1:		%.fs $(COMPILER)
 		$(TIME) $(FORTH) $(FORTH_FILE) $(FORTH_FILE) $< >$@ 2>&1
 %.p2:		%.fs $(COMPILER)
@@ -35,33 +46,20 @@ COMPILER	= compiler.fs options.fs \
 		-$(DIFF) $^ >$@
 .SUFFIXES:	.dmp .p1 .p2 .diff
 
-DIR		= examples
-FILES		= $(DIR)/dmp0.fs $(DIR)/dmp1.fs \
-		  $(DIR)/dmp2.fs $(DIR)/dmp3.fs \
-  		  $(DIR)/dmp4.fs $(DIR)/dmp5.fs \
-  		  $(DIR)/s.fs $(DIR)/ss.fs \
-		  $(DIR)/sss.fs $(DIR)/ssss.fs
+FILES		= $(wildcard $(DIR)/dmp*.fs) \
+		  $(wildcard $(DIR)/s*.fs)
 DMP		= $(FILES:.fs=.dmp)
 FILES.p1	= $(FILES:.fs=.p1)
 FILES.p2	= $(FILES:.fs=.p2)
 DIFFS		= $(FILES:.fs=.diff)
 
 all:		$(DMP)
-alldiff:	$(FILES.p1) $(FILES.p2) $(DIFFS)
-clean:
-		$(RM) $(DMP) $(DIFFS) $(FILES.p1) $(FILES.p2)
+clean:	
+		$(RM) $(DMP)
 
-DIR.p		= performance
-PERFS		= $(DIR.p)/perf.fact1.fs $(DIR.p)/perf.fact2.fs \
-		  $(DIR.p)/perf.fib1.fs $(DIR.p)/perf.fib2.fs \
-		  $(DIR.p)/perf.prim1.fs
-PERFS.p1	= $(PERFS:.fs=.p1)
-PERFS.p2	= $(PERFS:.fs=.p2)
-PERFS.diff	= $(PERFS:.fs=.diff)
+diff:		$(FILES.p1) $(FILES.p2) $(DIFFS)
+diffclean:
+		$(RM) $(FILES.p1) $(FILES.p2) $(DIFFS)
 
-perf:		$(PERFS.p1) $(PERFS.p2) $(PERFS.diff)
-perfclean:
-		$(RM) $(PERFS.p1) $(PERFS.p2) $(PERFS.diff)
-
-distclean:	clean perfclean
+distclean:	clean diffclean
 		$(RM) *.dmp *.p1 *.p2 *.diff

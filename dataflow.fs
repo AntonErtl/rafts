@@ -1,12 +1,22 @@
-\ $Id: dataflow.fs,v 1.1 1995/10/06 18:12:53 anton Exp $
+\ dataflow.fs	dataflow words
 \
-\ Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-\ All Rights Reserved.
+\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
-\ $Log: dataflow.fs,v $
-\ Revision 1.1  1995/10/06 18:12:53  anton
-\ Initial revision
+\ This file is part of RAFTS.
 \
+\	RAFTS is free software; you can redistribute it and/or
+\	modify it under the terms of the GNU General Public License
+\	as published by the Free Software Foundation; either version 2
+\	of the License, or (at your option) any later version.
+\
+\	This program is distributed in the hope that it will be useful,
+\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\	GNU General Public License for more details.
+\
+\	You should have received a copy of the GNU General Public License
+\	along with this program; if not, write to the Free Software
+\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 >target_compile
 : [ ( -- )
@@ -38,7 +48,7 @@
   regs_print
 [THEN]
   cs_depth 0<> abort" unstructured"
-  last @ here over - cacheflush ; immediate restrict
+  last @ here over - flush-icache ; immediate restrict
 >source
 
 include primitives.fs

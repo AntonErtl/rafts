@@ -1,48 +1,57 @@
-\ $Id: inst-scheduling.fs,v 1.1 1995/10/06 18:12:53 anton Exp $
+\ inst-scheduling.fs	instruction scheduling words
 \
-\ Copyright (c) 1994 Christian PIRKER (pirky@mips.complang.tuwien.ac.at)
-\ All Rights Reserved.
+\ Copyright (C) 1995-96 Martin Anton Ertl, Christian Pirker
 \
-\ $Log: inst-scheduling.fs,v $
-\ Revision 1.1  1995/10/06 18:12:53  anton
-\ Initial revision
+\ This file is part of RAFTS.
 \
+\	RAFTS is free software; you can redistribute it and/or
+\	modify it under the terms of the GNU General Public License
+\	as published by the Free Software Foundation; either version 2
+\	of the License, or (at your option) any later version.
+\
+\	This program is distributed in the hope that it will be useful,
+\	but WITHOUT ANY WARRANTY; without even the implied warranty of
+\	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\	GNU General Public License for more details.
+\
+\	You should have received a copy of the GNU General Public License
+\	along with this program; if not, write to the Free Software
+\	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-: (inst_dec) ( btree-addr -- )
-  btree_data @ node_reg @ regs_dec ;
+: (inst_dec) ( node-addr -- )
+  node_reg @ regs_dec ;
 
-: inst_dec ( btree-addr -- )
+: inst_dec ( node-addr -- )
   ['] (inst_dec) swap btree_postorder ;
 
-: inst_check ( btree-addr -- flag )
-  dup btree_data @ dup node_type @ ['] n_id! = if
-    swap btree_right @ btree_data @ dup node_type @ ['] n_id@ = if
+: inst_check ( node-addr -- flag )
+  dup dup node_type @ ['] n_id! = if
+    swap btree_right @ dup node_type @ ['] n_id@ = if
       dup node_offset @ swap node_pointer @
       rot dup node_offset @ swap node_pointer @
       rot = rot rot = and else
       2drop false endif else
     2drop false endif ;
 
-: inst_depends_func ( slist-addr -- flag )
-  slist_data @
+: inst_depends_func ( inst-addr -- flag )
+  inst_node @
 ?trace $0040 [IF]
   ." INST_DEPENDS:" dup hex. cr
 [THEN]
-  btree_data @ ?inst_done ;
+  ?inst_done ;
 
-: inst_depends ( slist-addr -- slist-addr )
+: inst_depends ( inst-addr -- inst-addr )
 ?trace $0040 [IF]
   ." inst_depends:" dup hex. ." ;" dup inst_print_depends cr
 [THEN]
   dup 0<> if
     ['] inst_depends_func swap slist_find dup 0<> if
-      slist_data @ endif endif ;
+      inst_node @ endif endif ;
 
-: inst_scheduling_out ( btree-addr -- )
-  btree_data @
+: inst_scheduling_out ( node-addr -- )
   dup node_type @ execute ;
 
-: inst_scheduling_postorder ( xt btree-addr -- )
+: inst_scheduling_postorder ( xt node-addr -- )
 ?trace $0040 [IF]
   ." scheduling:" hex.rs hex.s cr
 [THEN]
@@ -50,11 +59,11 @@
 ?trace $0040 [IF]
     ." SCHEDULING" hex.s cr
 [THEN]
-    dup btree_data @ node_reg @ 0<> if
+    dup node_reg @ 0<> if
 ?trace $0040 [IF]
       ." regs opt:" hex.s cr
 [THEN]
-      dup btree_data @ node_link @ 0<> if
+      dup node_link @ 0<> if
 ?trace $0040 [IF]
     hex ." regs link opt:" hex.s cr decimal
 [THEN]
@@ -66,7 +75,7 @@
         ." stack opt:" hex.s cr
 [THEN]
         dup btree_right @ link-
-        btree_data @ node_reg @ dup 0<> if
+        node_reg @ dup 0<> if
 ?trace $0040 [IF]
         ." stack regs opt:" hex.s cr
 [THEN]
@@ -77,7 +86,7 @@
 	  drop endif
         else
         begin
-          dup btree_data @ node_depends @ inst_depends
+          dup node_depends @ inst_depends
 ?trace $0040 [IF]
           ." recurse depends:" hex.s cr
 [THEN]
@@ -111,12 +120,12 @@
         ." }recurse done (right):" hex.rs hex.s cr
 [THEN]
 
-        dup btree_data @ ?inst_done if
+        dup ?inst_done if
           2>r 2r@ nip btree_left @ dup 0<> if
-            btree_data @ inst_reg@ else
+            inst_reg@ else
 	    drop endif
           2r@ nip btree_right @ dup 0<> if
-            btree_data @ inst_reg@ else
+            inst_reg@ else
 	    drop endif
 ?trace $0040 [IF]
           ." used registers:" hex.s cr
@@ -137,8 +146,8 @@
         endif endif endif
   2drop ;
 
-: inst_scheduling_func ( slist-addr -- )
-  slist_data @
+: inst_scheduling_func ( inst-addr -- )
+  inst_node @
   ['] inst_scheduling_out swap inst_scheduling_postorder ;
 
 : inst_scheduling ( -- )
