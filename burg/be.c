@@ -1,4 +1,4 @@
-#ident "@(#)$Id: be.c,v 1.2 1996/08/26 16:54:33 pirky Exp $";
+#ident "@(#)$Id: be.c,v 1.3 1996/09/03 15:01:01 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
@@ -635,12 +635,14 @@ void DEFUN_VOID(makeStringArray)
 		(""));
     }
     SOURCE((""),
-	("%d array_noallot [%s_string]\n  ' %s_string0 ,\n", max_erule_num+1, prefix, prefix));
+	("%d array_noallot [%s_string]\n", max_erule_num+1, prefix));
     for (i = 0; i <= max_erule_num; i++) {
 	if (pVector[i]) {
 	    SOURCE((""),
 		("  ' %s_string%d ,\n", prefix, i));
-	}
+	} else
+	    SOURCE((""),
+		("  ' %s_string0 ,\n", prefix));
     }
     SOURCE(("};\n\n"),
 	(": %s_string ( rule -- )\n  [%s_string] @ execute ;\n\n", prefix, prefix));

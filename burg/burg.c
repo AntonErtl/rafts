@@ -1,8 +1,12 @@
-#ident "@(#)$Id: burg.c,v 1.1 1996/08/14 18:42:25 anton Exp $";
+#ident "@(#)$Id: burg.c,v 1.2 1996/09/03 15:01:02 pirky Exp $";
 
 #include "b.h"
 #include "fe.h"
+#ifdef	HAVE_GETOPT_H
 #include <getopt.h>
+#else
+#include "getopt.h"
+#endif
 
 int debugTables = 0;
 static int simpleTables = 0;

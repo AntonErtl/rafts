@@ -1,5 +1,5 @@
 /*
-#ident "@(#)$Id: b.h,v 1.1 1996/08/14 18:46:23 anton Exp $"
+#ident "@(#)$Id: b.h,v 1.2 1996/09/03 15:01:00 pirky Exp $"
  */
 
 #ifndef _B_H
@@ -8,7 +8,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#ifdef	 HAVE_ANSIDECL_H
 #include <ansidecl.h>
+#else
+#include "ansidecl.h"
+#endif
 #include <malloc.h>
 #include <string.h>
 #include <math.h>
