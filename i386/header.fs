@@ -78,7 +78,7 @@ create dodoes:
 
 : (word-init) ( -- )
     here info-head-size tuck cells + a,
-    ['] compile-native a,
+    ['] compile,-native a,
     2 ?do
 	0 a,
     loop ;
