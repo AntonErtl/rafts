@@ -19,7 +19,7 @@
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 : ?shared ( "name" -- flag )
-  bl word find nip 0= ;
+    bl word find nip 0= ;
 
 : ?word-mode-direct ( -- flag )
     threading-method 0= ; immediate

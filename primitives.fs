@@ -20,12 +20,22 @@
 
 >target
 
+>source
+: compile,-literal ( x -- D: addr )
+    lit >data ; compile-only
+>target
+
+: literal ( x -- )
+    1 0 word-good word-regs-adjust
+    [ also Forth ' lit previous ] literal gforth-compile, ,
+    [comp'] compile,-literal drop gforth-compile, ; immediate compile-only
+
 \ stack primitives
 >source
 also vtarget
-:word pick
-:word roll
-\ :word dup?
+word-good 1 -1 :word pick
+word-good 1 -1 :word roll
+\ word-bad 1 -1 :word dup?
 previous
 
 : compile,-drop					( addr -- ) ( D: x1 -- )
@@ -34,6 +44,9 @@ previous
 : compile,-dup					( addr -- ) ( D: x1 -- x1 x1 )
     drop
     data> dup >data >data ;
+: compile,-swap					( addr -- ) ( D: x1 x2 -- x2 x1 )
+    drop
+    data> data> swap >data >data ;
 : compile,-over					( addr -- ) ( D: x1 x2 -- x1 x2 x1 )
     drop
     data> data> dup >data swap >data >data ;
@@ -42,10 +55,7 @@ previous
     data> data> data> rot rot >data >data >data ;
 : compile,--rot					( addr -- ) ( D: x1 x2 x3 -- x2 x3 x1 )
     drop
-    data> data> data> rot >data >data >data ;
-: compile,-swap					( addr -- ) ( D: x1 x2 -- x2 x1 )
-    drop
-    data> data> swap >data >data ;
+    0 compile,-rot 0 compile,-rot ;
 : compile,-nip					( addr -- ) ( D: x1 x2 -- x2 ) 
     drop
     0 compile,-swap 0 compile,-drop ;
@@ -86,18 +96,18 @@ false [IF]
 
 >target
 
-' compile,-drop		:: drop			( x -- )
-' compile,-dup		:: dup			( x -- x x )
-' compile,-over		:: over			( x1 x2 -- x1 x2 x1 )
-' compile,-rot		:: rot			( x1 x2 x3 -- x2 x3 x1 )
-' compile,--rot		:: -rot			( x1 x2 x3 -- x2 x3 x1 )
-' compile,-swap		:: swap			( x1 x2 -- x2 x1 )
-' compile,-tuck		:: tuck			( x1 x2 -- x2 x1 x2 )
-' compile,-nip		:: nip			( x1 x2 -- x1 )
-' compile,-pick		:: pick			( xu ... x1 x0 u -- xu ... x1 x0 xu )
-' compile,-roll		:: roll			( xu xu-1 ... x0 u -- xu-1 ... x0 xu )
+0 -1 ' compile,-drop	:: drop			( x -- )
+2 -1 ' compile,-dup	:: dup			( x -- x x )
+2 -2 ' compile,-swap	:: swap			( x1 x2 -- x2 x1 )
+3 -2 ' compile,-over	:: over			( x1 x2 -- x1 x2 x1 )
+3 -3 ' compile,-rot	:: rot			( x1 x2 x3 -- x2 x3 x1 )
+3 -3 ' compile,--rot	:: -rot			( x1 x2 x3 -- x2 x3 x1 )
+3 -2 ' compile,-tuck	:: tuck			( x1 x2 -- x2 x1 x2 )
+1 -2 ' compile,-nip	:: nip			( x1 x2 -- x1 )
+1 -1 ' compile,-pick	:: pick			( xu ... x1 x0 u -- xu ... x1 x0 xu )
+1 -1 ' compile,-roll	:: roll			( xu xu-1 ... x0 u -- xu-1 ... x0 xu )
 false [IF]
-' compile,-?dup		:: ?dup			( x1 x2 -- x2 x1 )
+0 -1 ' compile,-?dup	:: ?dup			( x1 x2 -- x2 x1 )
 [THEN]
 
 \ primitives
@@ -132,22 +142,22 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
 >target
 
 \ I_ binop-primitive
-' compile,-+		:: +			( n1|u1 n2|u2 -- n3|u3 )
-' compile,--		:: -			( n1|u1 n2|u2 -- n3|u3 )
-' compile,-*		:: *			( n1|u1 n2|u2 -- n3|u3 )
-' compile,-/		:: /			( n1 n2 -- n3 )
-' compile,-mod		:: mod			( n1 n2 -- n3 )
-' compile,-lshift	:: lshift		( x1 u -- x2 )
-' compile,-lshifta	:: lshifta		( x1 u -- x2 )
-' compile,-rshift	:: rshift		( x1 u -- x2 )
-' compile,-rshifta	:: rshifta		( x1 u -- x2 )
-' compile,-and		:: and			( x1 x2 -- x3 )
-' compile,-or		:: or			( x1 x2 -- x3 )
-' compile,-xor		:: xor			( x1 x2 -- x3 )
+1 -2 ' compile,-+	:: +			( n1|u1 n2|u2 -- n3|u3 )
+1 -2 ' compile,--	:: -			( n1|u1 n2|u2 -- n3|u3 )
+1 -2 ' compile,-*	:: *			( n1|u1 n2|u2 -- n3|u3 )
+1 -2 ' compile,-/	:: /			( n1 n2 -- n3 )
+1 -2 ' compile,-mod	:: mod			( n1 n2 -- n3 )
+1 -2 ' compile,-lshift	:: lshift		( x1 u -- x2 )
+1 -2 ' compile,-lshifta	:: lshifta		( x1 u -- x2 )
+1 -2 ' compile,-rshift	:: rshift		( x1 u -- x2 )
+1 -2 ' compile,-rshifta	:: rshifta		( x1 u -- x2 )
+1 -2 ' compile,-and	:: and			( x1 x2 -- x3 )
+1 -2 ' compile,-or	:: or			( x1 x2 -- x3 )
+1 -2 ' compile,-xor	:: xor			( x1 x2 -- x3 )
 
 \ I_ unop-primitive
-' compile,-negate	:: negate		( n1 -- n2 )
-' compile,-invert	:: invert		( x1 -- x2 )
+1 -1 ' compile,-negate	:: negate		( n1 -- n2 )
+1 -1 ' compile,-invert	:: invert		( x1 -- x2 )
 
 >source
 : compile,-=					( addr -- ) ( D: x1 x2 -- x3 )
@@ -200,22 +210,22 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
     data> data> I_ULESS op -1 lit I_PLUS op >data ;
 >target
 
-' compile,-=		:: =			( x1 x2 -- flag )
-' compile,-<>		:: <>			( x1 x2 -- flag )
-' compile,-<		:: <			( n1 n2 -- flag )
-' compile,-<=		:: <=			( n1 n2 -- flag )
-' compile,->		:: >			( n1 n2 -- flag )
-' compile,->=		:: >=			( n1 n2 -- flag )
-' compile,-0=		:: 0=			( x -- flag )
-' compile,-0<>		:: 0<>			( x -- flag )
-' compile,-0<		:: 0<			( n -- flag )
-' compile,-0<=		:: 0<=			( n -- flag )
-' compile,-0>		:: 0>			( n -- flag )
-' compile,-0>=		:: 0>=			( n -- flag )
-' compile,-u<		:: u<			( u1 u2 -- flag )
-' compile,-u<=		:: u<=			( u1 u2 -- flag )
-' compile,-u>		:: u>			( u1 u2 -- flag )
-' compile,-u>=		:: u>=			( u1 u2 -- flag )
+1 -2 ' compile,-=	:: =			( x1 x2 -- flag )
+1 -2 ' compile,-<>	:: <>			( x1 x2 -- flag )
+1 -2 ' compile,-<	:: <			( n1 n2 -- flag )
+1 -2 ' compile,-<=	:: <=			( n1 n2 -- flag )
+1 -2 ' compile,->	:: >			( n1 n2 -- flag )
+1 -2 ' compile,->=	:: >=			( n1 n2 -- flag )
+1 -1 ' compile,-0=	:: 0=			( x -- flag )
+1 -1 ' compile,-0<>	:: 0<>			( x -- flag )
+1 -1 ' compile,-0<	:: 0<			( n -- flag )
+1 -1 ' compile,-0<=	:: 0<=			( n -- flag )
+1 -1 ' compile,-0>	:: 0>			( n -- flag )
+1 -1 ' compile,-0>=	:: 0>=			( n -- flag )
+1 -2 ' compile,-u<	:: u<			( u1 u2 -- flag )
+1 -2 ' compile,-u<=	:: u<=			( u1 u2 -- flag )
+1 -2 ' compile,-u>	:: u>			( u1 u2 -- flag )
+1 -2 ' compile,-u>=	:: u>=			( u1 u2 -- flag )
 
 >source
 : compile,-1+					( addr -- ) ( D: x1 -- x2 )
@@ -252,17 +262,17 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
     0 compile,-1- ;
 >target
 
-' compile,-1+		:: 1+			( n1 -- n2 )
-' compile,-1-		:: 1-			( n1 -- n2 )
-' compile,-2*		:: 2*			( n1 -- n2 )
-' compile,-2/		:: 2/			( n1 -- n2 )
-' compile,-cell		:: cell			( -- n1 )
-' compile,-cells	:: cells		( n1 -- n2 )
-' compile,-cell+	:: cell+		( addr1 -- addr2 )
-' compile,-cell-	:: cell-		( addr1 -- addr2 )
-' compile,-chars	:: chars		( n1 -- n2 )
-' compile,-char+	:: char+		( addr1 -- addr2 )
-' compile,-char-	:: char-		( addr1 -- addr2 )
+1 -1 ' compile,-1+	:: 1+			( n1 -- n2 )
+1 -1 ' compile,-1-	:: 1-			( n1 -- n2 )
+1 -1 ' compile,-2*	:: 2*			( n1 -- n2 )
+1 -1 ' compile,-2/	:: 2/			( n1 -- n2 )
+1  0 ' compile,-cell	:: cell			( -- n1 )
+1 -1 ' compile,-cells	:: cells		( n1 -- n2 )
+1 -1 ' compile,-cell+	:: cell+		( addr1 -- addr2 )
+1 -1 ' compile,-cell-	:: cell-		( addr1 -- addr2 )
+1 -1 ' compile,-chars	:: chars		( n1 -- n2 )
+1 -1 ' compile,-char+	:: char+		( addr1 -- addr2 )
+1 -1 ' compile,-char-	:: char-		( addr1 -- addr2 )
 
 >source
 : compile,-@					( addr -- ) ( D: x1 -- x2 )
@@ -310,14 +320,14 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
     inst-btrees-insert ;
 >target
     
-' compile,-@		:: @			( addr -- x )
-' compile,-!		:: !			( x addr -- )
-' compile,-2@		:: 2@			( addr -- x1 x2 )
-' compile,-2!		:: 2!			( x1 x2 addr -- )
-' compile,-+!		:: +!			( x addr -- )
-' compile,--!		:: -!			( x addr -- )
-' compile,-c@		:: c@			( addr -- x )
-' compile,-c!		:: c!			( x addr -- )
+1 -1 ' compile,-@	:: @			( addr -- x )
+0 -2 ' compile,-!	:: !			( x addr -- )
+2 -1 ' compile,-2@	:: 2@			( addr -- x1 x2 )
+0 -3 ' compile,-2!	:: 2!			( x1 x2 addr -- )
+0 -2 ' compile,-+!	:: +!			( x addr -- )
+0 -2 ' compile,--!	:: -!			( x addr -- )
+1 -1 ' compile,-c@	:: c@			( addr -- x )
+0 -2 ' compile,-c!	:: c!			( x addr -- )
 
 >source
 : compile,->r					( addr -- ) ( D: x -- ) ( R: -- x )
@@ -343,13 +353,13 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
     0 compile,-r> 0 compile,-r> 0 compile,-swap ;
 >target
 
-' compile,->r		:: >r			( x -- ) ( R: -- x )
-' compile,-r@		:: r@			( -- x ) ( R: x -- x )
-' compile,-r>		:: r>			( -- x ) ( R: x -- )
-' compile,-rdrop	:: rdrop		( -- ) ( R: x -- )
-' compile,-2>r		:: 2>r			( x1 x2 -- ) ( R: -- x1 x2 )
-' compile,-2r@		:: 2r@			( -- x1 x2 ) ( R: x1 x2 -- x1 x2 )
-' compile,-2r>		:: 2r>			( -- x1 x2 ) ( R: x1 x2 -- )
+0 -1 ' compile,->r	:: >r			( x -- ) ( R: -- x )
+1  0 ' compile,-r@	:: r@			( -- x ) ( R: x -- x )
+1  0 ' compile,-r>	:: r>			( -- x ) ( R: x -- )
+0  0 ' compile,-rdrop	:: rdrop		( -- ) ( R: x -- )
+0 -2 ' compile,-2>r	:: 2>r			( x1 x2 -- ) ( R: -- x1 x2 )
+2  0 ' compile,-2r@	:: 2r@			( -- x1 x2 ) ( R: x1 x2 -- x1 x2 )
+2  0 ' compile,-2r>	:: 2r>			( -- x1 x2 ) ( R: x1 x2 -- )
 
 : ['] ( "name" -- )
     ' postpone literal ; immediate compile-only
@@ -373,12 +383,24 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
 : compile,-2over				( addr -- ) ( D: x1 x2 x3 x4 -- x1 x2 x3 x4 x1 x2 )
     drop
     0 compile,-2>r 0 compile,-2dup 0 compile,-2r> 0 compile,-2swap ;
+: compile,-2rot					( addr -- ) ( D: x1 x2 x3 x4 x5 x6 -- x3 x4 x5 x6 x1 x2 )
+    drop
+    0 compile,-2>r 0 compile,-2swap 0 compile,-2r> 0 compile,-2swap ;
+: compile,-2tuck				( addr -- ) ( D: x1 x2 x3 x4 -- x3 x4 x1 x2 x3 x4 )
+    drop
+    0 compile,-2dup 0 compile,-2rot 0 compile,-2rot ;
+: compile,-2nip					( addr -- ) ( D: x1 x2 x3 x4 -- x3 x4 )
+    drop
+    0 compile,-2swap 0 compile,-2drop ;
 >target
 
-' compile,-2drop	:: 2drop		( x1 x2  -- )
-' compile,-2dup		:: 2dup			( x1 x2  -- x1 x2 x1 x2 )
-' compile,-2swap	:: 2swap		( x1 x2  x3 x4 -- x3 x4 x1 x2 )
-' compile,-2over	:: 2over		( x1 x2  x3 x4 -- x1 x2 x3 x4 x1 x2)
+0 -2 ' compile,-2drop	:: 2drop		( x1 x2  -- )
+4 -2 ' compile,-2dup	:: 2dup			( x1 x2  -- x1 x2 x1 x2 )
+4 -4 ' compile,-2swap	:: 2swap		( x1 x2  x3 x4 -- x3 x4 x1 x2 )
+6 -4 ' compile,-2over	:: 2over		( x1 x2  x3 x4 -- x1 x2 x3 x4 x1 x2)
+6 -6 ' compile,-2rot	:: 2rot			( x1 x2 x3 x4 x5 x6 -- x3 x4 x5 x6 x1 x2 )
+6 -4 ' compile,-2tuck	:: 2tuck		( x1 x2 x3 x4 -- x3 x4 x1 x2 x3 x4 )
+2 -4 ' compile,-2nip	:: 2nip			( x1 x2 x3 x4 -- x3 x4 )
 
 >source
 : compile,-on					( addr -- ) ( D: x1 -- )
@@ -389,8 +411,8 @@ I_INVERT	unop-prim  compile,-invert	( addr -- ) ( D: x1 -- x2 )
   false compile,-literal 0 compile,-swap 0 compile,-! ;
 >target
 
-' compile,-on		:: on			( addr -- )
-' compile,-off		:: off			( addr -- )
+0 -1 ' compile,-on	:: on			( addr -- )
+0 -1 ' compile,-off	:: off			( addr -- )
 
 >source
 \ Variablen fuer Stringbehandlung
@@ -413,7 +435,7 @@ create text-data
     2r> tuck - flush-icache ;
 >target
 
-also vtarget :word type previous
+word-good 0 0 also vtarget :word type previous
 
 >source
 : gforth-s" ( "string"<"> -- )
@@ -436,7 +458,7 @@ also vtarget :word type previous
     endif ;
 >target
 
-also vtarget :word (compile,-abort") previous
+word-good 0 0 also vtarget :word (compile,-abort") previous
 
 >source
 : compile,-abort" ( addr -- )
@@ -477,7 +499,7 @@ also vtarget :word (compile,-abort") previous
     printdebugdata cr ;
 >target
 
-also vtarget :word (~~) previous
+word-good 0 0 also vtarget :word (~~) previous
 
 : ~~ ( -- )
     sourcepos,
@@ -497,7 +519,7 @@ also vtarget :word (~~) previous
     endif ;
 >target
 
-also vtarget :word (endassert) previous
+word-good 0 0 also vtarget :word (endassert) previous
 
 : assert0( ( -- )
     0 assertn ; immediate

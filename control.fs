@@ -18,12 +18,21 @@
 \	along with this program; if not, write to the Free Software
 \	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+variable dead-code
+dead-code off
+
+: unreachable ( -- )
+    dead-code on ;
+
+: assume-live ( -- )
+    dead-code off ;
+
 : compile-forward-branch ( il -- )
     0 over il-reg !
     NULL over il-val !
     inst-btrees-insert-end
     basic-exit
-    branch-info 2@ drop >control
+    branch-info 2@ drop 0 0 >control
     ?trace $0010 [IF]
 	." forward branch " .cs cr
     [THEN]
@@ -33,26 +42,76 @@
     data> I_0BRANCH uop
     compile-forward-branch ;
 
+: intermediate-if ( flag -- )
+    0 -1 word-good word-regs-adjust
+    word-regs-get >control
+    ?trace $0010 [IF]
+	." IF: "
+	word-regs-print .cs cr
+    [THEN]
+    ;
+
 : compile,-ahead ( -- ) ( C: -- orig )
     0 0 I_BRANCH terminal
     compile-forward-branch ;
+
+: intermediate-ahead ( -- )
+    word-regs-get >control
+    unreachable
+    ?trace $0010 [IF]
+	." AHEAD: "
+	word-regs-print .cs cr
+    [THEN]
+    ;
 
 : compile,-then ( -- ) ( C: orig -- )
     basic-exit
     ?trace $0010 [IF]
 	." then " hex.s .cs cr
     [THEN]
-    here control> back-patch-beq
+    here control> 2drop back-patch-beq
     basic-init ;
+
+: intermediate-then ( -- )
+    control>
+    dead-code @ if
+	?trace $0010 [IF]
+	    ." UNREACHABLE (then):" cr
+	[THEN]
+	dead-code off
+    else
+	>r word-regs-get >r
+	2over 2over + rot rot +
+	?trace $0010 [IF]
+	    ." REACHABLE (then):"
+	    2dup . . cr
+	[THEN]
+	<> if
+	    ?trace $0010 [IF]
+		." stackdepth different (then) !!!" cr
+	    [THEN]
+	endif
+	word-regs-max
+	2r> or
+    endif
+    word-regs-put
+    ?trace $0010 [IF]
+	." THEN: "
+	word-regs-print .cs cr
+    [THEN]
+    ;
 >target
 
 : if ( flag -- )
+    intermediate-if
     ['] compile,-if gforth-compile, ; immediate compile-only
 
 : ahead ( -- )
+    intermediate-ahead
     ['] compile,-ahead gforth-compile, ; immediate compile-only
 
 : then ( -- )
+    intermediate-then
     ['] compile,-then gforth-compile, ; immediate compile-only
 
 : endif ( -- )
@@ -62,54 +121,131 @@
 
 : else ( -- )
     vtarget
-    postpone ahead
-    1 cs-roll
-    postpone then
+    postpone ahead 1 cs-roll postpone then
     vsource ; immediate compile-only
 
 >source
 : compile,-begin ( -- ) ( C: -- dest )
     basic-exit
-    here >control
+    here 0 0 >control
     ?trace $0010 [IF]
 	." begin " .cs cr
     [THEN]
     basic-init ;
+
+: intermediate-begin ( -- )
+    word-regs-get >control
+    ?trace $0010 [IF]
+	." BEGIN: "
+	word-regs-print .cs cr
+    [THEN]
+    ;
 
 : compile,-again ( -- ) ( C: dest -- )
     ?trace $0010 [IF]
 	." again " .cs cr
     [THEN]
     0 0 I_BRANCH terminal 0 over il-reg !
-    control> over il-val ! inst-btrees-insert-end
+    control> 2drop over il-val ! inst-btrees-insert-end
     basic-exit
     basic-init ;
+
+: intermediate-again ( -- )
+    control>
+    dead-code @ if
+	?trace $0010 [IF]
+	    ." UNREACHABLE (again):" cr
+	[THEN]
+	dead-code off
+    else
+	>r word-regs-get >r
+	2over 2over + rot rot +
+	?trace $0010 [IF]
+	    ." REACHABLE (again):"
+	    2dup . . cr
+	[THEN]
+	<> if
+	    ?trace $0010 [IF]
+		." stackdepth different (again) !!!" cr
+	    [THEN]
+	endif
+	word-regs-max
+	2r> or
+    endif
+    word-regs-put
+    ?trace $0010 [IF]
+	." AGAIN: "
+	word-regs-print .cs cr
+    [THEN]
+    unreachable
+    ;
 
 : compile,-until ( flag -- ) ( C: dest -- )
     ?trace $0010 [IF]
 	." until " .cs cr
     [THEN]
     data> I_0BRANCH uop 0 over il-reg !
-    control> over il-val ! inst-btrees-insert-end
+    control> 2drop over il-val ! inst-btrees-insert-end
     basic-exit
     basic-init ;
+
+: intermediate-until ( flag -- )
+    0 -1 word-good word-regs-adjust
+    control>
+    dead-code @ if
+	?trace $0010 [IF]
+	    ." UNREACHABLE (until):" cr
+	[THEN]
+	dead-code off
+    else
+	>r word-regs-get >r
+	2over 2over + rot rot +
+	?trace $0010 [IF]
+	    ." REACHABLE (until):"
+	    2dup . . cr
+	[THEN]
+	<> if
+	    ?trace $0010 [IF]
+		." stackdepth different (until) !!!" cr
+	    [THEN]
+	endif
+	word-regs-max
+	2r> or
+    endif
+    word-regs-put
+    ?trace $0010 [IF]
+	." UNTIL: "
+	word-regs-print .cs cr
+    [THEN]
+    ;
 >target
 
 : begin ( -- )
+    intermediate-begin
     ['] compile,-begin gforth-compile, ; immediate compile-only
 
 : again ( -- )
+    intermediate-again
     ['] compile,-again gforth-compile, ; immediate compile-only
 
 : until ( flag -- )
+    intermediate-until
     ['] compile,-until gforth-compile, ; immediate compile-only
 
 : while ( flag -- ) ( C: dest -- \rig dest )
+    ?trace $0010 [IF]
+	." WHILE: "
+	word-regs-print .cs cr
+    [THEN]
     vtarget
     postpone if 1 cs-roll
     vsource ; immediate compile-only
 
 : repeat ( -- ) ( C: orig dest -- )
+    ?trace $0010 [IF]
+	." REPEAT: "
+	word-regs-print .cs cr
+    [THEN]
     vtarget
     postpone again postpone then
     vsource ; immediate compile-only
@@ -123,6 +259,7 @@
 >target
 
 : exit ( -- )
+    unreachable
     ['] compile,-exit gforth-compile, ; immediate compile-only
 
 >source
@@ -140,33 +277,52 @@ ls-size array ls-data
     ls-tos @ ls-data @ ;
 
 : compile,-leave ( -- ) ( C: -- ) ( L: -- orig )
-    control> >leave ;
+    control> 2drop >leave ;
 
 : compile,-leave-init ( -- )
+    0 >leave ;
+
+: intermediate-leave-init ( -- )
     0 >leave ;
 
 : compile,-leave-exit ( -- )
     begin
 	leave> dup 0<>
     while
-	>control
+	0 0 >control
 	compile,-then
+    repeat
+    drop ;
+
+: intermediate-leave-exit ( -- )
+    begin
+	leave> dup 0<>
+    while
+	drop
+	intermediate-then
     repeat
     drop ;
 >target
 
 : leave ( -- ) ( C: -- ) ( L: -- orig )
+    here >leave
     vtarget
     postpone ahead
     vsource
     ['] compile,-leave gforth-compile, ; immediate compile-only
 
+: leave-init ( -- )
+    intermediate-leave-init
+    ['] compile,-leave-init gforth-compile, ; immediate compile-only
+
+: leave-exit ( -- )
+    intermediate-leave-exit
+    ['] compile,-leave-exit gforth-compile, ; immediate compile-only
+
 : do ( to from -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- to from )
     vtarget
     postpone swap postpone >r postpone >r
-    vsource
-    ['] compile,-leave-init gforth-compile,
-    vtarget
+    postpone leave-init
     postpone begin
     vsource ; immediate compile-only
 
@@ -178,18 +334,14 @@ ls-size array ls-data
 : loop ( -- ) ( C: dest -- ) ( L: 0 destu ... dest0 -- ) ( R: to from -- )
     vtarget
     postpone r> 1 postpone literal postpone + postpone dup postpone r@ postpone = postpone swap postpone >r postpone until
-    vsource
-    ['] compile,-leave-exit gforth-compile,
-    vtarget
+    postpone leave-exit
     postpone unloop
     vsource ; immediate compile-only
 
 : ?do ( to from -- ) ( C: -- dest ) ( L: -- 0 ) ( R: -- to from )
     vtarget
     postpone over postpone >r postpone dup postpone >r
-    vsource
-    ['] compile,-leave-init gforth-compile,
-    vtarget
+    postpone leave-init
     postpone = postpone if
     postpone leave postpone then
     postpone begin
@@ -200,9 +352,7 @@ ls-size array ls-data
     postpone dup postpone r> postpone dup postpone r@ postpone - postpone swap postpone rot postpone + postpone >r
     postpone over postpone over postpone swap postpone over postpone + postpone xor postpone 0<=
     postpone rot postpone rot postpone xor postpone 0<= postpone and postpone until
-    vsource
-    ['] compile,-leave-exit gforth-compile,
-    vtarget
+    postpone leave-exit
     postpone unloop
     vsource ; immediate compile-only
 
@@ -222,30 +372,30 @@ ls-size array ls-data
     vsource ; immediate compile-only
 
 : case ( -- ) ( C: -- 0 )
-    0 >control ; immediate compile-only
+    0 0 0 >control ; immediate compile-only
 
 : of ( x1 x2 -- | x1 ) ( C: u -- orig u+1 )
-    control> 1+ >r
+    control> rot 1+ rot rot 2>r >r
     ?trace $0010 [IF]
 	." of:" hex.s cr
     [THEN]
     vtarget
     postpone over postpone = postpone if postpone drop
     vsource
-    r> >control ; immediate compile-only
+    r> 2r> >control ; immediate compile-only
 
 : endof ( -- ) ( C: orig1 u -- orig2 u )
-    control> >r
+    control> 2>r >r
     vtarget
     postpone else
     vsource
-    r> >control ; immediate compile-only
+    r> 2r> >control ; immediate compile-only
 
 : endcase ( x -- ) ( C: destu ... dest0 u -- )
     vtarget
     postpone drop
     vsource
-    control> 0 ?do
+    control> 2drop 0 ?do
 	vtarget
 	postpone then
 	vsource
@@ -254,7 +404,7 @@ ls-size array ls-data
 >source
 : compile,-recurse ( -- )
     basic-exit basic-init
-    lastxt info-cfhead-size - imm-compile, ;
+    lastxt ih-cfsize - imm-compile, ;
 >target
 
 : recurse ( -- )
@@ -270,12 +420,13 @@ create does-addr
     cell does-addr +! ;
 
 : !does ( addr -- )
+    word-regs-init dup word-regs-read lastih word-regs-write
     ?word-mode-direct [IF]
 	2 rshift $1a asm-bitmask and $08000000 or
     [THEN]
-    lastcfa @ tuck !
+    lastxt tuck !
     3cells + ['] compile,-does swap !
-    here last @ tuck - flush-icache ;
+    here lastxt tuck - flush-icache ;
 
 : dodoes, ( -- )
     dodoes:
@@ -287,10 +438,11 @@ create does-addr
     nop, ;
 
 : ;dodoes ( n -- )
-    does-addr + @ !does ;
+    does-addr + @
+    !does ;
 >target
 
-also vtarget :word ;dodoes previous
+word-good 0 0 also vtarget :word ;dodoes previous
 
 >source
 : compile,-does> ( -- )
@@ -298,11 +450,15 @@ also vtarget :word ;dodoes previous
     vtarget ['] ;dodoes vsource imm-compile,
     compile,-word-exit-check
     here does-addr dup @ + ! does-addr-inc
+    here (lastih) !
     dodoes,
     compile,-word-init-check ;
 >target
 
 : does> ( -- )
+    lastih word-regs-write
+    word-regs-init
+    1 0 word-good word-regs-adjust
     ['] compile,-does> gforth-compile, ; immediate compile-only
 
 >source

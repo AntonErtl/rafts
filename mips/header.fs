@@ -29,10 +29,10 @@
 \ @s8 constant #ftos
 
 \ initialize freeable registers
-$0300FFFC constant regs-freeable-set
+$0300FFFE constant regs-freeable-set
 
 : (word-init) ( -- )
-    here info-head-size tuck + a,
+    here ih-size tuck + a,
     ['] compile,-native a,
     2cells ?do
 	0 a,
@@ -88,7 +88,7 @@ create dodoes:
 	nop,
 	@ra dup 2cells addiu,
     [THEN]
-    #cfa dup info-cfhead-size addiu,
+    #cfa dup ih-cfsize addiu,
     #cfa -1cells #sp sw,
     #sp dup -1cells addiu,
     #cfa 0 @ra lw,

@@ -244,15 +244,6 @@ include regs.fs
 	endif
     endif ;
 
-: compile,-literal ( x -- D: addr )
-    lit >data ; compile-only
->target
-
-: literal ( x -- )
-    [ also Forth ' lit previous ] literal gforth-compile, ,
-    [comp'] compile,-literal drop gforth-compile, ; immediate compile-only
-
->source
 : addr ( offset register -- il-addr )
     swap regs-unused I_LITS terminal
     NULL rot I_REG terminal
@@ -280,7 +271,9 @@ include regs.fs
 	begin					\ (R: indent)
 	    dup @ dup 0<>
 	while
-	    rot r@ 1+ rot rot recurse drop
+	    rot r@ 1+ rot rot
+	    [ 1 -3 wword-regs-adjust ]
+	    recurse drop
 	    cell+
 	repeat
 	2drop r>

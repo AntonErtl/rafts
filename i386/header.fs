@@ -74,10 +74,8 @@ create dodoes:
 
 [THEN]
 
-4 constant info-head-size
-
 : (word-init) ( -- )
-    here info-head-size tuck cells + a,
+    here ih-size tuck + a,
     ['] compile,-native a,
     2 ?do
 	0 a,

@@ -56,7 +56,7 @@ end-struct slist-struct
     begin
 	dup NIL <>
     while
-	2>r 2r@ swap execute 2r>
+	2>r 2r@ swap [ 0 -1 wword-regs-adjust ] execute 2r>
 	slist-next @
     repeat
     2drop ;

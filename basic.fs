@@ -40,6 +40,7 @@ ds-size 2/ array ds-init
 
 : data> ( -- x ) ( D: x -- )
     0 #data@
+    0 0 #data!
     1 ds-tos +! ;
 
 : .ds ( -- )
@@ -70,6 +71,7 @@ rs-size 2/ array rs-init
 
 : return> ( -- x ) ( R: x -- )
     0 #return@
+    0 0 #return!
     1 rs-tos +! ;
 
 : .rs ( -- )
@@ -80,29 +82,42 @@ rs-size 2/ array rs-init
     drop ;
 
 \ variables for local controll stack
+: cs-dsize ( n -- n )
+    3 * ;
+: cs-dget ( addr -- n n n )
+    dup @
+    swap cell+ dup @
+    swap cell+ @ ;
+: cs-dput ( n n n addr -- )
+    tuck 2cells + !
+    tuck cell+ !
+    ! ;
 $20 constant cs-size
 variable cs-tos
-cs-size array cs-data
+cs-size cs-dsize array cs-data
 
 cs-size 1- cs-tos !
 
 \ functions for handling the local control stack
-: #control@ ( n -- x )
-    cs-tos @ + cs-data @ ;
+: #control@ ( n -- x x x )
+    cs-tos @ + cs-dsize cs-data
+    cs-dget ;
 
-: #control! ( x n -- )
-    cs-tos @ + cs-data ! ;
+: #control! ( x x x n -- )
+    cs-tos @ + cs-dsize cs-data
+    cs-dput ;
 
-: >control ( x -- ) ( C: -- x )
+: >control ( x x x -- ) ( C: -- x x x )
     0 #control!
     -1 cs-tos +! ;
 
-: control@ ( -- x ) ( C: -- )
+: control@ ( -- x x x ) ( C: x x x -- x x x )
     0 #control@ ;
 
-: control> ( -- x ) ( C: x -- )
+: control> ( -- x x x ) ( C: x x x -- )
     1 cs-tos +!
-    0 #control@ ;
+    0 #control@
+    0 0 0 0 #control! ;
 
 : cs-depth ( -- n )
     cs-size cs-tos @ - 1- ;
@@ -110,7 +125,7 @@ cs-size 1- cs-tos !
 : .cs ( -- )
     ." <C:" cs-depth 0 .r ." > "
     cs-depth dup 0 ?do
-	dup i - #control@ hex.
+	dup i - #control@ hex. hex. hex.
     loop
     drop ;
 
@@ -198,8 +213,7 @@ control-init
     loop
     cr
     ds-size 0 ?do
-	i ds-data @ dup hex.
-	?dup 0<> if
+	i ds-data @ dup hex. ?dup if
 	    inst-print-node
 	else
 	    cr
@@ -208,7 +222,7 @@ control-init
     cr
     ." TOS:" ds-tos @ . cr ;
 
-: basic-datastackdump-new ( -- )
+: basic-datastackdump-new ( il-addr n -- )
     \ new stackelements
     ?trace $0100 [IF]
 	." STACKDUMP (new):" hex.s cr
@@ -217,7 +231,7 @@ control-init
     dup inst inst-s!-list @ slist-insert drop
     inst-btrees-insert ;
 
-: basic-datastackdump-old ( -- )
+: basic-datastackdump-old ( il-addr n -- )
     \ old stackelements (changed)
     ?trace $0100 [IF]
 	." STACKDUMP (old):" hex.s cr
@@ -341,16 +355,19 @@ constant nop-ml \ nop instruction, usable only after scheduling
     #control@ ;
 
 : compile,-cs-roll ( u -- ) ( C: dest/origu dest/origu-1 ... dest/orig0 -- dest/origu-1 ... dest/orig0 dest/origu )
-    dup 1+ #control@ swap
-    cs-tos @ cs-data cell+ dup cell+ rot cells move
-    control> drop >control ;
+    dup 1+ #control@ 2>r >r
+    cs-tos @ 1+ dup cs-dsize cs-data swap 1+ cs-dsize cs-data rot cs-dsize cells move
+    control> 2drop drop
+    r> 2r> >control ;
 
 >target
 : cs-pick ( u -- )
+    dup compile,-cs-pick
     [ also Forth ' lit previous ] literal gforth-compile, ,
     ['] compile,-cs-pick gforth-compile, ;
 
 : cs-roll ( u -- )
+    dup compile,-cs-roll
     [ also Forth ' lit previous ] literal gforth-compile, ,
     ['] compile,-cs-roll gforth-compile, ;
 >source

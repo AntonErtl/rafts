@@ -31,25 +31,25 @@ end-struct btree-struct
 : btree-preorder ( xt addr -- )
 \ executes a function for all elements
     dup NIL <> if
-	2>r 2r@ swap execute 2r>
-	2>r 2r@ btree-left @ recurse 2r>
-	2>r 2r@ btree-right @ recurse 2r>
+	2>r 2r@ swap [ 0 -1 wword-regs-adjust ] execute 2r>
+	2>r 2r@ btree-left @ [ 0 -2 wword-regs-adjust ] recurse 2r>
+	2>r 2r@ btree-right @ [ 0 -2 wword-regs-adjust ] recurse 2r>
     endif
     2drop ;
 
 : btree-inorder ( xt addr -- )
     dup NIL <> if
-	2>r 2r@ btree-left @ recurse 2r>
-	2>r 2r@ swap execute 2r>
-	2>r 2r@ btree-right @ recurse 2r>
+	2>r 2r@ btree-left @ [ 0 -2 wword-regs-adjust ] recurse 2r>
+	2>r 2r@ swap [ 0 -1 wword-regs-adjust ] execute 2r>
+	2>r 2r@ btree-right @ [ 0 -2 wword-regs-adjust ] recurse 2r>
     endif
     2drop ;
 
 : btree-postorder ( xt addr -- )
     dup NIL <> if
-	2>r 2r@ btree-left @ recurse 2r>
-	2>r 2r@ btree-right @ recurse 2r>
-	2>r 2r@ swap execute 2r>
+	2>r 2r@ btree-left @ [ 0 -2 wword-regs-adjust ] recurse 2r>
+	2>r 2r@ btree-right @ [ 0 -2 wword-regs-adjust ] recurse 2r>
+	2>r 2r@ swap [ 0 -1 wword-regs-adjust ] execute 2r>
     endif
     2drop ;
 

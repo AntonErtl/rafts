@@ -56,7 +56,7 @@ end-struct ml-struct
 	." true " drop EXIT
     endif
     dup true = if
-	." false" drop EXIT
+	." false " drop EXIT
     endif
     hex. assert( FALSE ) ;
 

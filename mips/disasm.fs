@@ -149,20 +149,20 @@ $20 2 matrix disasm-opc-copzrs
 $20 2 matrix disasm-opc-copzrt
 $40 2 matrix disasm-opc-cop0
 
-: (disasm-print) ( addr addr -- )
-    >r dup 1 r@ execute @ rot swap execute
-    0 r> execute @ name. ;
+: (disasm-print) ( addr n addr -- )
+    >r dup 1 r@ [ 1 -2 wword-regs-adjust ] execute @ rot swap [ 0 -1 wword-regs-adjust ] execute
+    0 r> [ 1 -2 wword-regs-adjust ] execute @ name. ;
 
 : disasm-print ( addr -- )
-    dup @ 0= if
-	drop ['] nop, name.
-    else
+    dup @ if
 	dup @ (disasm-op)
 	dup 0 disasm-opc @ NIL <> if
 	    ['] disasm-opc (disasm-print)
 	else
-	    1 disasm-opc @ execute
+	    1 disasm-opc @ [ 0 -1 wword-regs-adjust ] execute
 	endif
+    else
+	drop ['] nop, name.
     endif ;
 
 : disasm-dump ( addr count -- )
@@ -172,8 +172,8 @@ $40 2 matrix disasm-opc-cop0
     4 +loop ;
 
 : (disasm-gen) ( name func n addr -- )
-    >r tuck 1 r@ execute !
-    0 r> execute ! ;
+    >r tuck 1 r@ [ 1 -2 wword-regs-adjust ] execute !
+    0 r> [ 1 -2 wword-regs-adjust ] execute ! ;
 
 : disasm-gen ( name func n -- )
     ['] disasm-opc (disasm-gen) ;
@@ -195,7 +195,9 @@ $40 2 matrix disasm-opc-cop0
     dup 0 disasm-opc-copzrs @ NIL <> if
 	['] disasm-opc-copzrs (disasm-print)
     else
-	1 disasm-opc-copzrs @ execute
+	1 disasm-opc-copzrs @
+	[ 0 -1 wword-regs-adjust ]
+	execute
     endif ;
 
 : disasm-gen-copzrs ( name func n -- )
@@ -228,7 +230,8 @@ $40 2 matrix disasm-opc-cop0
 
 : disasm-init ( xt n -- )
     0 ?do
-	['] illegal-code ['] disasm-nop i 3 pick execute
+	['] illegal-code ['] disasm-nop i 3 pick
+	[ 0 -3 wword-regs-adjust ] execute
     loop
     drop ;
 ' disasm-gen $40 disasm-init

@@ -31,6 +31,57 @@ vocabulary voc-target
 \ all words compiled by the target, and a few more
 
 include options.fs
+
+$0000 constant word-good
+$0001 constant word-bad
+
+variable word-regs-depth
+variable word-regs-current
+variable word-regs-flag
+
+?shared wword-regs-adjust [IF]
+: wword-regs-print ( -- )
+    ;
+
+: wword-regs-adjust ( regs-out regs-in -- )
+    2drop ;
+[THEN]
+
+: word-regs-put ( regs-out regs-in regs-flag -- )
+    word-regs-flag !
+    dup word-regs-depth !
+    + word-regs-current ! ;
+
+: word-regs-get ( -- regs-out regs-in regs-flag )
+    word-regs-depth @ dup
+    word-regs-current @ swap - swap
+    word-regs-flag @ ;
+
+: word-regs-init ( -- )
+    0 0 0 word-regs-put ;
+
+: word-regs-print ( -- )
+    ." word-regs: "
+    word-regs-current .
+    word-regs-get . . . cr ;
+
+: word-regs-adjust ( regs-out reg-in regs-flag -- )
+    word-regs-flag @ or word-regs-flag !
+    word-regs-current +!
+    word-regs-depth @ word-regs-current @ tuck < if
+	drop
+    else
+	word-regs-depth !
+    endif
+    word-regs-current +! ;
+
+: word-regs-max ( x1 x2 x3 x4 -- x5 x6 )
+    2over 2over nip rot drop < if
+	2drop
+    else
+	2nip
+    endif ;
+
 include stdlib/stdlib.fs
 
 : vsource ( -- )
@@ -58,14 +109,18 @@ include stdlib/stdlib.fs
     also Forth (') previous ; immediate
 
 struct
-    1 cells: field info-head-interpreter
-    1 cells: field info-head-compiler
-    8 cells: field info-head-buffer1
-    1 cells: field info-head-null
-    1 cells: field info-head-buffer2
-end-struct info-head
-info-head drop constant info-head-size
-info-head-size 2cells + constant info-cfhead-size
+    2 cells: field ih-cfa
+    1 cells: field ih-interpreter
+    1 cells: field ih-compiler
+    1 cells: field ih-regs-in
+    1 cells: field ih-regs-out
+    1 cells: field ih-regs-flag
+    9 cells: field ih-buffer1
+    1 cells: field ih-null
+    1 cells: field ih-buffer2
+end-struct ih-struct
+ih-struct drop constant ih-cfsize
+ih-cfsize 2cells - constant ih-size
 
 defer compile,-constant-gforth
 defer compile,-variable-gforth
@@ -84,7 +139,7 @@ defer compile,-native
 defer compile,-does
 
 variable noname-state
-false noname-state !
+noname-state off
 
 2variable branch-info \ contains the address of the last assembled branch
 		\ and the method ( target-addr branch-addr -- ) for patching it
@@ -105,7 +160,7 @@ include primitives.fs
 include control.fs
 
 >target
-also vtarget :word execute previous
+word-bad 0 -1 also vtarget :word execute previous
 >source
 
 :noname ( xt -- )
@@ -167,43 +222,43 @@ is compile,-interpreter
     ?trace $0001 [IF]
 	." constant: " dup name. hex.s cr
     [THEN]
-    info-cfhead-size + @ compile,-literal ;
+    ih-cfsize + @ compile,-literal ;
 is compile,-constant
 
 :noname ( xt -- )
     ?trace $0001 [IF]
 	." 2constant: " dup name. hex.s cr
     [THEN]
-    dup info-cfhead-size + cell+ @ compile,-literal
-    info-cfhead-size + @ compile,-literal ;
+    dup ih-cfsize + cell+ @ compile,-literal
+    ih-cfsize + @ compile,-literal ;
 is compile,-2constant
 
 :noname ( xt -- )
     ?trace $0001 [IF]
 	." [2]variable: " dup name. hex.s cr
     [THEN]
-    info-cfhead-size + compile,-literal ;
+    ih-cfsize + compile,-literal ;
 is compile,-variable
 
 :noname ( xt -- )
     ?trace $0001 [IF]
 	." [2]user: " dup name. hex.s cr
     [THEN]
-    info-cfhead-size + compile,-literal ;
+    ih-cfsize + compile,-literal ;
 is compile,-user
 
 :noname ( xt -- )
     ?trace $0001 [IF]
 	." compile,-field: " dup name. hex.s cr
     [THEN]
-    info-cfhead-size + @ compile,-literal 0 compile,-+ ;
+    ih-cfsize + @ compile,-literal 0 compile,-+ ;
 is compile,-field
 
 :noname ( xt -- )
     ?trace $0001 [IF]
 	." compile,-defer: " dup name. hex.s cr
     [THEN]
-    info-cfhead-size + compile,-literal 0 compile,-@
+    ih-cfsize + compile,-literal 0 compile,-@
     basic-exit
     ['] execute word-interpreter
     basic-init ;
@@ -222,22 +277,33 @@ is compile,-native
     ?trace $0001 [IF]
 	." compile,-native (does>): " hex.s cr
     [THEN]
-    dup info-cfhead-size + compile,-literal
+    dup ih-cfsize + compile,-literal
     basic-exit
     dup @ 2 lshift $1a asm-bitmask and swap $1a asm-bitmask invert and or
-    info-cfhead-size + word-call
+    ih-cfsize + word-call
     basic-init ;
 is compile,-does
 
 : compile, ( xt -- )
-    \ ~~
-    \ dup >name .name
-    \ dup $10 - $40 dump
+    ?trace $0001 [IF]
+	\ ~~
+	\ dup >name .name
+	\ dup $10 - $40 dump
+    [THEN]
+    dup word-regs-read
+    ?trace $0001 [IF]
+	word-regs-print
+    [THEN]
     dup [ also Forth ' lit previous ] literal gforth-compile, ,
     3cells + @ gforth-compile, ;
 
+: wword-regs-print ( -- )
+    word-regs-print ;
+: wword-regs-adjust ( regs-out regs-in -- )
+    word-good word-regs-adjust ;
+
 >target
-also vtarget :word compile, previous
+word-good 0 0 also vtarget :word compile, previous
 >source
 
 : name>comp ( nt -- w xt ) \ gforth
@@ -277,15 +343,15 @@ also vtarget :word compile, previous
 : >body ( cfa -- pfa )
     dup >code-address case
 	docode: of
-	info-cfhead-size
+	ih-cfsize
 	endof
 	dodata: of
-	info-cfhead-size
+	ih-cfsize
 	endof
 	dup >r
 	>code-address case
 	    dodoes: of
-	    info-cfhead-size
+	    ih-cfsize
 	    endof
 	    >r 2cells r>
 	endcase 
@@ -295,7 +361,7 @@ also vtarget :word compile, previous
 
 : body> ( pfa -- cfa )
     2cells - dup @ 0= if
-	info-head-size -
+	ih-size -
     endif ;
 
 : replace-word ( xt nfa -- )
@@ -313,11 +379,11 @@ also vtarget :word compile, previous
 >target
 
 also vtarget
-:word also
-:word previous
-:word Forth
-:word vsource
-:word vtarget
+word-good 0 0 :word also
+word-good 0 0 :word previous
+word-good 0 0 :word Forth
+word-good 0 0 :word vsource
+word-good 0 0 :word vtarget
 previous
 
 ?test $0001 [IF]
@@ -340,170 +406,177 @@ target>
 also vsource also Forth
 
 \ gforth word useable in target
-:word true
-:word false
-:word bl
-:word base
-:word last
-:word state
-:word type
-:word printdebugdata
-:word .name
-:word .s
-:word .r
-:word ,
-:word ;s
-:word 2,
-:word '
-:word (')
-:word "error
-:word [
-:word ]
-:word \
-:word (
-:word <#
-:word >body
-:word body>
-:word >code-address
-:word >does-code
-:word >in
-:word >number
-:word >name
-:word ((name>))
-:word (name>x)
-:word #
-:word #s
-:word #>
-:word #cr
-:word #ff
-:word #lf
-:word /mod
-:word */
-:word */mod
-:word a,
-:word abs
-:word allot
-:word align
-:word alias
-:word alias-mask
-:word also
-:word aligned
-:word assert-level
-:word bye
-:word c,
-:word cells:
-:word char
-:word cfa,
-:word code-address!
-:word comp'
-:word compile-only
-:word context
-:word count
-:word decimal
-:word definitions
-:word depth
-:word dp
-:word docon:
-:word docol:
-:word dodefer:
-:word dofield:
-:word douser:
-:word dovar:
-:word dump
-:word d.
-:word emit
-:word erase
-:word evaluate
-:word find
-:word find-name
-:word fill
-:word flush-icache
-:word fm/mod
-:word forth
-:word forthstart
-:word get-current
-:word header
-:word here
-:word hex
-:word hold
-:word include
-:word included-files
-:word immediate
-:word immediate-mask
-:word interpret/compile?
-:word interpret/compile-comp
-:word loadfilename#
-:word lastcfa
-:word lastxt
-:word lit
-:word literal
-:word look
-:word max
-:word maxdepth-.s
-:word min
-:word move
-:word m*
-:word nalign
-:word name
-:word name>int
-:word noop
-:word nothing
-:word order
-:word parse
-:word place
-:word postpone
-:word restrict-mask
-:word reveal
-:word root
-:word rp@
-:word see
-:word set-order
-:word sfind
-:word sign
-:word snumber?
-:word sourcefilename
-:word sourceline#
-:word space
-:word spaces
-:word struct-allot
-:word s>d
-:word sm/rem
-:word source
-:word threading-method
-:word throw
-:word u.
-:word um/mod
-:word um*
-:word word
-:word wordlist
-:word [IF]
-:word [ELSE]
-:word [ENDIF]
-:word [THEN]
+\ word-flag out-regs in-regs
+ word-good 1 0 :word true
+ word-good 1 0 :word false
+ word-good 1 0 :word bl
+ word-good 1 0 :word base
+ word-good 1 0 :word last
+ word-good 1 0 :word state
+ word-good 0 0 :word printdebugdata
+ word-good 0 -1 :word .name
+ word-good 0 0 :word .s
+ word-good 0 -2 :word .r
+ word-good 0 -1 :word ,
+ word-good 0 0 :word ;s
+ word-good 0 -2 :word 2,
+ word-good 1 0 :word '
+ word-good 0 0 :word (')
+word-good 0 0 :word "error
+ word-good 0 0 :word [
+ word-good 0 0 :word ]
+ word-good 0 0 :word \
+ word-good 0 0 :word (
+ word-good 0 0 :word <#
+ word-good 1 -1 :word >body
+ word-good 1 -1 :word body>
+word-good 0 0 :word >code-address
+word-good 0 0 :word >does-code
+word-good 0 0 :word >in
+word-good 0 0 :word >number
+word-good 0 0 :word >name
+word-good 0 0 :word ((name>))
+ word-good 2 -1 :word (name>x)
+ word-good 2 -2 :word #
+ word-good 2 -2 :word #s
+ word-good 2 -2 :word #>
+ word-good 1 0 :word #cr
+ word-good 1 0 :word #ff
+ word-good 1 0 :word #lf
+word-good 0 0 :word /mod
+word-good 0 0 :word */
+word-good 0 0 :word */mod
+ word-good 0 -1 :word a,
+ word-good 1 -1 :word abs
+ word-good 0 -1 :word allot
+word-good 0 0 :word align
+word-good 0 0 :word alias
+ word-good 1 0 :word alias-mask
+word-good 0 0 :word also
+word-good 0 0 :word aligned
+word-good 0 0 :word assert-level
+ word-good 0 0 :word bye
+ word-good 0 -1 :word c,
+word-good 0 0 :word cells:
+word-good 0 0 :word char
+word-good 0 0 :word cfa,
+word-good 0 0 :word code-address!
+word-good 0 0 :word comp'
+word-good 0 0 :word compile-only
+word-good 0 0 :word context
+ word-good 2 -1 :word count
+word-good 0 0 :word decimal
+word-good 0 0 :word definitions
+ word-good 1 0 :word depth
+word-good 0 0 :word dp
+ word-good 1 0 :word docon:
+ word-good 1 0 :word docol:
+ word-good 1 0 :word dodefer:
+ word-good 1 0 :word dofield:
+ word-good 1 0 :word douser:
+ word-good 1 0 :word dovar:
+ word-good 0 -2 :word dump
+ word-good 0 -2 :word d.
+ word-good 0 -1 :word emit
+word-good 0 0 :word erase
+word-good 0 0 :word evaluate
+word-good 0 0 :word find
+word-good 0 0 :word find-name
+word-good 0 0 :word fill
+word-good 0 0 :word flush-icache
+word-good 0 0 :word fm/mod
+ word-good 0 0 :word forth
+word-good 0 0 :word forthstart
+word-good 0 0 :word get-current
+ word-good 0 0 :word header
+ word-good 1 0 :word here
+ word-good 0 0 :word hex
+ word-good 0 -1 :word hold
+ word-good 0 0 :word include
+word-good 0 0 :word included-files
+ word-good 0 0 :word immediate
+ word-good 1 0 :word immediate-mask
+word-good 0 0 :word interpret/compile?
+word-good 0 0 :word interpret/compile-comp
+word-good 0 0 :word loadfilename#
+ word-good 1 0 :word lastcfa
+ word-good 1 0 :word lastxt
+ word-good 1 0 :word lit
+ word-good 1 0 :word literal
+ word-good 1 0 :word look
+ word-good 1 -2 :word max
+ word-good 1 0 :word maxdepth-.s
+ word-good 1 -2 :word min
+word-good 0 0 :word move
+word-good 0 0 :word m*
+word-good 0 0 :word nalign
+ word-good 2 0 :word name
+word-good 0 0 :word name>comp
+word-good 0 0 :word name>int
+ word-good 0 0 :word noop
+word-good 0 0 :word nothing
+word-good 0 0 :word order
+word-good 0 0 :word parse
+word-good 0 0 :word place
+word-good 0 0 :word postpone
+ word-good 1 0 :word restrict-mask
+ word-good 0 0 :word reveal
+ word-good 0 0 :word root
+word-good 0 0 :word rp@
+word-good 0 0 :word see
+word-good 0 0 :word set-order
+word-good 0 0 :word sfind
+word-good 0 0 :word sign
+ word-bad 1 -2 :word snumber?
+word-good 0 0 :word sourcefilename
+word-good 0 0 :word sourceline#
+ word-good 0 0 :word space
+ word-good 0 -1 :word spaces
+word-good 0 0 :word struct-allot
+ word-good 2 -1 :word s>d
+word-good 0 0 :word sm/rem
+word-good 0 0 :word source
+word-good 0 0 :word threading-method
+word-good 0 0 :word throw
+ word-good 0 -2 :word type
+ word-good 0 -1 :word u.
+word-good 0 0 :word um/mod
+word-good 0 0 :word um*
+word-good 0 0 :word word
+word-good 0 0 :word wordlist
+word-good 0 -1 :word [IF]
+word-good 0 0 :word [ELSE]
+word-good 0 0 :word [ENDIF]
+word-good 0 0 :word [THEN]
 
-:word ?dup
+ word-bad 1 -1 :word ?dup
 previous
 
 \ rafts word useable in target
-:word ~~
-:word :
-:word :noname
-\ :word ;
-:word ?trace
-:word constant
-:word create
-:word defer
-:word disasm-dump
-:word info-head-size
-:word info-cfhead-size
-:word field
-:word finish
-:word hex.
-:word hex.s
-:word hex.rs
-:word text-print
-:word vlist
-:word variable
+ word-good 1 0 :word [']
+ word-good 1 0 :word s"
+ word-good 0 0 :word ."
+ word-good 0 -1 :word abort"
+ word-good 0 0 :word ~~
+ word-good 0 0 :word :
+ word-good 0 0 :word :noname
+ word-good 0 0 :word ;
+ word-good 0 0 :word ?trace
+ word-good 0 -1 :word constant
+ word-good 0 0 :word create
+ word-good 0 0 :word defer
+ word-good 0 -2 :word disasm-dump
+ word-good 1 -1 :word field
+ word-good 0 0 :word finish
+ word-good 0 -1 :word hex.
+ word-good 0 0 :word hex.s
+ word-good 0 0 :word hex.rs
+ word-good 0 0 :word text-print
+ word-good 0 -1 :word vlist
+ word-good 0 0 :word variable
+
+ word-good 0 0 :word wword-regs-print
+ word-good 0 -3 :word wword-regs-adjust
 
 previous
 
