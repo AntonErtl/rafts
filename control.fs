@@ -297,13 +297,18 @@ ls_size array ls_data
 : does> ( -- )
   state @ if
     ['] ;dodoes compile,
+    return>
+    dup node_reg @ @ra <> if
+      @ra over node_reg ! inst_btrees_insert else
+      drop endif
     basic_exit
     (func_exit)
     dodoes, else
     here !does dodoes,
     vtarget ] vsource endif
   (func_init)
-  basic_init ; immediate restrict
+  basic_init
+  0 @ra VREGP node dup inst_done >return ; immediate restrict
 lastxt
 >source
 alias does>

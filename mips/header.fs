@@ -73,8 +73,8 @@ create dodoes
 [THEN]
 
 : (func_init) ( -- )
-  @ra -4 #rp @sw
-  #rp #rp -4 @addiu drop
+  \ \\ @ra -4 #rp @sw
+  \ \\ #rp #rp -4 @addiu drop
   \ -4 regs_unused LITI node
   \ 0 #rp VREGP node
   \ ADDU op #rp over node_reg ! inst_btrees_insert
@@ -83,11 +83,13 @@ create dodoes
   ;
 
 : (func_exit) ( -- )
-  @ra 0 #rp @lw
-  #rp #rp 4 @addiu drop
-  @jr
-  @nop
-  ;
+  \ \\ @ra 0 #rp @lw
+  \ \\ #rp #rp 4 @addiaddiu drop
+  @ra @jr
+  @nop ;
+
+: (func_lwexit) ( -- )
+  @ra 0 #rp @lw drop ;
 
 true constant ?runtest
 

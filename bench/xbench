@@ -1,5 +1,8 @@
 #!/bin/sh
 
+PATH="bench:$PATH"
+export PATH
+
 xtest bubble-sort.fs
 xtest fib.fs
 xtest matrix-mult.fs

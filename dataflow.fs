@@ -29,21 +29,18 @@
 : :noname ( -- )
   vtarget ] vsource
   true noname_state !
-  func_init_noname
-  basic_init ;
+  func_init_noname ;
 
 : : ( "name" -- )
   vtarget ] vsource
   false noname_state !
-  func_init
-  basic_init ;
+  func_init ;
 
 >target_compile
 : ; ( -- )
 ?trace $0008 [IF]
   hex.s cr
 [THEN]
-  basic_exit
   noname_state @ if
     func_exit_noname else
     func_exit endif
@@ -52,13 +49,14 @@
   noname_state @ 0<> if
     lastcfa @ else
     last @ endif
-  here 2dup over - hex.s dump			\ Hexdump vom generierten Maschinencode
+  here 2dup over - hex.s dump		\ Hexdump vom generierten Maschinencode
   noname_state @ 0= if
     swap name> swap endif
-  hex.s swap dup 2 cells + tuck disasm_dump	\ disassemblierter Dump vom generierten Maschienencode
+  hex.s swap				\ disassemblierter Dump vom generierten Maschienencode
   dup 2 cells + tuck disasm_dump
-  swap 4 cells - tuck disasm_dump
-  here disasm_dump
+  \ dup 2 cells + tuck disasm_dump
+  \ swap 4 cells - tuck disasm_dump
+  swap disasm_dump
   .cs cr
   regs_print
 [THEN]

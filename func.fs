@@ -40,9 +40,16 @@ end-struct ((:dostruc))
 : func_init_noname ( -- )
   here lastcfa !
   :docode a, 0 a,
-  (func_init) ;
+  (func_init)
+  basic_init
+  0 @ra VREGP node dup inst_done >return ;
 
 : func_exit_noname ( -- )
+  return>
+  dup node_reg @ @ra <> if
+    @ra over node_reg ! inst_btrees_insert else
+    drop endif
+  basic_exit
   (func_exit) ;
 
 : func_init ( -- )

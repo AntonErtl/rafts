@@ -53,13 +53,21 @@ FILES.p1	= $(FILES:.fs=.p1)
 FILES.p2	= $(FILES:.fs=.p2)
 DIFFS		= $(FILES:.fs=.diff)
 
-all:		$(DMP)
-clean:	
-		$(RM) $(DMP)
+all:		install_mips
+install_i486:
+		ln -sf i486/header.fs
+		ln -sf i486/grammar.fs
+install_mips:
+		ln -sf mips/header.fs
+		ln -sf mips/grammar.fs
 
+dmp:		$(DMP)
+dmpclean:	
+		$(RM) $(DMP)
 diff:		$(FILES.p1) $(FILES.p2) $(DIFFS)
 diffclean:
 		$(RM) $(FILES.p1) $(FILES.p2) $(DIFFS)
 
-distclean:	clean diffclean
+clean:		dmpclean diffclean
+distclean:	clean
 		$(RM) *.dmp *.p1 *.p2 *.diff

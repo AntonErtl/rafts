@@ -144,20 +144,16 @@ include node.fs
   dup node_right @ node_val @ swap node_left @ node_reg @ ;
 
 : asm_fetchc ( node_addr -- )
-  dup asm_reg@ swap (asm_lval@) get_addr @lbu drop
-  NIL asm_nop ;
+  dup asm_reg@ swap (asm_lval@) get_addr @lbu drop ;
 
 : asm_fetchregc ( node_addr -- )
-  dup asm_reg@ swap asm_lreg@ 0 swap @lbu drop
-  NIL asm_nop ;
+  dup asm_reg@ swap asm_lreg@ 0 swap @lbu drop ;
 
 : asm_fetchi ( node_addr -- )
-  dup asm_reg@ swap (asm_lval@) get_addr @lw drop
-  NIL asm_nop ;
+  dup asm_reg@ swap (asm_lval@) get_addr @lw drop ;
 
 : asm_fetchregi ( node_addr -- )
-  dup asm_reg@ swap asm_lreg@ 0 swap @lw drop
-  NIL asm_nop ;
+  dup asm_reg@ swap asm_lreg@ 0 swap @lw drop ;
 
 : asm_storec ( node_addr -- )
   dup asm_lreg@ swap (asm_rval@) get_addr @sb ;
@@ -172,13 +168,13 @@ include node.fs
   dup asm_lreg@ swap asm_rreg@ 0 swap @sw ;
 
 : asm_add ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @addu drop ;
+  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @add drop ;
 
 : asm_addi ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @addiu drop ;
+  dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @addi drop ;
 
 : asm_sub ( node_addr -- )
-  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @subu drop ;
+  dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @sub drop ;
 
 : asm_mul ( node_addr -- )
   dup asm_lreg@ swap asm_rreg@ @mult ;
