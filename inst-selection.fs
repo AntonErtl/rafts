@@ -180,6 +180,7 @@ include node.fs
 : asm_sub ( node_addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @sub drop ;
 
+\ !! two instructions
 : asm_mul ( node_addr -- )
   dup asm_lreg@ over asm_rreg@ @mult asm_reg@ @mflo drop ;
 
@@ -234,9 +235,22 @@ include node.fs
 : asm_rshi ( node_addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rval@ @sra drop ;
 
-: asm_eq ( node_addr -- )
+: asm_0branch ( node_addr -- )
   dup asm_lreg@ @zero rot asm_val@
   here - cell- @beq ;
+
+: asm_branch ( node_addr -- )
+  @zero @zero rot asm_val@
+  here - cell- @beq ;
+
+: asm_beq ( node_addr -- )
+  dup asm_lreg@ over asm_rreg@ rot asm_val@
+  here - cell- @beq ;
+
+: asm_seq ( node_addr -- )
+  >r
+  r@ asm_reg@ r@ asm_lreg@ r> asm_rreg@ @xor drop
+  dup 1 @sltiu drop ;
 
 : asm_slt ( node_addr -- )
   dup asm_reg@ swap dup asm_lreg@ swap asm_rreg@ @slt drop ;

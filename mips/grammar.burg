@@ -148,9 +148,9 @@ reg:  I_CFETCH(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchc r> inst_ok
 reg:  I_CFETCH(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregc r> inst_ok
 reg:  I_FETCH(addr)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchi r> inst_ok
 reg:  I_FETCH(reg)		#1#	>r r@ inst_notdone NIL [\'] asm_fetchregi r> inst_ok
-stmt: I_CSTORE(reg, addr)		#1#	>r 0 r@ node_reg ! [\'] asm_storec r> inst_ok drop
-stmt: I_CSTORE(reg, reg)		#1#	>r 0 r@ node_reg ! [\'] asm_storeregc r> inst_ok drop
-stmt: I_STORE(reg, addr)		#1#	>r 0 r@ node_reg ! [\'] asm_storei r> inst_ok drop
+stmt: I_CSTORE(reg, addr)	#1#	>r 0 r@ node_reg ! [\'] asm_storec r> inst_ok drop
+stmt: I_CSTORE(reg, reg)	#1#	>r 0 r@ node_reg ! [\'] asm_storeregc r> inst_ok drop
+stmt: I_STORE(reg, addr)	#1#	>r 0 r@ node_reg ! [\'] asm_storei r> inst_ok drop
 stmt: I_STORE(reg, reg)		#1#	>r 0 r@ node_reg ! [\'] asm_storeregi r> inst_ok drop
 
 reg:  I_PLUS(reg, reg)		#1#	>r [\'] asm_add r> inst_ok
@@ -159,7 +159,7 @@ reg:  I_MINUS(reg, reg)		#1#	>r [\'] asm_sub r> inst_ok
 reg: I_TIMES(reg, reg)		#1#	>r [\'] asm_mul r> inst_ok
 reg: I_SLASH(reg, reg)		#1#	>r [\'] asm_div r> inst_ok
 reg: I_MOD(reg, reg)		#1#	>r [\'] asm_mod r> inst_ok
-reg:  I_NEGATE(reg)			#1#	>r NIL [\'] asm_neg r> inst_ok
+reg:  I_NEGATE(reg)		#1#	>r NIL [\'] asm_neg r> inst_ok
 
 reg:  I_AND(reg, reg)		#1#	>r [\'] asm_and r> inst_ok
 reg:  I_AND(reg, cons)		#1#	>r [\'] asm_andi r> inst_ok
@@ -168,17 +168,19 @@ reg:  I_OR(reg, cons)		#1#	>r [\'] asm_ori r> inst_ok
 reg:  I_XOR(reg, reg)		#1#	>r [\'] asm_xor r> inst_ok
 reg:  I_XOR(reg, cons)		#1#	>r [\'] asm_xori r> inst_ok
 reg:  I_INVERT(reg)		#1#	>r NIL [\'] asm_not r> inst_ok
-reg:  I_LSHIFT(reg, reg)		#1#	>r [\'] asm_lsh r> inst_ok
-reg:  I_LSHIFT(reg, cons)		#1#	>r [\'] asm_lshi r> inst_ok
-reg:  I_RSHIFT(reg, reg)		#1#	>r [\'] asm_rshu r> inst_ok
-reg:  I_SRSHIFT(reg, reg)		#1#	>r [\'] asm_rsh r> inst_ok
-reg:  I_RSHIFT(reg, cons)		#1#	>r [\'] asm_rshui r> inst_ok
-reg:  I_SRSHIFT(reg, cons)		#1#	>r [\'] asm_rshi r> inst_ok
+reg:  I_LSHIFT(reg, reg)	#1#	>r [\'] asm_lsh r> inst_ok
+reg:  I_LSHIFT(reg, cons)	#1#	>r [\'] asm_lshi r> inst_ok
+reg:  I_RSHIFT(reg, reg)	#1#	>r [\'] asm_rshu r> inst_ok
+reg:  I_SRSHIFT(reg, reg)	#1#	>r [\'] asm_rsh r> inst_ok
+reg:  I_RSHIFT(reg, cons)	#1#	>r [\'] asm_rshui r> inst_ok
+reg:  I_SRSHIFT(reg, cons)	#1#	>r [\'] asm_rshi r> inst_ok
 
+flag:  I_EQUALS(reg, reg)	#2#	>r [\'] asm_seq r> inst_ok
 reg:  I_LESS(reg, reg)		#1#	>r [\'] asm_slt r> inst_ok
 reg:  I_LESS(reg, cons)		#1#	>r [\'] asm_slti r> inst_ok
 reg:  I_ULESS(reg, reg)		#1#	>r [\'] asm_sltu r> inst_ok
-reg:  I_ULESS(reg, cons)		#1#	>r [\'] asm_sltui r> inst_ok
-stmt: I_0BRANCH(reg)		#1#	>r NIL [\'] asm_eq 0 r@ node_cost ! r> inst_ok drop
+reg:  I_ULESS(reg, cons)	#1#	>r [\'] asm_sltui r> inst_ok
+stmt: I_0BRANCH(reg)		#1#	>r NIL [\'] asm_0branch 0 r@ node_cost ! r> inst_ok drop
+stmt: I_BRANCH			#1#	>r NIL NIL [\'] asm_branch 0 r@ node_cost ! r> inst_ok drop
 stmt: NOP
 %%
